@@ -1,5 +1,15 @@
 # Lattice MVP TODO
 
+## Product Direction
+
+- [x] Keep Lattice as the canonical dotfiles manager for this product line.
+- [x] Treat earlier dotfiles-manager experiments as feature-mining sources, not
+  parallel products.
+- [x] Keep the core generic: service-scoped scan, plan, backup, restore, diff,
+  and narrow lifecycle hooks.
+- [x] Keep Codex-specific support thin: presets, docs, and `doctor` checks rather
+  than a Codex-only core.
+
 ## v0.1 Scope
 
 - [x] Create a Rust CLI repository.
@@ -53,7 +63,7 @@ See `docs/product/mvp-scope.md`.
 - [x] Add `validate` if it stays small.
 - [x] Default omitted service repos to `$XDG_DATA_HOME/lattice/repos/<service>`.
 
-## MVP 2
+## v0.3.x Safe Personal Backup
 
 - [x] Add `service add`, `service show`, and `service remove`.
 - [x] Add `include add/remove` and `exclude add/remove`.
@@ -66,3 +76,47 @@ See `docs/product/mvp-scope.md`.
 - [x] Add optional symlink restore mode.
 - [x] Add OS and hostname service conditions.
 - [x] Add simple env-var template rendering on restore.
+- [x] Add empty directory preservation.
+- [x] Add portable path collision checks.
+- [x] Add metadata-loss guards for hard links, xattrs, and macOS resource forks.
+- [x] Tag the first regular personal-use release line as `v0.3.3`.
+
+## v0.4.x Automation-Friendly CLI
+
+- [x] Add richer `lattice tui --dry-run` dashboard output.
+- [x] Keep TUI dashboard best-effort per service when a root or repo path is unavailable.
+- [x] Add machine-readable JSON output for `status`.
+- [x] Add machine-readable JSON output for `backup --dry-run`.
+- [x] Add machine-readable JSON output for `diff`.
+- [x] Add machine-readable JSON output for `restore --dry-run`.
+- [x] Add `--only` and `--exclude` selectors for status, backup, diff, and restore flows.
+- [x] Cover JSON and selector behavior in CLI smoke tests.
+- [ ] Document automation examples in README and user docs.
+- [ ] Decide whether the current main branch should be tagged as `v0.4.0` after docs are complete.
+
+## v0.5.x New Machine Bootstrap
+
+- [ ] Document a complete new-machine bootstrap flow:
+  `install -> init -> preset enable/add service -> repo pull -> restore --dry-run -> restore`.
+- [ ] Improve first-run guidance after `init`.
+- [ ] Add diagnostics for missing tools and disconnected repos without installing anything automatically.
+- [ ] Make restore dry-run summaries easy to trust before the real restore.
+
+## v0.6.x Codex Baseline
+
+- [ ] Keep Codex support in preset/docs/doctor checks, not core-only behavior.
+- [ ] Improve Codex preset documentation for managed files versus runtime/auth state.
+- [ ] Add targeted `doctor` warnings for common Codex config risks if they stay deterministic.
+
+## v0.7.x Service Groups
+
+- [ ] Design a conservative service-group model before implementation.
+- [ ] Add group status and group dry-run planning before any batch restore behavior.
+- [ ] Keep group output machine-readable from the start.
+
+## v1.0 Public Stable CLI
+
+- [ ] Stabilize install, release, changelog, and migration notes.
+- [ ] Decide crates.io publish policy.
+- [ ] Add shell completions and polished help/manpage surfaces if they remain small.
+- [ ] Add issue templates and compatibility policy.

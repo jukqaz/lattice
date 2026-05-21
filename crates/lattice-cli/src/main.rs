@@ -890,11 +890,14 @@ fn print_tui_dashboard(paths: &LatticePaths, actions: &[&str]) -> Result<()> {
         } else {
             "no"
         };
-        let root = expand_path(&service.root)?;
-        let repo = resolve_repo_path(paths, &service)?;
+        let root = expand_path(&service.root);
+        let repo = resolve_repo_path(paths, &service);
         let (include, exclude) = effective_patterns(&service);
-        let files = match scan_service(&root, &include, &exclude) {
-            Ok(files) => files.len().to_string(),
+        let files = match &root {
+            Ok(root) => match scan_service(root, &include, &exclude) {
+                Ok(files) => files.len().to_string(),
+                Err(error) => format!("unavailable({error})"),
+            },
             Err(error) => format!("unavailable({error})"),
         };
         println!(
@@ -902,8 +905,8 @@ fn print_tui_dashboard(paths: &LatticePaths, actions: &[&str]) -> Result<()> {
             service.name,
             active,
             files,
-            root.display(),
-            repo.display()
+            path_summary(&root),
+            path_summary(&repo)
         );
     }
     println!("actions:");
@@ -911,6 +914,13 @@ fn print_tui_dashboard(paths: &LatticePaths, actions: &[&str]) -> Result<()> {
         println!("- {action}");
     }
     Ok(())
+}
+
+fn path_summary(path: &Result<PathBuf>) -> String {
+    match path {
+        Ok(path) => path.display().to_string(),
+        Err(error) => format!("unavailable({error})"),
+    }
 }
 
 fn select_service_name(paths: &LatticePaths) -> Result<String> {

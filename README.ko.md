@@ -94,6 +94,32 @@ lattice service add <service> --root <path> --preset <preset>
 | 로컬 파일과 repo copy 비교 | `lattice diff codex` |
 | prompt 기반 UI 열기 | `lattice tui` |
 
+## Automation과 JSON output
+
+Script나 agent가 사람이 읽는 stdout을 parsing하지 않게 하려면 `--json`을
+사용합니다.
+
+```bash
+lattice status --json codex
+lattice backup --dry-run --json codex
+lattice diff --json codex
+lattice restore --dry-run --json codex
+```
+
+특정 tracked path만 계획하려면 `--only`와 `--exclude`를 사용합니다. 이 selector는
+`status`, `backup`, `diff`, `restore` flow에서 사용할 수 있습니다.
+
+```bash
+lattice status --json --only config.toml codex
+lattice backup --dry-run --json --only config.toml codex
+lattice diff --json --exclude 'shell_snapshots/**' codex
+lattice restore --dry-run --json --only config.toml codex
+```
+
+Automation에서는 쓰기 작업 전에 dry-run JSON 명령을 먼저 사용합니다. 계획의
+`files`, `dirs`, `entries`, `conflicts` field를 확인한 뒤 괜찮을 때만 non-dry-run
+명령을 실행합니다.
+
 ## Git으로 동기화하기
 
 Service repo는 일반 directory입니다. 직접 Git을 써도 되고, 내장 helper를

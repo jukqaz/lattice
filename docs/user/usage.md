@@ -271,7 +271,41 @@ machines:
 lattice service add <service> --root <path> --preset <preset> --os macos
 ```
 
-## 10. Prompt UI
+## 10. Automation And JSON Output
+
+Use `--json` when scripts, CI jobs, or agents need stable machine-readable
+output:
+
+```bash
+lattice status --json codex
+lattice backup --dry-run --json codex
+lattice diff --json codex
+lattice restore --dry-run --json codex
+```
+
+For write flows, prefer the dry-run JSON command first. Parse the plan and stop
+if unexpected files, directories, entries, or conflicts appear:
+
+```bash
+plan="$(lattice restore --dry-run --json codex)"
+printf '%s\n' "$plan" | jq '.conflicts'
+```
+
+Use `--only` and `--exclude` to narrow status, backup, diff, and restore work to
+specific tracked paths. Quote glob selectors so the shell does not expand them:
+
+```bash
+lattice status --json --only config.toml codex
+lattice backup --dry-run --json --only config.toml codex
+lattice diff --json --exclude 'shell_snapshots/**' codex
+lattice restore --dry-run --json --only config.toml codex
+```
+
+The selectors are intentionally path-scoped, not service-group orchestration.
+Use them for small, reviewable operations such as backing up one changed config
+file or excluding noisy generated state from a diff.
+
+## 11. Prompt UI
 
 Open the prompt-based UI:
 

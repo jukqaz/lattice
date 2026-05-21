@@ -91,7 +91,7 @@ See `docs/product/mvp-scope.md`.
 - [x] Add machine-readable JSON output for `restore --dry-run`.
 - [x] Add `--only` and `--exclude` selectors for status, backup, diff, and restore flows.
 - [x] Cover JSON and selector behavior in CLI smoke tests.
-- [ ] Document automation examples in README and user docs.
+- [x] Document automation examples in README and user docs.
 - [ ] Decide whether the current main branch should be tagged as `v0.4.0` after docs are complete.
 
 ## v0.5.x New Machine Bootstrap

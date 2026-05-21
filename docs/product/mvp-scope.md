@@ -13,10 +13,11 @@ It is not a full system configuration manager, package manager, or secret
 manager. The core product should stay small: scan, plan, backup, restore, and
 run narrowly configured lifecycle hooks.
 
-## Current Release Candidate: v0.3.0
+## Current Release: v0.3.1
 
-v0.3.0 is the first release candidate intended for regular personal use. It
-includes the v0.2 safety layer plus the first CLI-first management layer.
+v0.3.1 is the first release line intended for regular personal use. It includes
+the v0.2 safety layer, the first CLI-first management layer, and the empty
+directory preservation fix needed for real Codex configuration backups.
 
 Current scope:
 
@@ -31,6 +32,7 @@ Current scope:
 - `include add/remove`, `exclude add/remove`, and `permission set/remove`.
 - `backup`, `backup --dry-run`, `restore`, `restore --dry-run`, and
   `restore --force`.
+- Empty directory tracking in backup manifests and restore.
 - Permission manifest capture and restore.
 - Restore conflict detection and XDG state snapshots before overwrite.
 - Restore-time secure directory creation.
@@ -91,7 +93,7 @@ needs a custom repository location.
 
 ## Release Acceptance
 
-v0.3.0 is release-ready when:
+v0.3.1 is release-ready when:
 
 - `cargo run -p xtask -- verify` passes.
 - `cargo run -p xtask -- linux-verify` passes.
@@ -101,4 +103,4 @@ v0.3.0 is release-ready when:
 - Path install smoke passes with `cargo install --path crates/lattice-cli`.
 - GitHub Actions passes on Linux x86_64, Linux ARM64, macOS Apple Silicon, and
   the quality job.
-- The tag install smoke passes after `v0.3.0` is pushed.
+- The tag install smoke passes after `v0.3.1` is pushed.

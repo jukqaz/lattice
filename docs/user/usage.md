@@ -31,7 +31,7 @@ manager. It keeps the dotfile sync layer small and explicit.
 Install the latest tagged release:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.2 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.3 --locked
 ```
 
 Install from a local checkout while developing Lattice:
@@ -230,6 +230,20 @@ lattice backup --allow-secret-looking-files <service>
 Backup scans regular files and included empty directories. It does not follow
 symlinks or copy sockets, FIFOs, device files, and other special filesystem
 entries as file content.
+
+Service roots and repos must not overlap. Tracked paths must be portable UTF-8,
+must not contain control characters, and must not collide after Unicode
+normalization plus case folding. This prevents silent data loss when moving
+backups between case-sensitive Linux filesystems and case-insensitive macOS
+filesystems.
+
+Copy backup does not preserve hard-link relationships, extended attributes, or
+macOS resource forks. Lattice blocks those files by default. Use
+`--allow-metadata-loss` only after reviewing the affected files:
+
+```bash
+lattice backup --allow-metadata-loss <service>
+```
 
 ## 9. Advanced Restore Options
 

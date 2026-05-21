@@ -13,11 +13,11 @@ Lattice는 full system configuration manager, package manager, secret manager가
 아니다. 핵심 제품은 작게 유지한다: scan, plan, backup, restore, 좁게 설정된
 lifecycle hook 실행.
 
-## 현재 릴리스: v0.3.2
+## 현재 릴리스: v0.3.3
 
-v0.3.2는 일반적인 개인 dotfiles 관리에 사용할 수 있는 첫 릴리스 라인이다.
-v0.2의 safety layer, 첫 CLI-first 관리 계층, 실제 service 백업 검증 중 발견한
-빈 디렉터리 보존 fix를 포함한다.
+v0.3.3은 일반적인 개인 dotfiles 관리에 사용할 수 있는 첫 릴리스 라인이다.
+v0.2의 safety layer, 첫 CLI-first 관리 계층, 빈 디렉터리 보존, portable
+filesystem safety check를 포함한다.
 
 현재 범위:
 
@@ -38,6 +38,11 @@ v0.2의 safety layer, 첫 CLI-first 관리 계층, 실제 service 백업 검증 
 - restore-time secure directory creation.
 - confirmation과 timeout을 지원하는 minimal lifecycle hook.
 - backup 전 secret-looking content guard.
+- case-insensitive 및 Unicode-normalized name을 위한 portable path collision
+  check.
+- root/repo overlap rejection.
+- hard link, extended attribute, macOS resource fork를 위한 metadata-loss
+  guard와 명시적 `--allow-metadata-loss` bypass.
 - secret 값을 읽지 않는 `rbw`, `bw` secret metadata command.
 - `repo status/pull/commit/push` git repo command.
 - 기존 file을 service에 가져오는 `track`, `adopt`.
@@ -92,7 +97,7 @@ confirm = false
 
 ## 릴리스 완료 기준
 
-v0.3.2는 다음 조건을 만족하면 release-ready다.
+v0.3.3은 다음 조건을 만족하면 release-ready다.
 
 - `cargo run -p xtask -- verify` 통과.
 - `cargo run -p xtask -- linux-verify` 통과.
@@ -102,4 +107,4 @@ v0.3.2는 다음 조건을 만족하면 release-ready다.
 - `cargo install --path crates/lattice-cli` path install smoke 통과.
 - GitHub Actions의 Linux x86_64, Linux ARM64, macOS Apple Silicon, quality job
   통과.
-- `v0.3.2` push 이후 tag install smoke 통과.
+- `v0.3.3` push 이후 tag install smoke 통과.

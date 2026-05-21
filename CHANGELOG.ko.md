@@ -2,6 +2,22 @@
 
 [English](CHANGELOG.md) | 한국어 | [문서 인덱스](docs/README.ko.md)
 
+## v0.3.3
+
+### 수정
+
+- backup 또는 restore 전에 service root/repo overlap을 거부해 recursive copy와
+  self-restore를 막는다.
+- portable UTF-8이 아니거나 control character를 포함하거나 Unicode
+  normalization과 case folding 이후 충돌하는 추적 path를 거부한다.
+- copy backup이 보존하지 못하는 hard link, extended attribute, macOS resource
+  fork를 기본적으로 거부한다.
+
+### 추가
+
+- 검토 후 metadata loss를 허용할 수 있는 파일을 위한
+  `backup --allow-metadata-loss`와 `adopt --allow-metadata-loss`.
+
 ## v0.3.2
 
 ### 수정

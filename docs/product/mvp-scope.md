@@ -13,11 +13,11 @@ It is not a full system configuration manager, package manager, or secret
 manager. The core product should stay small: scan, plan, backup, restore, and
 run narrowly configured lifecycle hooks.
 
-## Current Release: v0.3.2
+## Current Release: v0.3.3
 
-v0.3.2 is the first release line intended for regular personal use. It includes
-the v0.2 safety layer, the first CLI-first management layer, and the empty
-directory preservation fix discovered while validating a real service backup.
+v0.3.3 is the first release line intended for regular personal use. It includes
+the v0.2 safety layer, the first CLI-first management layer, empty directory
+preservation, and additional portable filesystem safety checks.
 
 Current scope:
 
@@ -38,6 +38,11 @@ Current scope:
 - Restore-time secure directory creation.
 - Minimal lifecycle hooks with confirmation and timeout support.
 - Secret-looking content guard before backup.
+- Portable path collision checks for case-insensitive and Unicode-normalized
+  names.
+- Root/repo overlap rejection.
+- Metadata-loss guard for hard links, extended attributes, and macOS resource
+  forks, with explicit `--allow-metadata-loss` bypass.
 - Secret metadata commands for `rbw` and `bw` without reading secret values.
 - Git repo commands: `repo status/pull/commit/push`.
 - `track` and `adopt` for importing existing files into a service.
@@ -93,7 +98,7 @@ needs a custom repository location.
 
 ## Release Acceptance
 
-v0.3.2 is release-ready when:
+v0.3.3 is release-ready when:
 
 - `cargo run -p xtask -- verify` passes.
 - `cargo run -p xtask -- linux-verify` passes.
@@ -103,4 +108,4 @@ v0.3.2 is release-ready when:
 - Path install smoke passes with `cargo install --path crates/lattice-cli`.
 - GitHub Actions passes on Linux x86_64, Linux ARM64, macOS Apple Silicon, and
   the quality job.
-- The tag install smoke passes after `v0.3.2` is pushed.
+- The tag install smoke passes after `v0.3.3` is pushed.

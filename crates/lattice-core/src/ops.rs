@@ -1,8 +1,11 @@
-use std::fs;
+use std::collections::HashMap;
+use std::ffi::OsStr;
 use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::{env, fs};
 
 use anyhow::{Context, Result, bail};
+use unicode_normalization::UnicodeNormalization;
 
 use crate::config::{CreateDirRule, PermissionRule};
 use crate::manifest::{Manifest, ManifestEntry, read_manifest, write_manifest};
@@ -19,6 +22,7 @@ pub struct BackupReport {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct BackupOptions {
     pub allow_secret_looking_files: bool,
+    pub allow_metadata_loss: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -61,8 +65,10 @@ pub fn backup_service_with_options(
     exclude: &[String],
     options: &BackupOptions,
 ) -> Result<BackupReport> {
+    ensure_service_root_and_repo_do_not_overlap(root, repo)?;
     let files = scan_service(root, include, exclude)?;
     let dirs = scan_empty_dirs(root, include, exclude)?;
+    ensure_no_portable_path_collisions(files.iter().chain(dirs.iter()).map(PathBuf::as_path))?;
     let mut entries = Vec::with_capacity(files.len());
     let mut directories = Vec::with_capacity(dirs.len());
 
@@ -99,7 +105,7 @@ pub fn backup_service_with_options(
 
     for relative in &files {
         let source = checked_join(root, relative)?;
-        ensure_regular_source_file(&source)?;
+        ensure_backup_source_file(&source, options)?;
         ensure_no_destination_parent_symlinks(repo, relative)?;
         let destination = checked_join(repo, relative)?;
         if destination_is_symlink(&destination)? {
@@ -163,11 +169,19 @@ pub fn restore_service(repo: &Path, root: &Path) -> Result<RestoreReport> {
 }
 
 pub fn restore_plan(repo: &Path, root: &Path) -> Result<RestorePlan> {
+    ensure_service_root_and_repo_do_not_overlap(root, repo)?;
     let manifest_path = repo.join(".lattice").join("manifest.toml");
     let manifest = read_manifest(&manifest_path)?;
     if manifest.version != 1 {
         bail!("unsupported manifest version: {}", manifest.version);
     }
+    ensure_no_portable_path_collisions(
+        manifest
+            .directories
+            .iter()
+            .chain(manifest.entries.iter())
+            .map(|entry| entry.path.as_path()),
+    )?;
     let mut conflicts = Vec::new();
 
     for entry in &manifest.directories {
@@ -440,13 +454,161 @@ fn ensure_safe_relative_path(path: &Path) -> Result<()> {
     let mut has_component = false;
     for component in path.components() {
         match component {
-            Component::Normal(_) => has_component = true,
+            Component::Normal(component) => {
+                has_component = true;
+                ensure_portable_component(path, component)?;
+            }
             _ => bail!("unsafe relative path: {}", path.display()),
         }
     }
     if !has_component {
         bail!("unsafe relative path: {}", path.display());
     }
+    Ok(())
+}
+
+fn ensure_portable_component(path: &Path, component: &OsStr) -> Result<()> {
+    let text = component
+        .to_str()
+        .with_context(|| format!("path is not portable UTF-8: {}", path.display()))?;
+    if text.chars().any(char::is_control) {
+        bail!(
+            "path is not portable because it contains control characters: {}",
+            path.display()
+        );
+    }
+    Ok(())
+}
+
+fn ensure_no_portable_path_collisions<'a>(paths: impl IntoIterator<Item = &'a Path>) -> Result<()> {
+    let mut seen = HashMap::<String, PathBuf>::new();
+    for path in paths {
+        let key = portable_path_key(path)?;
+        if let Some(existing) = seen.insert(key, path.to_path_buf()) {
+            bail!(
+                "portable path collision: {} conflicts with {}",
+                existing.display(),
+                path.display()
+            );
+        }
+    }
+    Ok(())
+}
+
+fn portable_path_key(path: &Path) -> Result<String> {
+    let mut parts = Vec::new();
+    let mut has_component = false;
+    for component in path.components() {
+        match component {
+            Component::Normal(component) => {
+                has_component = true;
+                ensure_portable_component(path, component)?;
+                let text = component
+                    .to_str()
+                    .with_context(|| format!("path is not portable UTF-8: {}", path.display()))?;
+                let normalized = text
+                    .chars()
+                    .nfc()
+                    .flat_map(char::to_lowercase)
+                    .collect::<String>();
+                parts.push(normalized);
+            }
+            _ => bail!("unsafe relative path: {}", path.display()),
+        }
+    }
+    if !has_component {
+        bail!("unsafe relative path: {}", path.display());
+    }
+    Ok(parts.join("/"))
+}
+
+fn ensure_service_root_and_repo_do_not_overlap(root: &Path, repo: &Path) -> Result<()> {
+    let root = comparable_path(root).context("failed to resolve service root")?;
+    let repo = comparable_path(repo).context("failed to resolve repo")?;
+    if root == repo || root.starts_with(&repo) || repo.starts_with(&root) {
+        bail!(
+            "service root and repo must not overlap: root={} repo={}",
+            root.display(),
+            repo.display()
+        );
+    }
+    Ok(())
+}
+
+fn comparable_path(path: &Path) -> Result<PathBuf> {
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        env::current_dir()
+            .context("failed to resolve current directory")?
+            .join(path)
+    };
+    canonicalize_existing_prefix(&absolute)
+}
+
+fn canonicalize_existing_prefix(path: &Path) -> Result<PathBuf> {
+    let mut current = path;
+    let mut missing = Vec::new();
+    loop {
+        match fs::canonicalize(current) {
+            Ok(mut resolved) => {
+                for component in missing.iter().rev() {
+                    resolved.push(component);
+                }
+                return Ok(resolved);
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                let component = current.file_name().with_context(|| {
+                    format!("path does not have an existing prefix: {}", path.display())
+                })?;
+                missing.push(component.to_os_string());
+                current = current.parent().with_context(|| {
+                    format!("path does not have an existing prefix: {}", path.display())
+                })?;
+            }
+            Err(error) => {
+                return Err(error).with_context(|| format!("failed to stat {}", current.display()));
+            }
+        }
+    }
+}
+
+fn ensure_backup_source_file(path: &Path, options: &BackupOptions) -> Result<()> {
+    ensure_regular_source_file(path)?;
+    if !options.allow_metadata_loss {
+        ensure_no_metadata_loss_risks(path)?;
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn ensure_no_metadata_loss_risks(path: &Path) -> Result<()> {
+    use std::os::unix::fs::MetadataExt;
+
+    let metadata =
+        fs::metadata(path).with_context(|| format!("failed to stat {}", path.display()))?;
+    if metadata.nlink() > 1 {
+        bail!(
+            "metadata loss risk: hard-linked source file is not preserved by copy backup: {}",
+            path.display()
+        );
+    }
+
+    let attrs = xattr::list(path)
+        .with_context(|| format!("failed to list extended attributes for {}", path.display()))?
+        .collect::<Vec<_>>();
+    if !attrs.is_empty() {
+        bail!(
+            "metadata loss risk: extended attributes or resource forks are not preserved by copy backup: {}",
+            path.display()
+        );
+    }
+
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn ensure_no_metadata_loss_risks(_path: &Path) -> Result<()> {
     Ok(())
 }
 
@@ -653,7 +815,10 @@ mod tests {
     use crate::config::{CreateDirRule, PermissionRule};
     use crate::manifest::{Manifest, ManifestEntry, write_manifest};
 
-    use super::{RestoreOptions, backup_service, restore_service, restore_service_with_options};
+    use super::{
+        BackupOptions, RestoreOptions, backup_service, backup_service_with_options,
+        restore_service, restore_service_with_options,
+    };
 
     #[test]
     fn backs_up_files_manifest_and_restores_modes() {
@@ -1124,6 +1289,251 @@ mod tests {
     }
 
     #[test]
+    fn backup_rejects_root_repo_overlap() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("source");
+        let repo_inside_source = source.join(".lattice-repo");
+
+        write_file(source.as_path(), "config.toml", "source\n", 0o600);
+
+        let error = backup_service(
+            source.as_path(),
+            repo_inside_source.as_path(),
+            &["config.toml".to_string()],
+            &[],
+        )
+        .expect_err("backup should reject overlapping root and repo");
+
+        assert!(format!("{error:#}").contains("service root and repo must not overlap"));
+        assert!(!repo_inside_source.join("config.toml").exists());
+    }
+
+    #[test]
+    fn restore_rejects_root_repo_overlap() {
+        let temp = tempdir().expect("tempdir");
+        let repo = temp.path().join("repo");
+        let root_inside_repo = repo.join("restored");
+
+        write_file(repo.as_path(), "config.toml", "repo\n", 0o600);
+        write_manifest(
+            &repo.join(".lattice/manifest.toml"),
+            &Manifest {
+                version: 1,
+                directories: Vec::new(),
+                entries: vec![ManifestEntry {
+                    path: "config.toml".into(),
+                    mode: "0600".to_string(),
+                }],
+            },
+        )
+        .expect("write manifest");
+
+        let error = restore_service(repo.as_path(), root_inside_repo.as_path())
+            .expect_err("restore reject");
+
+        assert!(format!("{error:#}").contains("service root and repo must not overlap"));
+        assert!(!root_inside_repo.join("config.toml").exists());
+    }
+
+    #[test]
+    fn restore_rejects_case_insensitive_manifest_collisions_before_copying() {
+        let temp = tempdir().expect("tempdir");
+        let repo = temp.path().join("repo");
+        let root = temp.path().join("root");
+
+        write_manifest(
+            &repo.join(".lattice/manifest.toml"),
+            &Manifest {
+                version: 1,
+                directories: Vec::new(),
+                entries: vec![
+                    ManifestEntry {
+                        path: "Config.toml".into(),
+                        mode: "0600".to_string(),
+                    },
+                    ManifestEntry {
+                        path: "config.toml".into(),
+                        mode: "0600".to_string(),
+                    },
+                ],
+            },
+        )
+        .expect("write manifest");
+
+        let error = restore_service(repo.as_path(), root.as_path())
+            .expect_err("restore should reject case collision");
+
+        assert!(format!("{error:#}").contains("portable path collision"));
+        assert!(!root.join("config.toml").exists());
+    }
+
+    #[test]
+    fn restore_rejects_unicode_normalized_manifest_collisions_before_copying() {
+        let temp = tempdir().expect("tempdir");
+        let repo = temp.path().join("repo");
+        let root = temp.path().join("root");
+
+        write_manifest(
+            &repo.join(".lattice/manifest.toml"),
+            &Manifest {
+                version: 1,
+                directories: Vec::new(),
+                entries: vec![
+                    ManifestEntry {
+                        path: "é.toml".into(),
+                        mode: "0600".to_string(),
+                    },
+                    ManifestEntry {
+                        path: "e\u{301}.toml".into(),
+                        mode: "0600".to_string(),
+                    },
+                ],
+            },
+        )
+        .expect("write manifest");
+
+        let error = restore_service(repo.as_path(), root.as_path())
+            .expect_err("restore should reject Unicode collision");
+
+        assert!(format!("{error:#}").contains("portable path collision"));
+        assert!(!root.join("é.toml").exists());
+    }
+
+    #[test]
+    fn backup_rejects_control_character_paths() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("source");
+        let repo = temp.path().join("repo");
+
+        write_file(source.as_path(), "bad\nname.toml", "source\n", 0o600);
+
+        let error = backup_service(source.as_path(), repo.as_path(), &["**".to_string()], &[])
+            .expect_err("backup should reject control characters");
+
+        assert!(format!("{error:#}").contains("path is not portable"));
+        assert!(!repo.join("bad\nname.toml").exists());
+    }
+
+    #[test]
+    fn restore_rejects_control_character_manifest_paths() {
+        let temp = tempdir().expect("tempdir");
+        let repo = temp.path().join("repo");
+        let root = temp.path().join("root");
+
+        write_file(repo.as_path(), "bad\nname.toml", "repo\n", 0o600);
+        write_manifest(
+            &repo.join(".lattice/manifest.toml"),
+            &Manifest {
+                version: 1,
+                directories: Vec::new(),
+                entries: vec![ManifestEntry {
+                    path: "bad\nname.toml".into(),
+                    mode: "0600".to_string(),
+                }],
+            },
+        )
+        .expect("write manifest");
+
+        let error = restore_service(repo.as_path(), root.as_path())
+            .expect_err("restore should reject control characters");
+
+        assert!(format!("{error:#}").contains("path is not portable"));
+        assert!(!root.join("bad\nname.toml").exists());
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn portable_path_key_rejects_non_utf8_paths() {
+        use std::ffi::OsString;
+        use std::os::unix::ffi::OsStringExt;
+
+        let invalid_name = PathBuf::from(OsString::from_vec(vec![b'b', b'a', b'd', 0x80]));
+        let error = super::portable_path_key(&invalid_name)
+            .expect_err("portable key should reject non-UTF8 paths");
+
+        assert!(format!("{error:#}").contains("path is not portable"));
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn backup_rejects_hardlinked_source_files_by_default() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("source");
+        let repo = temp.path().join("repo");
+
+        write_file(source.as_path(), "config.toml", "source\n", 0o600);
+        fs::hard_link(source.join("config.toml"), source.join("config.link"))
+            .expect("create hard link");
+
+        let error = backup_service(
+            source.as_path(),
+            repo.as_path(),
+            &["config.toml".into()],
+            &[],
+        )
+        .expect_err("backup should reject hardlinked source files");
+
+        assert!(format!("{error:#}").contains("metadata loss"));
+        assert!(!repo.join("config.toml").exists());
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn backup_rejects_xattr_source_files_by_default() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("source");
+        let repo = temp.path().join("repo");
+        let config = source.join("config.toml");
+
+        write_file(source.as_path(), "config.toml", "source\n", 0o600);
+        if !set_test_xattr(&config) {
+            eprintln!("skipping xattr assertion because this filesystem rejected test xattrs");
+            return;
+        }
+
+        let error = backup_service(
+            source.as_path(),
+            repo.as_path(),
+            &["config.toml".into()],
+            &[],
+        )
+        .expect_err("backup should reject xattr source files");
+
+        assert!(format!("{error:#}").contains("metadata loss"));
+        assert!(!repo.join("config.toml").exists());
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn backup_can_allow_reviewed_metadata_loss() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("source");
+        let repo = temp.path().join("repo");
+
+        write_file(source.as_path(), "config.toml", "source\n", 0o600);
+        fs::hard_link(source.join("config.toml"), source.join("config.link"))
+            .expect("create hard link");
+
+        let report = backup_service_with_options(
+            source.as_path(),
+            repo.as_path(),
+            &["config.toml".into()],
+            &[],
+            &BackupOptions {
+                allow_secret_looking_files: false,
+                allow_metadata_loss: true,
+            },
+        )
+        .expect("backup should allow reviewed metadata loss");
+
+        assert_eq!(report.copied, vec![PathBuf::from("config.toml")]);
+        assert_eq!(
+            fs::read_to_string(repo.join("config.toml")).expect("repo config"),
+            "source\n"
+        );
+    }
+
+    #[test]
     fn restore_dir_and_permission_rules_reject_paths_that_escape_root() {
         let temp = tempdir().expect("tempdir");
         let root = temp.path().join("root/subroot");
@@ -1240,5 +1650,12 @@ mod tests {
 
     fn mode(path: &Path) -> u32 {
         fs::metadata(path).expect("metadata").permissions().mode() & 0o777
+    }
+
+    #[cfg(unix)]
+    fn set_test_xattr(path: &Path) -> bool {
+        ["user.lattice_test", "com.jukqaz.lattice_test"]
+            .into_iter()
+            .any(|name| xattr::set(path, name, b"1").is_ok())
     }
 }

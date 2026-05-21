@@ -683,6 +683,83 @@ include = ["settings.toml"]
 }
 
 #[test]
+fn filesystem_edge_harness_rejects_overlap_names_and_metadata_loss() {
+    let temp = tempdir().expect("tempdir");
+    let env = TestEnv::new(temp.path());
+    let bin = env!("CARGO_BIN_EXE_lattice");
+
+    run_ok(bin, &env, &["init", "--force"]);
+
+    let overlap_source = temp.path().join("overlap-source");
+    write_file(&overlap_source, "config.toml", "source\n", 0o600);
+    run_ok(
+        bin,
+        &env,
+        &[
+            "service",
+            "add",
+            "overlap",
+            "--root",
+            overlap_source.to_str().expect("overlap root"),
+            "--repo",
+            overlap_source.join(".repo").to_str().expect("overlap repo"),
+            "--include",
+            "config.toml",
+        ],
+    );
+    let overlap = run_fail(bin, &env, &["backup", "overlap"]);
+    assert!(overlap.contains("service root and repo must not overlap"));
+
+    let control_source = temp.path().join("control-source");
+    write_file(&control_source, "bad\nname.toml", "source\n", 0o600);
+    run_ok(
+        bin,
+        &env,
+        &[
+            "service",
+            "add",
+            "control",
+            "--root",
+            control_source.to_str().expect("control root"),
+            "--include",
+            "**",
+        ],
+    );
+    let control = run_fail(bin, &env, &["backup", "control"]);
+    assert!(control.contains("path is not portable"));
+
+    let hardlink_source = temp.path().join("hardlink-source");
+    write_file(&hardlink_source, "config.toml", "source\n", 0o600);
+    fs::hard_link(
+        hardlink_source.join("config.toml"),
+        hardlink_source.join("config.link"),
+    )
+    .expect("create hard link");
+    run_ok(
+        bin,
+        &env,
+        &[
+            "service",
+            "add",
+            "hardlink",
+            "--root",
+            hardlink_source.to_str().expect("hardlink root"),
+            "--include",
+            "config.toml",
+        ],
+    );
+    let hardlink = run_fail(bin, &env, &["backup", "hardlink"]);
+    assert!(hardlink.contains("metadata loss"));
+    let allowed = run_ok(bin, &env, &["backup", "--allow-metadata-loss", "hardlink"]);
+    assert!(allowed.contains("copied 1 files"));
+    assert!(
+        env.data
+            .join("lattice/repos/hardlink/config.toml")
+            .is_file()
+    );
+}
+
+#[test]
 fn adopt_failure_does_not_persist_tracking_or_copy_secret_like_files() {
     let temp = tempdir().expect("tempdir");
     let env = TestEnv::new(temp.path());

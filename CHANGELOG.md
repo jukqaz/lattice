@@ -2,6 +2,14 @@
 
 English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
+## v0.3.1
+
+### Fixed
+
+- Preserve included empty directories in the backup manifest and recreate them
+  during restore. This covers service paths such as empty skill directories that
+  are meaningful even without tracked files.
+
 ## v0.3.0
 
 Release candidate for a public git-distributed Lattice release.

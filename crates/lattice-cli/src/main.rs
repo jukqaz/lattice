@@ -17,7 +17,7 @@ use lattice_core::ops::{
 };
 use lattice_core::paths::LatticePaths;
 use lattice_core::preset::{find_preset, preset_names};
-use lattice_core::scanner::scan_service;
+use lattice_core::scanner::{scan_empty_dirs, scan_service};
 use lattice_core::secrets::find_secret_like_patterns;
 use similar::{ChangeTag, TextDiff};
 
@@ -914,9 +914,16 @@ fn backup_service_config(
             yes,
         )?);
         let files = scan_service(&root, &include, &exclude)?;
+        let dirs = scan_empty_dirs(&root, &include, &exclude)?;
         println!("would copy {} files to {}", files.len(), repo.display());
+        if !dirs.is_empty() {
+            println!("would track {} empty dirs", dirs.len());
+        }
         for file in files {
             println!("{}", file.display());
+        }
+        for dir in dirs {
+            println!("{}/", dir.display());
         }
         print_hook_outcomes(&run_hooks(
             &service.hooks,
@@ -950,6 +957,9 @@ fn backup_service_config(
     )?);
 
     println!("copied {} files to {}", report.copied.len(), repo.display());
+    if !report.created_dirs.is_empty() {
+        println!("tracked {} empty dirs", report.created_dirs.len());
+    }
     println!("manifest: {}", report.manifest_path.display());
     Ok(())
 }
@@ -979,6 +989,9 @@ fn restore(
             plan.entries.len(),
             root.display()
         );
+        if !plan.directories.is_empty() {
+            println!("would create {} empty dirs", plan.directories.len());
+        }
         if !plan.conflicts.is_empty() {
             println!("conflicts: {}", plan.conflicts.len());
             for conflict in &plan.conflicts {
@@ -987,6 +1000,9 @@ fn restore(
         }
         for entry in plan.entries {
             println!("{}", entry.path.display());
+        }
+        for entry in plan.directories {
+            println!("{}/", entry.path.display());
         }
         print_hook_outcomes(&run_hooks(
             &service.hooks,
@@ -1030,6 +1046,9 @@ fn restore(
     );
     if !created_dirs.is_empty() {
         println!("created {} restore dirs", created_dirs.len());
+    }
+    if !report.created_dirs.is_empty() {
+        println!("created {} backed-up empty dirs", report.created_dirs.len());
     }
     if !applied_permissions.is_empty() {
         println!("applied {} permission rules", applied_permissions.len());

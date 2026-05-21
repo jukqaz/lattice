@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Manifest {
     pub version: u32,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub directories: Vec<ManifestEntry>,
     pub entries: Vec<ManifestEntry>,
 }
 
@@ -45,6 +47,10 @@ mod tests {
         let manifest_path = temp.path().join(".lattice/manifest.toml");
         let manifest = Manifest {
             version: 1,
+            directories: vec![ManifestEntry {
+                path: PathBuf::from("skills/empty-skill"),
+                mode: "0755".to_string(),
+            }],
             entries: vec![
                 ManifestEntry {
                     path: PathBuf::from("config.toml"),

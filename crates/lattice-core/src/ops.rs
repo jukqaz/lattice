@@ -6,12 +6,13 @@ use anyhow::{Context, Result, bail};
 
 use crate::config::{CreateDirRule, PermissionRule};
 use crate::manifest::{Manifest, ManifestEntry, read_manifest, write_manifest};
-use crate::scanner::scan_service;
+use crate::scanner::{scan_empty_dirs, scan_service};
 use crate::secrets::find_secret_like_patterns;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BackupReport {
     pub copied: Vec<PathBuf>,
+    pub created_dirs: Vec<PathBuf>,
     pub manifest_path: PathBuf,
 }
 
@@ -23,6 +24,7 @@ pub struct BackupOptions {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RestoreReport {
     pub restored: Vec<PathBuf>,
+    pub created_dirs: Vec<PathBuf>,
     pub conflicts: Vec<PathBuf>,
     pub snapshot_dir: Option<PathBuf>,
 }
@@ -39,6 +41,7 @@ pub struct RestoreOptions {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RestorePlan {
     pub entries: Vec<ManifestEntry>,
+    pub directories: Vec<ManifestEntry>,
     pub conflicts: Vec<PathBuf>,
 }
 
@@ -59,13 +62,31 @@ pub fn backup_service_with_options(
     options: &BackupOptions,
 ) -> Result<BackupReport> {
     let files = scan_service(root, include, exclude)?;
+    let dirs = scan_empty_dirs(root, include, exclude)?;
     let mut entries = Vec::with_capacity(files.len());
+    let mut directories = Vec::with_capacity(dirs.len());
 
     if !options.allow_secret_looking_files {
         ensure_no_secret_like_files(root, &files)?;
     }
 
     fs::create_dir_all(repo).with_context(|| format!("failed to create {}", repo.display()))?;
+
+    for relative in &dirs {
+        let source = checked_join(root, relative)?;
+        ensure_source_directory(&source)?;
+        ensure_no_destination_parent_symlinks(repo, relative)?;
+        let destination = checked_join(repo, relative)?;
+        if destination_is_symlink(&destination)? {
+            bail!("backup destination is a symlink: {}", destination.display());
+        }
+        fs::create_dir_all(&destination)
+            .with_context(|| format!("failed to create {}", destination.display()))?;
+        directories.push(ManifestEntry {
+            path: relative.clone(),
+            mode: read_mode(&source)?,
+        });
+    }
 
     let manifest_path = repo.join(".lattice").join("manifest.toml");
     ensure_no_destination_parent_symlinks(repo, Path::new(".lattice/manifest.toml"))?;
@@ -105,12 +126,14 @@ pub fn backup_service_with_options(
         &manifest_path,
         &Manifest {
             version: 1,
+            directories,
             entries,
         },
     )?;
 
     Ok(BackupReport {
         copied: files,
+        created_dirs: dirs,
         manifest_path,
     })
 }
@@ -147,6 +170,15 @@ pub fn restore_plan(repo: &Path, root: &Path) -> Result<RestorePlan> {
     }
     let mut conflicts = Vec::new();
 
+    for entry in &manifest.directories {
+        ensure_safe_relative_path(&entry.path)?;
+        ensure_no_destination_parent_symlinks(root, &entry.path)?;
+        let destination = checked_join(root, &entry.path)?;
+        if destination_dir_conflicts(&destination)? {
+            conflicts.push(entry.path.clone());
+        }
+    }
+
     for entry in &manifest.entries {
         let source = restore_source_path(repo, &entry.path)?;
         ensure_regular_source_file(&source)?;
@@ -163,6 +195,7 @@ pub fn restore_plan(repo: &Path, root: &Path) -> Result<RestorePlan> {
     conflicts.sort();
     Ok(RestorePlan {
         entries: manifest.entries,
+        directories: manifest.directories,
         conflicts,
     })
 }
@@ -178,7 +211,24 @@ pub fn restore_service_with_options(
     }
 
     let mut restored = Vec::with_capacity(plan.entries.len());
+    let mut created_dirs = Vec::with_capacity(plan.directories.len());
     let mut snapshot_dir = None;
+
+    for entry in plan.directories {
+        ensure_safe_relative_path(&entry.path)?;
+        ensure_no_destination_parent_symlinks(root, &entry.path)?;
+        let destination = checked_join(root, &entry.path)?;
+        if path_exists_no_follow(&destination)? && !destination_is_directory(&destination)? {
+            let snapshot = ensure_snapshot_dir(&mut snapshot_dir, options)?;
+            let snapshot_path = snapshot.join(&entry.path);
+            snapshot_existing_path(&destination, &snapshot_path)?;
+            remove_existing_file(&destination)?;
+        }
+        fs::create_dir_all(&destination)
+            .with_context(|| format!("failed to create {}", destination.display()))?;
+        apply_mode(&destination, &entry.mode)?;
+        created_dirs.push(entry.path);
+    }
 
     for entry in plan.entries {
         let source = restore_source_path(repo, &entry.path)?;
@@ -201,6 +251,7 @@ pub fn restore_service_with_options(
     restored.sort();
     Ok(RestoreReport {
         restored,
+        created_dirs,
         conflicts: plan.conflicts,
         snapshot_dir,
     })
@@ -411,6 +462,18 @@ fn ensure_regular_source_file(path: &Path) -> Result<()> {
     Ok(())
 }
 
+fn ensure_source_directory(path: &Path) -> Result<()> {
+    let metadata =
+        fs::symlink_metadata(path).with_context(|| format!("failed to stat {}", path.display()))?;
+    if metadata.file_type().is_symlink() {
+        bail!("source path is a symlink: {}", path.display());
+    }
+    if !metadata.is_dir() {
+        bail!("source path is not a directory: {}", path.display());
+    }
+    Ok(())
+}
+
 fn ensure_no_destination_parent_symlinks(root: &Path, relative: &Path) -> Result<()> {
     let Some(parent) = relative.parent() else {
         return Ok(());
@@ -464,6 +527,25 @@ fn ensure_destination_file_or_absent(path: &Path) -> Result<()> {
         return Ok(());
     }
     bail!("destination path is not a regular file: {}", path.display())
+}
+
+fn destination_dir_conflicts(path: &Path) -> Result<bool> {
+    let metadata = match fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => {
+            return Err(error).with_context(|| format!("failed to stat {}", path.display()));
+        }
+    };
+    Ok(metadata.file_type().is_symlink() || !metadata.is_dir())
+}
+
+fn destination_is_directory(path: &Path) -> Result<bool> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) => Ok(!metadata.file_type().is_symlink() && metadata.is_dir()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error).with_context(|| format!("failed to stat {}", path.display())),
+    }
 }
 
 fn snapshot_existing_path(source: &Path, destination: &Path) -> Result<()> {
@@ -545,13 +627,18 @@ mod tests {
         write_file(source.path(), "config.toml", "model = \"gpt-5.5\"\n", 0o600);
         write_file(source.path(), "bin/mcp-rbw", "#!/usr/bin/env bash\n", 0o700);
         write_file(source.path(), "auth.json", "{}\n", 0o600);
+        fs::create_dir_all(source.path().join("skills/empty-skill")).expect("create empty skill");
         symlink(
             source.path().join("config.toml"),
             source.path().join("bin/config-link"),
         )
         .expect("create symlink");
 
-        let include = vec!["config.toml".to_string(), "bin/**".to_string()];
+        let include = vec![
+            "config.toml".to_string(),
+            "bin/**".to_string(),
+            "skills/**".to_string(),
+        ];
         let exclude = vec!["auth.json".to_string()];
 
         let backup = backup_service(source.path(), repo.path(), &include, &exclude)
@@ -565,8 +652,17 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["bin/mcp-rbw", "config.toml"]
         );
+        assert_eq!(
+            backup
+                .created_dirs
+                .iter()
+                .map(|path| path.to_string_lossy().to_string())
+                .collect::<Vec<_>>(),
+            vec!["skills/empty-skill"]
+        );
         assert!(repo.path().join("config.toml").exists());
         assert!(repo.path().join("bin/mcp-rbw").exists());
+        assert!(repo.path().join("skills/empty-skill").is_dir());
         assert!(!repo.path().join("auth.json").exists());
         assert!(!repo.path().join("bin/config-link").exists());
         assert!(repo.path().join(".lattice/manifest.toml").exists());
@@ -582,6 +678,15 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["bin/mcp-rbw", "config.toml"]
         );
+        assert_eq!(
+            restore_report
+                .created_dirs
+                .iter()
+                .map(|path| path.to_string_lossy().to_string())
+                .collect::<Vec<_>>(),
+            vec!["skills/empty-skill"]
+        );
+        assert!(restore.path().join("skills/empty-skill").is_dir());
         assert_eq!(
             fs::read_to_string(restore.path().join("config.toml")).expect("restored config"),
             "model = \"gpt-5.5\"\n"
@@ -600,6 +705,7 @@ mod tests {
             &repo.path().join(".lattice/manifest.toml"),
             &Manifest {
                 version: 1,
+                directories: Vec::new(),
                 entries: vec![ManifestEntry {
                     path: "config.toml".into(),
                     mode: "0600".to_string(),
@@ -630,6 +736,7 @@ mod tests {
             &repo.path().join(".lattice/manifest.toml"),
             &Manifest {
                 version: 1,
+                directories: Vec::new(),
                 entries: vec![ManifestEntry {
                     path: "config.toml".into(),
                     mode: "0600".to_string(),
@@ -674,6 +781,7 @@ mod tests {
             &repo.path().join(".lattice/manifest.toml"),
             &Manifest {
                 version: 1,
+                directories: Vec::new(),
                 entries: vec![ManifestEntry {
                     path: "config.toml".into(),
                     mode: "0600".to_string(),
@@ -731,6 +839,7 @@ mod tests {
             &repo.join(".lattice/manifest.toml"),
             &Manifest {
                 version: 1,
+                directories: Vec::new(),
                 entries: vec![ManifestEntry {
                     path: "../escape/owned.txt".into(),
                     mode: "0600".to_string(),
@@ -758,6 +867,7 @@ mod tests {
             &repo.join(".lattice/manifest.toml"),
             &Manifest {
                 version: 999,
+                directories: Vec::new(),
                 entries: vec![ManifestEntry {
                     path: "config.toml".into(),
                     mode: "0600".to_string(),
@@ -787,6 +897,7 @@ mod tests {
             &repo.join(".lattice/manifest.toml"),
             &Manifest {
                 version: 1,
+                directories: Vec::new(),
                 entries: vec![ManifestEntry {
                     path: "config.toml".into(),
                     mode: "0600".to_string(),
@@ -814,6 +925,7 @@ mod tests {
             &repo.join(".lattice/manifest.toml"),
             &Manifest {
                 version: 1,
+                directories: Vec::new(),
                 entries: vec![ManifestEntry {
                     path: "linked/config.toml".into(),
                     mode: "0600".to_string(),
@@ -845,6 +957,7 @@ mod tests {
             &repo.join(".lattice/manifest.toml"),
             &Manifest {
                 version: 1,
+                directories: Vec::new(),
                 entries: vec![ManifestEntry {
                     path: "config.toml".into(),
                     mode: "0600".to_string(),
@@ -899,6 +1012,7 @@ mod tests {
             &repo.join(".lattice/manifest.toml"),
             &Manifest {
                 version: 1,
+                directories: Vec::new(),
                 entries: vec![ManifestEntry {
                     path: "config.toml".into(),
                     mode: "0600".to_string(),

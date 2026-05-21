@@ -2,6 +2,13 @@
 
 [English](CHANGELOG.md) | 한국어 | [문서 인덱스](docs/README.ko.md)
 
+## v0.3.1
+
+### 수정
+
+- include된 빈 디렉터리를 backup manifest에 보존하고 restore 시 다시 생성한다.
+  file이 없어도 의미가 있는 empty skill directory 같은 service path를 커버한다.
+
 ## v0.3.0
 
 public git-distributed Lattice 릴리스 후보.

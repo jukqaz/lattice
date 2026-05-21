@@ -1,3 +1,4 @@
+use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
@@ -36,6 +37,51 @@ pub fn scan_service(root: &Path, include: &[String], exclude: &[String]) -> Resu
     Ok(files)
 }
 
+pub fn scan_empty_dirs(
+    root: &Path,
+    include: &[String],
+    exclude: &[String],
+) -> Result<Vec<PathBuf>> {
+    let include_set = build_globset(include).context("failed to build include globs")?;
+    let exclude_set = build_globset(exclude).context("failed to build exclude globs")?;
+    let mut dirs = Vec::new();
+
+    for entry in WalkDir::new(root).follow_links(false).min_depth(1) {
+        let entry = entry.with_context(|| format!("failed to walk {}", root.display()))?;
+        if !entry.file_type().is_dir() {
+            continue;
+        }
+
+        let relative = entry
+            .path()
+            .strip_prefix(root)
+            .with_context(|| {
+                format!(
+                    "failed to make {} relative to {}",
+                    entry.path().display(),
+                    root.display()
+                )
+            })?
+            .to_path_buf();
+
+        if include_set.is_match(&relative)
+            && !exclude_set.is_match(&relative)
+            && is_empty_dir(entry.path())?
+        {
+            dirs.push(relative);
+        }
+    }
+
+    dirs.sort();
+    Ok(dirs)
+}
+
+fn is_empty_dir(path: &Path) -> Result<bool> {
+    let mut entries =
+        fs::read_dir(path).with_context(|| format!("failed to read {}", path.display()))?;
+    Ok(entries.next().is_none())
+}
+
 fn build_globset(patterns: &[String]) -> Result<GlobSet> {
     let mut builder = GlobSetBuilder::new();
     for pattern in patterns {
@@ -53,7 +99,7 @@ mod tests {
 
     use crate::preset::codex_preset;
 
-    use super::scan_service;
+    use super::{scan_empty_dirs, scan_service};
 
     #[test]
     fn scans_included_codex_files_and_skips_excluded_runtime_state() {
@@ -64,6 +110,10 @@ mod tests {
         write_file(root, "agents/reviewer.toml", "name = \"reviewer\"\n");
         write_file(root, "bin/mcp-rbw", "#!/usr/bin/env bash\n");
         write_file(root, "skills/playwright/SKILL.md", "# Playwright\n");
+        write_file(root, "skills/.system/skill-creator/SKILL.md", "# System\n");
+        fs::create_dir_all(root.join("skills/empty-skill")).expect("create empty skill");
+        fs::create_dir_all(root.join("skills/full-skill")).expect("create full skill");
+        write_file(root, "skills/full-skill/SKILL.md", "# Full\n");
         write_file(root, "auth.json", "{}\n");
         write_file(root, "sessions/current.jsonl", "{}\n");
         write_file(root, "archived_sessions/old.jsonl", "{}\n");
@@ -85,9 +135,19 @@ mod tests {
                 "agents/reviewer.toml",
                 "bin/mcp-rbw",
                 "config.toml",
+                "skills/full-skill/SKILL.md",
                 "skills/playwright/SKILL.md"
             ]
         );
+
+        let dirs =
+            scan_empty_dirs(root, &preset.include, &preset.exclude).expect("scan dirs should work");
+        let rels = dirs
+            .iter()
+            .map(|path| path.to_string_lossy().to_string())
+            .collect::<Vec<_>>();
+
+        assert_eq!(rels, vec!["skills/empty-skill"]);
     }
 
     fn write_file(root: &Path, relative: &str, body: &str) {

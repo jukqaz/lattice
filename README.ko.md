@@ -11,8 +11,8 @@ Lattice는 범용 도구입니다. 특정 tool이나 service 하나가 제품의
 
 제품 용어로는 `git`, `ssh`, `zsh`, `starship`, `mise`, `codex` 같은 관리
 대상을 **앱**이라고 부릅니다. 앱은 제품의 중심이 아니라, 일반 service 설정으로
-확장되는 catalog entry입니다. 현재 CLI는 app-facing command surface가 추가되기
-전까지 이 catalog를 `preset` command로 노출합니다.
+확장되는 catalog entry입니다. CLI는 이 surface를 `app`으로 직접 이름 붙이고,
+낡은 preset 용어를 끌고 가지 않습니다.
 
 ## 먼저 할 일
 
@@ -85,13 +85,12 @@ lattice backup --dry-run <service>
 lattice backup <service>
 ```
 
-이미 알려진 형태는 app catalog를 사용합니다. App-facing command surface가
-추가되기 전까지 catalog entry는 `preset` command로 노출됩니다.
+이미 알려진 형태는 app catalog를 사용합니다.
 
 ```bash
-lattice preset list
-lattice preset show <app>
-lattice service add <service> --root <path> --preset <app>
+lattice app list
+lattice app show <app>
+lattice app add <app> --root <path>
 ```
 
 ## 자주 쓰는 명령

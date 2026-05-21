@@ -89,7 +89,7 @@ surfaces on top of the safe personal backup baseline:
 | `v0.5.x` | New Machine Bootstrap | Restore a developer home baseline on a new machine in minutes. | A new VM or Mac can run install, init, service add, repo pull, dry-run restore, and restore with clear diagnostics. |
 | `v0.6.x` | App Catalog And Diagnostics Polish | Improve optional app catalog entries and deterministic diagnostics without changing the generic core. | Apps are documented as shortcuts, diagnostics remain tool-agnostic by default, and no app becomes product-defining. |
 | `v0.7.x` | Service Groups | Plan and run safe multi-service operations. | Group status and dry-run plans are clear, conservative, and machine-readable. |
-| `v1.0` | Public Stable CLI | Make Lattice recommendable to external users. | Install, changelog, release, migration, compatibility, and issue workflows are stable. |
+| `v1.0` | Public Stable CLI | Make Lattice recommendable to external users. | Install, changelog, release, migration, change policy, and issue workflows are stable. |
 
 ## Deliberate Non-Goals
 

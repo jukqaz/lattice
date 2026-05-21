@@ -107,8 +107,9 @@ See `docs/product/mvp-scope.md`.
 
 ## v0.6.x App Catalog And Diagnostics Polish
 
-- [ ] Add user-facing `app` commands or aliases for the existing catalog:
+- [ ] Replace the catalog command surface with `app` commands:
   `app list`, `app show <app>`, and `app add <app>`.
+- [ ] Remove old preset-facing wording and command surface outright.
 - [ ] Keep app catalog entries optional and documented as shortcuts over the generic service model.
 - [ ] Treat Codex as an example app only, not a default or product-defining path.
 - [ ] Add deterministic, tool-agnostic diagnostics before adding any app-specific checks.
@@ -137,4 +138,4 @@ See `docs/product/mvp-scope.md`.
 - [ ] Stabilize install, release, changelog, and migration notes.
 - [ ] Decide crates.io publish policy.
 - [ ] Add shell completions and polished help/manpage surfaces if they remain small.
-- [ ] Add issue templates and compatibility policy.
+- [ ] Add issue templates and a clear pre-1.0 change policy.

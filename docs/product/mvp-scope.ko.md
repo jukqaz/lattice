@@ -85,7 +85,7 @@ automation-friendly surface를 추가한다.
 | `v0.5.x` | New Machine Bootstrap | 새 머신에서 developer home baseline을 몇 분 안에 restore. | 새 VM/Mac에서 install, init, service add, repo pull, dry-run restore, restore가 명확한 진단과 함께 동작. |
 | `v0.6.x` | App Catalog And Diagnostics Polish | generic core를 바꾸지 않고 선택적 app catalog와 deterministic diagnostic을 개선. | 앱은 shortcut으로 문서화되고, diagnostic은 기본적으로 tool-agnostic이며, 어떤 앱도 제품을 정의하지 않음. |
 | `v0.7.x` | Service Groups | 여러 service 작업을 안전하게 plan/run. | group status와 dry-run plan이 명확하고 보수적이며 machine-readable. |
-| `v1.0` | Public Stable CLI | 외부 사용자에게 추천 가능한 안정 CLI. | install, changelog, release, migration, compatibility, issue workflow 안정화. |
+| `v1.0` | Public Stable CLI | 외부 사용자에게 추천 가능한 안정 CLI. | install, changelog, release, migration, change policy, issue workflow 안정화. |
 
 ## 의도적으로 하지 않는 것
 

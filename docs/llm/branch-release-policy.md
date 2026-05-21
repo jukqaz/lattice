@@ -96,8 +96,9 @@ Lattice is git-distributed. Do not publish to crates.io.
 Use SemVer:
 
 - Patch for fixes, docs, and harness hardening.
-- Minor for compatible CLI commands, presets, config keys, or behavior.
-- Major for breaking CLI or config contract changes.
+- Minor for CLI commands, app catalog entries, config keys, or behavior changes
+  while the project is pre-1.0.
+- Major for the first stable CLI/config contract.
 
 Release checklist:
 

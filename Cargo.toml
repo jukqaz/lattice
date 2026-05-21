@@ -8,7 +8,7 @@ default-members = ["crates/lattice-cli"]
 resolver = "3"
 
 [workspace.package]
-version = "0.3.2"
+version = "0.3.3"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/jukqaz/lattice"
@@ -20,7 +20,9 @@ globset = "0.4"
 serde = { version = "1", features = ["derive"] }
 tempfile = "3"
 toml = "0.8"
+unicode-normalization = "0.1"
 walkdir = "2"
+xattr = "1"
 
 [workspace.lints.rust]
 unsafe_code = "warn"

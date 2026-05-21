@@ -14,7 +14,7 @@ Lattice는 dotfiles를 서비스 단위로 백업하고 복원하는 작은 Rust
 최신 tagged release 설치:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.2 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.3 --locked
 ```
 
 로컬 설정을 만들고 예시 service를 확인합니다.
@@ -119,10 +119,16 @@ private GitHub repo를 쓸 때는 remote repository를 직접 만든 뒤 일반
 - forced restore는 덮어쓰기 전에 snapshot을 만듭니다.
 - restore path, manifest entry, permission rule은 service root 내부에 있어야
   합니다.
+- service root와 service repo는 서로 겹치면 안 됩니다.
+- 추적 path는 portable UTF-8이어야 하며 control character를 포함하거나 Unicode
+  normalization과 case folding 이후 충돌하면 안 됩니다.
 - restore 안전을 위해 source symlink와 symlink된 destination parent는
   거부합니다.
 - backup은 regular file과 include된 empty directory를 추적합니다. symlink,
   socket, FIFO 같은 특수 filesystem entry는 file content로 따라가지 않습니다.
+- copy backup이 보존하지 못하는 hard link, extended attribute, macOS resource
+  fork는 기본적으로 거부합니다. 해당 파일을 직접 검토한 뒤에만
+  `--allow-metadata-loss`를 사용합니다.
 - forced restore는 기존 특수 filesystem entry를 metadata snapshot으로 남긴 뒤
   추적된 directory로 교체합니다.
 

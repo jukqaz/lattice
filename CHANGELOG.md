@@ -2,6 +2,23 @@
 
 English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
+## v0.3.3
+
+### Fixed
+
+- Reject service root/repo overlap before backup or restore to prevent recursive
+  copies and self-restores.
+- Reject tracked paths that are not portable UTF-8, contain control characters,
+  or collide after Unicode normalization plus case-insensitive comparison.
+- Reject hard-linked files, extended attributes, and macOS resource forks by
+  default because copy backup does not preserve that metadata.
+
+### Added
+
+- `backup --allow-metadata-loss` and `adopt --allow-metadata-loss` for files
+  that have been reviewed and can safely lose hard-link/xattr/resource-fork
+  metadata in the backup copy.
+
 ## v0.3.2
 
 ### Fixed

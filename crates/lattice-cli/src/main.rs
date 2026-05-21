@@ -74,6 +74,8 @@ enum Commands {
     Adopt {
         #[arg(long)]
         allow_secret_looking_files: bool,
+        #[arg(long)]
+        allow_metadata_loss: bool,
         service: String,
         #[arg(required = true)]
         paths: Vec<String>,
@@ -95,6 +97,8 @@ enum Commands {
         yes: bool,
         #[arg(long)]
         allow_secret_looking_files: bool,
+        #[arg(long)]
+        allow_metadata_loss: bool,
         service: String,
     },
     Restore {
@@ -290,9 +294,16 @@ fn run() -> Result<()> {
         } => track(&paths, &service, items),
         Commands::Adopt {
             allow_secret_looking_files,
+            allow_metadata_loss,
             service,
             paths: items,
-        } => adopt(&paths, &service, items, allow_secret_looking_files),
+        } => adopt(
+            &paths,
+            &service,
+            items,
+            allow_secret_looking_files,
+            allow_metadata_loss,
+        ),
         Commands::Diff { service } => diff(&paths, &service),
         Commands::Tui { dry_run } => tui(&paths, dry_run),
         Commands::Status { service } => status(&paths, &service),
@@ -300,8 +311,16 @@ fn run() -> Result<()> {
             dry_run,
             yes,
             allow_secret_looking_files,
+            allow_metadata_loss,
             service,
-        } => backup(&paths, &service, dry_run, yes, allow_secret_looking_files),
+        } => backup(
+            &paths,
+            &service,
+            dry_run,
+            yes,
+            allow_secret_looking_files,
+            allow_metadata_loss,
+        ),
         Commands::Restore {
             dry_run,
             force,
@@ -745,11 +764,19 @@ fn adopt(
     service_name: &str,
     items: Vec<String>,
     allow_secret_looking_files: bool,
+    allow_metadata_loss: bool,
 ) -> Result<()> {
     let mut service = load_service(paths, service_name)?;
     service.include.extend(items);
     normalize_values(&mut service.include);
-    backup_service_config(paths, &service, false, false, allow_secret_looking_files)?;
+    backup_service_config(
+        paths,
+        &service,
+        false,
+        false,
+        allow_secret_looking_files,
+        allow_metadata_loss,
+    )?;
     write_service_config(paths, &service)?;
     println!("tracked {} include patterns", service.include.len());
     Ok(())
@@ -843,7 +870,7 @@ fn tui(paths: &LatticePaths, dry_run: bool) -> Result<()> {
                 .prompt()
                 .context("failed to read service selection")?;
             if action == "backup dry-run" {
-                backup(paths, &service, true, false, false)
+                backup(paths, &service, true, false, false, false)
             } else {
                 restore(paths, &service, true, false, false)
             }
@@ -889,9 +916,17 @@ fn backup(
     dry_run: bool,
     yes: bool,
     allow_secret_looking_files: bool,
+    allow_metadata_loss: bool,
 ) -> Result<()> {
     let service = load_service(paths, service_name)?;
-    backup_service_config(paths, &service, dry_run, yes, allow_secret_looking_files)
+    backup_service_config(
+        paths,
+        &service,
+        dry_run,
+        yes,
+        allow_secret_looking_files,
+        allow_metadata_loss,
+    )
 }
 
 fn backup_service_config(
@@ -900,6 +935,7 @@ fn backup_service_config(
     dry_run: bool,
     yes: bool,
     allow_secret_looking_files: bool,
+    allow_metadata_loss: bool,
 ) -> Result<()> {
     ensure_service_active(service)?;
     let (include, exclude) = effective_patterns(service);
@@ -947,6 +983,7 @@ fn backup_service_config(
         &exclude,
         &BackupOptions {
             allow_secret_looking_files,
+            allow_metadata_loss,
         },
     )?;
     print_hook_outcomes(&run_hooks(

@@ -14,7 +14,7 @@ concrete. The same workflow applies to any service you define.
 Install the latest tagged release:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.2 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.3 --locked
 ```
 
 Initialize local config and inspect the example service:
@@ -120,10 +120,16 @@ repo at it with normal `git remote` commands.
 - Forced restore creates a snapshot before overwriting files.
 - Restore paths, manifest entries, and permission rules must stay inside the
   service root.
+- Service roots and service repos must not overlap.
+- Tracked paths must be portable UTF-8, must not contain control characters,
+  and must not collide after Unicode normalization plus case-insensitive comparison.
 - Source symlinks and symlinked destination parents are rejected for restore
   safety.
 - Backup tracks regular files and included empty directories. Symlinks, sockets,
   FIFOs, and other special filesystem entries are not followed as file content.
+- Backup rejects hard-linked files, extended attributes, and macOS resource
+  forks by default because copy backup does not preserve that metadata. Use
+  `--allow-metadata-loss` only after reviewing the affected files.
 - Forced restore snapshots existing special filesystem entries as metadata before
   replacing them with tracked directories.
 

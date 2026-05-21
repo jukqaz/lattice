@@ -31,7 +31,7 @@ Lattice는 package manager, secret manager, full system configuration manager가
 최신 tagged release 설치:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.2 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.3 --locked
 ```
 
 Lattice를 개발 중이면 local checkout에서 설치:
@@ -230,6 +230,20 @@ lattice backup --allow-secret-looking-files <service>
 Backup은 regular file과 include된 empty directory를 scan합니다. symlink를
 따라가지 않으며 socket, FIFO, device file 같은 특수 filesystem entry를 file
 content로 복사하지 않습니다.
+
+Service root와 repo는 서로 겹치면 안 됩니다. 추적 path는 portable UTF-8이어야
+하고 control character를 포함하거나 Unicode normalization과 case-insensitive comparison 이후
+충돌하면 안 됩니다. 이렇게 해야 case-sensitive Linux filesystem과
+case-insensitive macOS filesystem 사이를 오갈 때 조용한 데이터 손실을 막을 수
+있습니다.
+
+Copy backup은 hard-link 관계, extended attribute, macOS resource fork를
+보존하지 않습니다. Lattice는 이런 파일을 기본적으로 막습니다. 영향을 받는
+파일을 직접 검토한 뒤에만 `--allow-metadata-loss`를 사용합니다.
+
+```bash
+lattice backup --allow-metadata-loss <service>
+```
 
 ## 9. 고급 복원 옵션
 

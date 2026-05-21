@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::fs;
 use std::io::IsTerminal;
 use std::path::{Component, Path, PathBuf};
@@ -11,9 +12,11 @@ use lattice_core::config::{
     ServiceConfig,
 };
 use lattice_core::hooks::{HookOutcome, HookPhase, HookStatus, run_hooks};
+use lattice_core::manifest::ManifestEntry;
 use lattice_core::ops::{
-    BackupOptions, RestoreOptions, apply_permission_rules, backup_service_with_options,
-    create_restore_dirs, render_template, restore_plan, restore_service_with_options,
+    BackupOptions, PathSelection, RestoreOptions, apply_permission_rules,
+    backup_service_with_options, create_restore_dirs, filter_paths_by_selection, render_template,
+    restore_plan_with_selection, restore_service_with_options,
 };
 use lattice_core::paths::LatticePaths;
 use lattice_core::preset::{find_preset, preset_names};
@@ -81,6 +84,12 @@ enum Commands {
         paths: Vec<String>,
     },
     Diff {
+        #[arg(long)]
+        json: bool,
+        #[arg(long, action = clap::ArgAction::Append)]
+        only: Vec<String>,
+        #[arg(long, action = clap::ArgAction::Append)]
+        exclude: Vec<String>,
         service: String,
     },
     Tui {
@@ -88,26 +97,44 @@ enum Commands {
         dry_run: bool,
     },
     Status {
+        #[arg(long)]
+        json: bool,
+        #[arg(long, action = clap::ArgAction::Append)]
+        only: Vec<String>,
+        #[arg(long, action = clap::ArgAction::Append)]
+        exclude: Vec<String>,
         service: String,
     },
     Backup {
         #[arg(long)]
         dry_run: bool,
         #[arg(long)]
+        json: bool,
+        #[arg(long)]
         yes: bool,
         #[arg(long)]
         allow_secret_looking_files: bool,
         #[arg(long)]
         allow_metadata_loss: bool,
+        #[arg(long, action = clap::ArgAction::Append)]
+        only: Vec<String>,
+        #[arg(long, action = clap::ArgAction::Append)]
+        exclude: Vec<String>,
         service: String,
     },
     Restore {
         #[arg(long)]
         dry_run: bool,
         #[arg(long)]
+        json: bool,
+        #[arg(long)]
         force: bool,
         #[arg(long)]
         yes: bool,
+        #[arg(long, action = clap::ArgAction::Append)]
+        only: Vec<String>,
+        #[arg(long, action = clap::ArgAction::Append)]
+        exclude: Vec<String>,
         service: String,
     },
 }
@@ -304,30 +331,72 @@ fn run() -> Result<()> {
             allow_secret_looking_files,
             allow_metadata_loss,
         ),
-        Commands::Diff { service } => diff(&paths, &service),
+        Commands::Diff {
+            json,
+            only,
+            exclude,
+            service,
+        } => diff(&paths, &service, json, selection(only, exclude)),
         Commands::Tui { dry_run } => tui(&paths, dry_run),
-        Commands::Status { service } => status(&paths, &service),
+        Commands::Status {
+            json,
+            only,
+            exclude,
+            service,
+        } => status(&paths, &service, json, selection(only, exclude)),
         Commands::Backup {
             dry_run,
+            json,
             yes,
             allow_secret_looking_files,
             allow_metadata_loss,
+            only,
+            exclude,
             service,
         } => backup(
             &paths,
             &service,
-            dry_run,
-            yes,
-            allow_secret_looking_files,
-            allow_metadata_loss,
+            BackupCommandOptions {
+                dry_run,
+                json_output: json,
+                yes,
+                allow_secret_looking_files,
+                allow_metadata_loss,
+                selection: selection(only, exclude),
+            },
         ),
         Commands::Restore {
             dry_run,
+            json,
             force,
             yes,
+            only,
+            exclude,
             service,
-        } => restore(&paths, &service, dry_run, force, yes),
+        } => restore(
+            &paths,
+            &service,
+            dry_run,
+            json,
+            force,
+            yes,
+            selection(only, exclude),
+        ),
     }
+}
+
+#[derive(Debug, Clone)]
+struct BackupCommandOptions {
+    dry_run: bool,
+    json_output: bool,
+    yes: bool,
+    allow_secret_looking_files: bool,
+    allow_metadata_loss: bool,
+    selection: PathSelection,
+}
+
+fn selection(only: Vec<String>, exclude: Vec<String>) -> PathSelection {
+    PathSelection { only, exclude }
 }
 
 fn init(paths: &LatticePaths, force: bool) -> Result<()> {
@@ -772,28 +841,45 @@ fn adopt(
     backup_service_config(
         paths,
         &service,
-        false,
-        false,
-        allow_secret_looking_files,
-        allow_metadata_loss,
+        BackupCommandOptions {
+            dry_run: false,
+            json_output: false,
+            yes: false,
+            allow_secret_looking_files,
+            allow_metadata_loss,
+            selection: PathSelection::default(),
+        },
     )?;
     write_service_config(paths, &service)?;
     println!("tracked {} include patterns", service.include.len());
     Ok(())
 }
 
-fn diff(paths: &LatticePaths, service_name: &str) -> Result<()> {
+fn diff(
+    paths: &LatticePaths,
+    service_name: &str,
+    json_output: bool,
+    selection: PathSelection,
+) -> Result<()> {
     let service = load_service(paths, service_name)?;
     ensure_service_active(&service)?;
     let (include, exclude) = effective_patterns(&service);
     let root = expand_path(&service.root)?;
     let repo = resolve_repo_path(paths, &service)?;
-    let files = scan_service(&root, &include, &exclude)?;
+    let files = filter_paths_by_selection(scan_service(&root, &include, &exclude)?, &selection)?;
+    let mut json_diffs = Vec::new();
     for relative in files {
         let left_path = repo.join(&relative);
         let right_path = root.join(&relative);
         if !left_path.exists() {
-            println!("only source {}", relative.display());
+            if json_output {
+                json_diffs.push(serde_json::json!({
+                    "path": relative.display().to_string(),
+                    "kind": "only_source"
+                }));
+            } else {
+                println!("only source {}", relative.display());
+            }
             continue;
         }
         let left_bytes = fs::read(&left_path)
@@ -811,9 +897,18 @@ fn diff(paths: &LatticePaths, service_name: &str) -> Result<()> {
         if comparable_left == right_bytes {
             continue;
         }
-        println!("diff {}", relative.display());
+        if !json_output {
+            println!("diff {}", relative.display());
+        }
         if service.template {
-            println!("template-rendered content differs; line diff hidden");
+            if json_output {
+                json_diffs.push(serde_json::json!({
+                    "path": relative.display().to_string(),
+                    "kind": "template"
+                }));
+            } else {
+                println!("template-rendered content differs; line diff hidden");
+            }
             continue;
         }
         match (
@@ -822,17 +917,49 @@ fn diff(paths: &LatticePaths, service_name: &str) -> Result<()> {
         ) {
             (Ok(left), Ok(right)) => {
                 let diff = TextDiff::from_lines(&left, &right);
-                for change in diff.iter_all_changes() {
-                    let prefix = match change.tag() {
-                        ChangeTag::Delete => "-",
-                        ChangeTag::Insert => "+",
-                        ChangeTag::Equal => " ",
-                    };
-                    print!("{prefix}{change}");
+                if json_output {
+                    let mut patch = String::new();
+                    for change in diff.iter_all_changes() {
+                        let prefix = match change.tag() {
+                            ChangeTag::Delete => "-",
+                            ChangeTag::Insert => "+",
+                            ChangeTag::Equal => " ",
+                        };
+                        write!(&mut patch, "{prefix}{change}").expect("write string diff");
+                    }
+                    json_diffs.push(serde_json::json!({
+                        "path": relative.display().to_string(),
+                        "kind": "text",
+                        "patch": patch
+                    }));
+                } else {
+                    for change in diff.iter_all_changes() {
+                        let prefix = match change.tag() {
+                            ChangeTag::Delete => "-",
+                            ChangeTag::Insert => "+",
+                            ChangeTag::Equal => " ",
+                        };
+                        print!("{prefix}{change}");
+                    }
                 }
             }
-            _ => println!("binary content differs; line diff hidden"),
+            _ => {
+                if json_output {
+                    json_diffs.push(serde_json::json!({
+                        "path": relative.display().to_string(),
+                        "kind": "binary"
+                    }));
+                } else {
+                    println!("binary content differs; line diff hidden");
+                }
+            }
         }
+    }
+    if json_output {
+        print_json(serde_json::json!({
+            "service": service.name,
+            "diffs": json_diffs
+        }))?;
     }
     Ok(())
 }
@@ -869,10 +996,29 @@ fn tui(paths: &LatticePaths, dry_run: bool) -> Result<()> {
         | "restore --dry-run <service>" => {
             let service = select_service_name(paths)?;
             match action {
-                "status <service>" => status(paths, &service),
-                "diff <service>" => diff(paths, &service),
-                "backup --dry-run <service>" => backup(paths, &service, true, false, false, false),
-                "restore --dry-run <service>" => restore(paths, &service, true, false, false),
+                "status <service>" => status(paths, &service, false, PathSelection::default()),
+                "diff <service>" => diff(paths, &service, false, PathSelection::default()),
+                "backup --dry-run <service>" => backup(
+                    paths,
+                    &service,
+                    BackupCommandOptions {
+                        dry_run: true,
+                        json_output: false,
+                        yes: false,
+                        allow_secret_looking_files: false,
+                        allow_metadata_loss: false,
+                        selection: PathSelection::default(),
+                    },
+                ),
+                "restore --dry-run <service>" => restore(
+                    paths,
+                    &service,
+                    true,
+                    false,
+                    false,
+                    false,
+                    PathSelection::default(),
+                ),
                 _ => Ok(()),
             }
         }
@@ -934,125 +1080,136 @@ fn select_service_name(paths: &LatticePaths) -> Result<String> {
         .context("failed to read service selection")
 }
 
-fn status(paths: &LatticePaths, service_name: &str) -> Result<()> {
+fn status(
+    paths: &LatticePaths,
+    service_name: &str,
+    json_output: bool,
+    selection: PathSelection,
+) -> Result<()> {
     let service = load_service(paths, service_name)?;
     let (include, exclude) = effective_patterns(&service);
     let root = expand_path(&service.root)?;
     let repo = resolve_repo_path(paths, &service)?;
-    let files = scan_service(&root, &include, &exclude)?;
+    let files = filter_paths_by_selection(scan_service(&root, &include, &exclude)?, &selection)?;
     let manifest = repo.join(".lattice").join("manifest.toml");
+    let manifest_status = if manifest.exists() {
+        "present"
+    } else {
+        "missing"
+    };
+    let active = service_is_active(&service);
+
+    if json_output {
+        print_json(serde_json::json!({
+            "service": service.name,
+            "root": root.display().to_string(),
+            "repo": repo.display().to_string(),
+            "active": active,
+            "included_files": files.len(),
+            "files": path_strings(&files),
+            "manifest": manifest_status
+        }))?;
+        return Ok(());
+    }
 
     println!("service: {}", service.name);
     println!("root: {}", root.display());
     println!("repo: {}", repo.display());
-    println!(
-        "active: {}",
-        if service_is_active(&service) {
-            "yes"
-        } else {
-            "no"
-        }
-    );
+    println!("active: {}", if active { "yes" } else { "no" });
     println!("included files: {}", files.len());
-    println!(
-        "manifest: {}",
-        if manifest.exists() {
-            "present"
-        } else {
-            "missing"
-        }
-    );
+    println!("manifest: {manifest_status}");
     Ok(())
 }
 
-fn backup(
-    paths: &LatticePaths,
-    service_name: &str,
-    dry_run: bool,
-    yes: bool,
-    allow_secret_looking_files: bool,
-    allow_metadata_loss: bool,
-) -> Result<()> {
+fn backup(paths: &LatticePaths, service_name: &str, options: BackupCommandOptions) -> Result<()> {
     let service = load_service(paths, service_name)?;
-    backup_service_config(
-        paths,
-        &service,
-        dry_run,
-        yes,
-        allow_secret_looking_files,
-        allow_metadata_loss,
-    )
+    backup_service_config(paths, &service, options)
 }
 
 fn backup_service_config(
     paths: &LatticePaths,
     service: &ServiceConfig,
-    dry_run: bool,
-    yes: bool,
-    allow_secret_looking_files: bool,
-    allow_metadata_loss: bool,
+    options: BackupCommandOptions,
 ) -> Result<()> {
     ensure_service_active(service)?;
     let (include, exclude) = effective_patterns(service);
     let root = expand_path(&service.root)?;
     let repo = resolve_repo_path(paths, service)?;
 
-    if dry_run {
-        print_hook_outcomes(&run_hooks(
-            &service.hooks,
-            HookPhase::BeforeBackup,
-            true,
-            yes,
-        )?);
-        let files = scan_service(&root, &include, &exclude)?;
-        let dirs = scan_empty_dirs(&root, &include, &exclude)?;
-        println!("would copy {} files to {}", files.len(), repo.display());
-        if !dirs.is_empty() {
-            println!("would track {} empty dirs", dirs.len());
+    if options.dry_run {
+        let before_hooks = run_hooks(&service.hooks, HookPhase::BeforeBackup, true, options.yes)?;
+        let files = filter_paths_by_selection(
+            scan_service(&root, &include, &exclude)?,
+            &options.selection,
+        )?;
+        let dirs = filter_paths_by_selection(
+            scan_empty_dirs(&root, &include, &exclude)?,
+            &options.selection,
+        )?;
+        let after_hooks = run_hooks(&service.hooks, HookPhase::AfterBackup, true, options.yes)?;
+        if options.json_output {
+            print_json(serde_json::json!({
+                "service": service.name,
+                "dry_run": true,
+                "destination": repo.display().to_string(),
+                "would_copy": files.len(),
+                "would_track_dirs": dirs.len(),
+                "files": path_strings(&files),
+                "dirs": path_strings(&dirs),
+                "hooks": hook_outcomes_json(&before_hooks, &after_hooks)
+            }))?;
+        } else {
+            print_hook_outcomes(&before_hooks);
+            println!("would copy {} files to {}", files.len(), repo.display());
+            if !dirs.is_empty() {
+                println!("would track {} empty dirs", dirs.len());
+            }
+            for file in files {
+                println!("{}", file.display());
+            }
+            for dir in dirs {
+                println!("{}/", dir.display());
+            }
+            print_hook_outcomes(&after_hooks);
         }
-        for file in files {
-            println!("{}", file.display());
-        }
-        for dir in dirs {
-            println!("{}/", dir.display());
-        }
-        print_hook_outcomes(&run_hooks(
-            &service.hooks,
-            HookPhase::AfterBackup,
-            true,
-            yes,
-        )?);
         return Ok(());
     }
 
-    print_hook_outcomes(&run_hooks(
-        &service.hooks,
-        HookPhase::BeforeBackup,
-        false,
-        yes,
-    )?);
+    let before_hooks = run_hooks(&service.hooks, HookPhase::BeforeBackup, false, options.yes)?;
     let report = backup_service_with_options(
         &root,
         &repo,
         &include,
         &exclude,
         &BackupOptions {
-            allow_secret_looking_files,
-            allow_metadata_loss,
+            allow_secret_looking_files: options.allow_secret_looking_files,
+            allow_metadata_loss: options.allow_metadata_loss,
+            selection: options.selection,
         },
     )?;
-    print_hook_outcomes(&run_hooks(
-        &service.hooks,
-        HookPhase::AfterBackup,
-        false,
-        yes,
-    )?);
+    let after_hooks = run_hooks(&service.hooks, HookPhase::AfterBackup, false, options.yes)?;
 
-    println!("copied {} files to {}", report.copied.len(), repo.display());
-    if !report.created_dirs.is_empty() {
-        println!("tracked {} empty dirs", report.created_dirs.len());
+    if options.json_output {
+        print_json(serde_json::json!({
+            "service": service.name,
+            "dry_run": false,
+            "destination": repo.display().to_string(),
+            "copied": report.copied.len(),
+            "tracked_dirs": report.created_dirs.len(),
+            "files": path_strings(&report.copied),
+            "dirs": path_strings(&report.created_dirs),
+            "manifest": report.manifest_path.display().to_string(),
+            "hooks": hook_outcomes_json(&before_hooks, &after_hooks)
+        }))?;
+    } else {
+        print_hook_outcomes(&before_hooks);
+        print_hook_outcomes(&after_hooks);
+        println!("copied {} files to {}", report.copied.len(), repo.display());
+        if !report.created_dirs.is_empty() {
+            println!("tracked {} empty dirs", report.created_dirs.len());
+        }
+        println!("manifest: {}", report.manifest_path.display());
     }
-    println!("manifest: {}", report.manifest_path.display());
     Ok(())
 }
 
@@ -1060,8 +1217,10 @@ fn restore(
     paths: &LatticePaths,
     service_name: &str,
     dry_run: bool,
+    json_output: bool,
     force: bool,
     yes: bool,
+    selection: PathSelection,
 ) -> Result<()> {
     let service = load_service(paths, service_name)?;
     ensure_service_active(&service)?;
@@ -1069,48 +1228,49 @@ fn restore(
     let repo = resolve_repo_path(paths, &service)?;
 
     if dry_run {
-        print_hook_outcomes(&run_hooks(
-            &service.hooks,
-            HookPhase::BeforeRestore,
-            true,
-            yes,
-        )?);
-        let plan = restore_plan(&repo, &root)?;
-        println!(
-            "would restore {} files to {}",
-            plan.entries.len(),
-            root.display()
-        );
-        if !plan.directories.is_empty() {
-            println!("would create {} empty dirs", plan.directories.len());
-        }
-        if !plan.conflicts.is_empty() {
-            println!("conflicts: {}", plan.conflicts.len());
-            for conflict in &plan.conflicts {
-                println!("conflict {}", conflict.display());
+        let before_hooks = run_hooks(&service.hooks, HookPhase::BeforeRestore, true, yes)?;
+        let plan = restore_plan_with_selection(&repo, &root, &selection)?;
+        let after_hooks = run_hooks(&service.hooks, HookPhase::AfterRestore, true, yes)?;
+        if json_output {
+            print_json(serde_json::json!({
+                "service": service.name,
+                "dry_run": true,
+                "destination": root.display().to_string(),
+                "would_restore": plan.entries.len(),
+                "would_create_dirs": plan.directories.len(),
+                "entries": manifest_entry_strings(&plan.entries),
+                "dirs": manifest_entry_strings(&plan.directories),
+                "conflicts": path_strings(&plan.conflicts),
+                "hooks": hook_outcomes_json(&before_hooks, &after_hooks)
+            }))?;
+        } else {
+            print_hook_outcomes(&before_hooks);
+            println!(
+                "would restore {} files to {}",
+                plan.entries.len(),
+                root.display()
+            );
+            if !plan.directories.is_empty() {
+                println!("would create {} empty dirs", plan.directories.len());
             }
+            if !plan.conflicts.is_empty() {
+                println!("conflicts: {}", plan.conflicts.len());
+                for conflict in &plan.conflicts {
+                    println!("conflict {}", conflict.display());
+                }
+            }
+            for entry in plan.entries {
+                println!("{}", entry.path.display());
+            }
+            for entry in plan.directories {
+                println!("{}/", entry.path.display());
+            }
+            print_hook_outcomes(&after_hooks);
         }
-        for entry in plan.entries {
-            println!("{}", entry.path.display());
-        }
-        for entry in plan.directories {
-            println!("{}/", entry.path.display());
-        }
-        print_hook_outcomes(&run_hooks(
-            &service.hooks,
-            HookPhase::AfterRestore,
-            true,
-            yes,
-        )?);
         return Ok(());
     }
 
-    print_hook_outcomes(&run_hooks(
-        &service.hooks,
-        HookPhase::BeforeRestore,
-        false,
-        yes,
-    )?);
+    let before_hooks = run_hooks(&service.hooks, HookPhase::BeforeRestore, false, yes)?;
     let report = restore_service_with_options(
         &repo,
         &root,
@@ -1120,34 +1280,85 @@ fn restore(
             service_name: Some(service.name.clone()),
             symlink: service.restore.symlink,
             render_templates: service.template,
+            selection,
         },
     )?;
     let created_dirs = create_restore_dirs(&root, &service.restore.create_dirs)?;
     let applied_permissions = apply_permission_rules(&root, &service.permissions)?;
-    print_hook_outcomes(&run_hooks(
-        &service.hooks,
-        HookPhase::AfterRestore,
-        false,
-        yes,
-    )?);
+    let after_hooks = run_hooks(&service.hooks, HookPhase::AfterRestore, false, yes)?;
 
-    println!(
-        "restored {} files to {}",
-        report.restored.len(),
-        root.display()
-    );
-    if !created_dirs.is_empty() {
-        println!("created {} restore dirs", created_dirs.len());
+    if json_output {
+        print_json(serde_json::json!({
+            "service": service.name,
+            "dry_run": false,
+            "destination": root.display().to_string(),
+            "restored": report.restored.len(),
+            "entries": path_strings(&report.restored),
+            "created_restore_dirs": path_strings(&created_dirs),
+            "created_backed_up_dirs": path_strings(&report.created_dirs),
+            "applied_permissions": path_strings(&applied_permissions),
+            "snapshot": report.snapshot_dir.as_ref().map(|path| path.display().to_string()),
+            "hooks": hook_outcomes_json(&before_hooks, &after_hooks)
+        }))?;
+    } else {
+        print_hook_outcomes(&before_hooks);
+        print_hook_outcomes(&after_hooks);
+        println!(
+            "restored {} files to {}",
+            report.restored.len(),
+            root.display()
+        );
+        if !created_dirs.is_empty() {
+            println!("created {} restore dirs", created_dirs.len());
+        }
+        if !report.created_dirs.is_empty() {
+            println!("created {} backed-up empty dirs", report.created_dirs.len());
+        }
+        if !applied_permissions.is_empty() {
+            println!("applied {} permission rules", applied_permissions.len());
+        }
+        if let Some(snapshot_dir) = report.snapshot_dir {
+            println!("snapshot: {}", snapshot_dir.display());
+        }
     }
-    if !report.created_dirs.is_empty() {
-        println!("created {} backed-up empty dirs", report.created_dirs.len());
-    }
-    if !applied_permissions.is_empty() {
-        println!("applied {} permission rules", applied_permissions.len());
-    }
-    if let Some(snapshot_dir) = report.snapshot_dir {
-        println!("snapshot: {}", snapshot_dir.display());
-    }
+    Ok(())
+}
+
+fn path_strings(paths: &[PathBuf]) -> Vec<String> {
+    paths
+        .iter()
+        .map(|path| path.display().to_string())
+        .collect()
+}
+
+fn manifest_entry_strings(entries: &[ManifestEntry]) -> Vec<String> {
+    entries
+        .iter()
+        .map(|entry| entry.path.display().to_string())
+        .collect()
+}
+
+fn hook_outcomes_json(before: &[HookOutcome], after: &[HookOutcome]) -> Vec<serde_json::Value> {
+    before
+        .iter()
+        .chain(after.iter())
+        .map(|outcome| {
+            let status = match outcome.status {
+                HookStatus::WouldRun => "would_run",
+                HookStatus::Ran => "ran",
+                HookStatus::SkippedConfirm => "skipped_confirm",
+            };
+            serde_json::json!({
+                "phase": outcome.phase.label(),
+                "name": outcome.name,
+                "status": status
+            })
+        })
+        .collect()
+}
+
+fn print_json(value: serde_json::Value) -> Result<()> {
+    println!("{}", serde_json::to_string_pretty(&value)?);
     Ok(())
 }
 

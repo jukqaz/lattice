@@ -5,6 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use std::{env, fs};
 
 use anyhow::{Context, Result, bail};
+use globset::{Glob, GlobSet, GlobSetBuilder};
 use unicode_normalization::UnicodeNormalization;
 
 use crate::config::{CreateDirRule, PermissionRule};
@@ -20,9 +21,16 @@ pub struct BackupReport {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PathSelection {
+    pub only: Vec<String>,
+    pub exclude: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct BackupOptions {
     pub allow_secret_looking_files: bool,
     pub allow_metadata_loss: bool,
+    pub selection: PathSelection,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,6 +48,7 @@ pub struct RestoreOptions {
     pub service_name: Option<String>,
     pub symlink: bool,
     pub render_templates: bool,
+    pub selection: PathSelection,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -66,8 +75,10 @@ pub fn backup_service_with_options(
     options: &BackupOptions,
 ) -> Result<BackupReport> {
     ensure_service_root_and_repo_do_not_overlap(root, repo)?;
-    let files = scan_service(root, include, exclude)?;
-    let dirs = scan_empty_dirs(root, include, exclude)?;
+    let files =
+        filter_paths_by_selection(scan_service(root, include, exclude)?, &options.selection)?;
+    let dirs =
+        filter_paths_by_selection(scan_empty_dirs(root, include, exclude)?, &options.selection)?;
     ensure_no_portable_path_collisions(files.iter().chain(dirs.iter()).map(PathBuf::as_path))?;
     let mut entries = Vec::with_capacity(files.len());
     let mut directories = Vec::with_capacity(dirs.len());
@@ -164,27 +175,78 @@ fn ensure_no_secret_like_files(root: &Path, files: &[PathBuf]) -> Result<()> {
     Ok(())
 }
 
+pub fn filter_paths_by_selection(
+    paths: Vec<PathBuf>,
+    selection: &PathSelection,
+) -> Result<Vec<PathBuf>> {
+    let only = build_optional_globset(&selection.only)?;
+    let exclude = build_optional_globset(&selection.exclude)?;
+    Ok(paths
+        .into_iter()
+        .filter(|path| path_is_selected(path, only.as_ref(), exclude.as_ref()))
+        .collect())
+}
+
+fn filter_selected_entries(
+    entries: Vec<ManifestEntry>,
+    selection: &PathSelection,
+) -> Result<Vec<ManifestEntry>> {
+    let only = build_optional_globset(&selection.only)?;
+    let exclude = build_optional_globset(&selection.exclude)?;
+    Ok(entries
+        .into_iter()
+        .filter(|entry| path_is_selected(&entry.path, only.as_ref(), exclude.as_ref()))
+        .collect())
+}
+
+fn build_optional_globset(patterns: &[String]) -> Result<Option<GlobSet>> {
+    if patterns.is_empty() {
+        return Ok(None);
+    }
+
+    let mut builder = GlobSetBuilder::new();
+    for pattern in patterns {
+        builder.add(Glob::new(pattern).with_context(|| format!("invalid glob: {pattern}"))?);
+    }
+    Ok(Some(builder.build()?))
+}
+
+fn path_is_selected(path: &Path, only: Option<&GlobSet>, exclude: Option<&GlobSet>) -> bool {
+    let included = only.is_none_or(|only| only.is_match(path));
+    let excluded = exclude.is_some_and(|exclude| exclude.is_match(path));
+    included && !excluded
+}
+
 pub fn restore_service(repo: &Path, root: &Path) -> Result<RestoreReport> {
     restore_service_with_options(repo, root, &RestoreOptions::default())
 }
 
 pub fn restore_plan(repo: &Path, root: &Path) -> Result<RestorePlan> {
+    restore_plan_with_selection(repo, root, &PathSelection::default())
+}
+
+pub fn restore_plan_with_selection(
+    repo: &Path,
+    root: &Path,
+    selection: &PathSelection,
+) -> Result<RestorePlan> {
     ensure_service_root_and_repo_do_not_overlap(root, repo)?;
     let manifest_path = repo.join(".lattice").join("manifest.toml");
     let manifest = read_manifest(&manifest_path)?;
     if manifest.version != 1 {
         bail!("unsupported manifest version: {}", manifest.version);
     }
+    let directories = filter_selected_entries(manifest.directories, selection)?;
+    let entries = filter_selected_entries(manifest.entries, selection)?;
     ensure_no_portable_path_collisions(
-        manifest
-            .directories
+        directories
             .iter()
-            .chain(manifest.entries.iter())
+            .chain(entries.iter())
             .map(|entry| entry.path.as_path()),
     )?;
     let mut conflicts = Vec::new();
 
-    for entry in &manifest.directories {
+    for entry in &directories {
         ensure_safe_relative_path(&entry.path)?;
         ensure_no_destination_parent_symlinks(root, &entry.path)?;
         let destination = checked_join(root, &entry.path)?;
@@ -193,7 +255,7 @@ pub fn restore_plan(repo: &Path, root: &Path) -> Result<RestorePlan> {
         }
     }
 
-    for entry in &manifest.entries {
+    for entry in &entries {
         let source = restore_source_path(repo, &entry.path)?;
         ensure_regular_source_file(&source)?;
         ensure_no_destination_parent_symlinks(root, &entry.path)?;
@@ -208,8 +270,8 @@ pub fn restore_plan(repo: &Path, root: &Path) -> Result<RestorePlan> {
 
     conflicts.sort();
     Ok(RestorePlan {
-        entries: manifest.entries,
-        directories: manifest.directories,
+        entries,
+        directories,
         conflicts,
     })
 }
@@ -219,7 +281,7 @@ pub fn restore_service_with_options(
     root: &Path,
     options: &RestoreOptions,
 ) -> Result<RestoreReport> {
-    let plan = restore_plan(repo, root)?;
+    let plan = restore_plan_with_selection(repo, root, &options.selection)?;
     if !options.force && !plan.conflicts.is_empty() {
         bail!("restore conflicts: {}", join_paths(&plan.conflicts));
     }
@@ -974,6 +1036,7 @@ mod tests {
                 service_name: Some("codex".to_string()),
                 symlink: false,
                 render_templates: false,
+                ..RestoreOptions::default()
             },
         )
         .expect("force restore should work");
@@ -1024,6 +1087,7 @@ mod tests {
                 service_name: None,
                 symlink: true,
                 render_templates: true,
+                ..RestoreOptions::default()
             },
         )
         .expect("templated symlink restore should work");
@@ -1197,6 +1261,7 @@ mod tests {
                 service_name: Some("service".to_string()),
                 symlink: false,
                 render_templates: false,
+                ..RestoreOptions::default()
             },
         )
         .expect("restore should work");
@@ -1250,6 +1315,7 @@ mod tests {
                 service_name: None,
                 symlink: false,
                 render_templates: false,
+                ..RestoreOptions::default()
             },
         )
         .expect_err("restore should reject directory collision");
@@ -1293,6 +1359,7 @@ mod tests {
                 service_name: Some("service".to_string()),
                 symlink: false,
                 render_templates: false,
+                ..RestoreOptions::default()
             },
         )
         .expect("force restore should replace socket with directory");
@@ -1559,6 +1626,7 @@ mod tests {
             &BackupOptions {
                 allow_secret_looking_files: false,
                 allow_metadata_loss: true,
+                ..BackupOptions::default()
             },
         )
         .expect("backup should allow reviewed metadata loss");

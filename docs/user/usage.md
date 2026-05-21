@@ -28,8 +28,8 @@ manager. It keeps the dotfile sync layer small and explicit.
 Terminology: an **app** is a common managed target, such as `git`, `ssh`,
 `zsh`, `starship`, `mise`, or `codex`. An app catalog entry is only a shortcut
 for creating ordinary service config. No app is product-defining, and Codex is
-only one example app. The current CLI exposes app catalog entries through the
-`preset` command until `lattice app ...` is added.
+only one example app. The CLI should use `lattice app ...` directly rather than
+preserving older preset terminology.
 
 ## 1. Install
 
@@ -189,18 +189,17 @@ control, and repository ownership explicit.
 ## 7. Use The App Catalog
 
 App catalog entries provide known include/exclude shapes for common tools and
-apps. Until the app-facing command surface lands, use the `preset` command to
-inspect the catalog:
+apps:
 
 ```bash
-lattice preset list
-lattice preset show <app>
+lattice app list
+lattice app show <app>
 ```
 
 Create an app-backed service:
 
 ```bash
-lattice service add <service> --root <path> --preset <app>
+lattice app add <app> --root <path>
 ```
 
 Apps are optional shortcuts. The core model remains the same service config,

@@ -28,8 +28,8 @@ Lattice는 package manager, secret manager, full system configuration manager가
 용어: **앱**은 `git`, `ssh`, `zsh`, `starship`, `mise`, `codex`처럼 흔히
 관리하는 대상입니다. App catalog entry는 일반 service config를 만들기 위한
 shortcut일 뿐입니다. 어떤 앱도 제품을 정의하지 않으며, Codex도 예시 앱 중
-하나일 뿐입니다. 현재 CLI는 `lattice app ...`이 추가되기 전까지 app catalog를
-`preset` command로 노출합니다.
+하나일 뿐입니다. CLI는 예전 preset 용어를 보존하지 않고 `lattice app ...`을
+직접 사용해야 합니다.
 
 ## 1. 설치
 
@@ -189,18 +189,16 @@ repository 소유권을 명시적으로 관리하기 위해서입니다.
 ## 7. App catalog 사용하기
 
 App catalog entry는 흔한 도구와 앱의 include/exclude 형태를 제공합니다.
-App-facing command surface가 추가되기 전까지는 `preset` command로 catalog를
-확인합니다.
 
 ```bash
-lattice preset list
-lattice preset show <app>
+lattice app list
+lattice app show <app>
 ```
 
 앱 기반 service 생성:
 
 ```bash
-lattice service add <service> --root <path> --preset <app>
+lattice app add <app> --root <path>
 ```
 
 앱은 선택적 shortcut입니다. Core model은 여전히 같은 service config,

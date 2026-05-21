@@ -12,9 +12,8 @@ safe workflow.
 
 Product language uses **apps** for common managed targets such as `git`, `ssh`,
 `zsh`, `starship`, `mise`, or `codex`. Apps are not product centers; they are
-catalog entries that expand into ordinary service config. The current CLI still
-exposes this catalog through the `preset` command until the app-facing command
-surface is added.
+catalog entries that expand into ordinary service config. The CLI should name
+this surface directly as `app`, not carry old preset terminology forward.
 
 ## Start Here
 
@@ -88,14 +87,12 @@ lattice backup --dry-run <service>
 lattice backup <service>
 ```
 
-Use the app catalog when the common shape is already known. Until the
-app-facing command surface lands, catalog entries are exposed by the `preset`
-command:
+Use the app catalog when the common shape is already known:
 
 ```bash
-lattice preset list
-lattice preset show <app>
-lattice service add <service> --root <path> --preset <app>
+lattice app list
+lattice app show <app>
+lattice app add <app> --root <path>
 ```
 
 ## Daily Commands

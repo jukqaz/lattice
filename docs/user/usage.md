@@ -274,7 +274,7 @@ Use OS or hostname conditions to make a service active only on matching
 machines:
 
 ```bash
-lattice service add <service> --root <path> --preset <preset> --os macos
+lattice service add <service> --root <path> --include <pattern> --os macos
 ```
 
 ## 10. Automation And JSON Output

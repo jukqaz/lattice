@@ -269,7 +269,41 @@ copy의 placeholder를 보존하기 위해 regular file로 복원됩니다.
 lattice service add <service> --root <path> --preset <preset> --os macos
 ```
 
-## 10. Prompt UI
+## 10. Automation과 JSON output
+
+Script, CI job, agent가 안정적인 machine-readable output을 필요로 할 때는
+`--json`을 사용합니다.
+
+```bash
+lattice status --json codex
+lattice backup --dry-run --json codex
+lattice diff --json codex
+lattice restore --dry-run --json codex
+```
+
+쓰기 flow에서는 dry-run JSON 명령을 먼저 사용합니다. 계획을 parsing하고 예상 밖
+파일, directory, entry, conflict가 있으면 멈춥니다.
+
+```bash
+plan="$(lattice restore --dry-run --json codex)"
+printf '%s\n' "$plan" | jq '.conflicts'
+```
+
+`--only`와 `--exclude`로 status, backup, diff, restore 작업을 특정 tracked path로
+좁힐 수 있습니다. Shell이 glob selector를 expand하지 않도록 quote합니다.
+
+```bash
+lattice status --json --only config.toml codex
+lattice backup --dry-run --json --only config.toml codex
+lattice diff --json --exclude 'shell_snapshots/**' codex
+lattice restore --dry-run --json --only config.toml codex
+```
+
+Selector는 service-group orchestration이 아니라 path-scoped 도구입니다. 바뀐 설정
+파일 하나만 백업하거나, diff에서 noisy generated state를 제외하는 것처럼 작고
+검토 가능한 작업에 사용합니다.
+
+## 11. Prompt UI
 
 Prompt 기반 UI 열기:
 

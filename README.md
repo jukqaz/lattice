@@ -95,6 +95,32 @@ lattice service add <service> --root <path> --preset <preset>
 | Compare local files with repo copy | `lattice diff codex` |
 | Open the prompt-based UI | `lattice tui` |
 
+## Automation And JSON Output
+
+Use `--json` when scripts or agents need stable machine-readable output instead
+of human text:
+
+```bash
+lattice status --json codex
+lattice backup --dry-run --json codex
+lattice diff --json codex
+lattice restore --dry-run --json codex
+```
+
+Use `--only` and `--exclude` to narrow a plan to specific tracked paths. These
+selectors are available on `status`, `backup`, `diff`, and `restore` flows:
+
+```bash
+lattice status --json --only config.toml codex
+lattice backup --dry-run --json --only config.toml codex
+lattice diff --json --exclude 'shell_snapshots/**' codex
+lattice restore --dry-run --json --only config.toml codex
+```
+
+For automation, prefer the dry-run JSON commands before any write. Inspect the
+planned `files`, `dirs`, `entries`, and `conflicts` fields, then run the
+non-dry-run command only after the plan is acceptable.
+
 ## Sync With Git
 
 Service repos are plain directories, so you can manage Git yourself or use the

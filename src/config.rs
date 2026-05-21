@@ -42,6 +42,8 @@ pub struct ServiceConfig {
     pub restore: RestoreConfig,
     #[serde(default)]
     pub permissions: Vec<PermissionRule>,
+    #[serde(default)]
+    pub hooks: HooksConfig,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -60,6 +62,30 @@ pub struct CreateDirRule {
 pub struct PermissionRule {
     pub path: String,
     pub mode: String,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct HooksConfig {
+    #[serde(default)]
+    pub before_backup: Vec<HookConfig>,
+    #[serde(default)]
+    pub after_backup: Vec<HookConfig>,
+    #[serde(default)]
+    pub before_restore: Vec<HookConfig>,
+    #[serde(default)]
+    pub after_restore: Vec<HookConfig>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct HookConfig {
+    pub name: String,
+    pub command: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+    #[serde(default)]
+    pub timeout_sec: Option<u64>,
+    #[serde(default)]
+    pub confirm: bool,
 }
 
 #[cfg(test)]
@@ -140,5 +166,39 @@ mode = "0700"
                 mode: "0700".to_string()
             }
         );
+    }
+
+    #[test]
+    fn parses_service_hooks() {
+        let input = r#"
+name = "codex"
+root = "~/.codex"
+repo = "~/.local/share/lattice/repos/codex"
+
+[[hooks.after_restore]]
+name = "codex doctor"
+command = "codex"
+args = ["doctor", "--summary"]
+timeout_sec = 60
+confirm = false
+
+[[hooks.before_backup]]
+name = "confirming hook"
+command = "echo"
+args = ["hello"]
+confirm = true
+"#;
+
+        let config: ServiceConfig = toml::from_str(input).expect("service config should parse");
+
+        assert_eq!(config.hooks.after_restore[0].name, "codex doctor");
+        assert_eq!(config.hooks.after_restore[0].command, "codex");
+        assert_eq!(
+            config.hooks.after_restore[0].args,
+            vec!["doctor", "--summary"]
+        );
+        assert_eq!(config.hooks.after_restore[0].timeout_sec, Some(60));
+        assert!(!config.hooks.after_restore[0].confirm);
+        assert!(config.hooks.before_backup[0].confirm);
     }
 }

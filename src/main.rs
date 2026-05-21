@@ -4,9 +4,12 @@ use std::process::{Command, Stdio};
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
-use lattice::config::ServiceConfig;
-use lattice::manifest::read_manifest;
-use lattice::ops::{apply_permission_rules, backup_service, create_restore_dirs, restore_service};
+use lattice::config::{GlobalConfig, ServiceConfig};
+use lattice::hooks::{HookOutcome, HookPhase, HookStatus, run_hooks};
+use lattice::ops::{
+    BackupOptions, RestoreOptions, apply_permission_rules, backup_service_with_options,
+    create_restore_dirs, restore_plan, restore_service_with_options,
+};
 use lattice::paths::LatticePaths;
 use lattice::preset::codex_preset;
 use lattice::scanner::scan_service;
@@ -26,6 +29,7 @@ enum Commands {
         force: bool,
     },
     Doctor,
+    Validate,
     Service {
         #[command(subcommand)]
         command: ServiceCommands,
@@ -36,11 +40,19 @@ enum Commands {
     Backup {
         #[arg(long)]
         dry_run: bool,
+        #[arg(long)]
+        yes: bool,
+        #[arg(long)]
+        allow_secret_looking_files: bool,
         service: String,
     },
     Restore {
         #[arg(long)]
         dry_run: bool,
+        #[arg(long)]
+        force: bool,
+        #[arg(long)]
+        yes: bool,
         service: String,
     },
 }
@@ -64,12 +76,23 @@ fn run() -> Result<()> {
     match cli.command {
         Commands::Init { force } => init(&paths, force),
         Commands::Doctor => doctor(&paths),
+        Commands::Validate => validate(&paths),
         Commands::Service {
             command: ServiceCommands::List,
         } => service_list(&paths),
         Commands::Status { service } => status(&paths, &service),
-        Commands::Backup { dry_run, service } => backup(&paths, &service, dry_run),
-        Commands::Restore { dry_run, service } => restore(&paths, &service, dry_run),
+        Commands::Backup {
+            dry_run,
+            yes,
+            allow_secret_looking_files,
+            service,
+        } => backup(&paths, &service, dry_run, yes, allow_secret_looking_files),
+        Commands::Restore {
+            dry_run,
+            force,
+            yes,
+            service,
+        } => restore(&paths, &service, dry_run, force, yes),
     }
 }
 
@@ -134,6 +157,24 @@ fn doctor(paths: &LatticePaths) -> Result<()> {
     Ok(())
 }
 
+fn validate(paths: &LatticePaths) -> Result<()> {
+    let global = load_global_config(paths)?;
+    let services = load_services(paths)?;
+
+    for service in &services {
+        if let Some(preset) = service.preset.as_deref()
+            && preset != "codex"
+        {
+            anyhow::bail!("unknown preset {preset} for service {}", service.name);
+        }
+    }
+
+    println!("valid config");
+    println!("profile: {}", global.profile);
+    println!("services: {}", services.len());
+    Ok(())
+}
+
 fn service_list(paths: &LatticePaths) -> Result<()> {
     for service in load_services(paths)? {
         println!("{}", service.name);
@@ -164,49 +205,131 @@ fn status(paths: &LatticePaths, service_name: &str) -> Result<()> {
     Ok(())
 }
 
-fn backup(paths: &LatticePaths, service_name: &str, dry_run: bool) -> Result<()> {
+fn backup(
+    paths: &LatticePaths,
+    service_name: &str,
+    dry_run: bool,
+    yes: bool,
+    allow_secret_looking_files: bool,
+) -> Result<()> {
     let service = load_service(paths, service_name)?;
     let (include, exclude) = effective_patterns(&service);
     let root = expand_path(&service.root)?;
     let repo = expand_path(&service.repo)?;
 
     if dry_run {
+        print_hook_outcomes(&run_hooks(
+            &service.hooks,
+            HookPhase::BeforeBackup,
+            true,
+            yes,
+        )?);
         let files = scan_service(&root, &include, &exclude)?;
         println!("would copy {} files to {}", files.len(), repo.display());
         for file in files {
             println!("{}", file.display());
         }
+        print_hook_outcomes(&run_hooks(
+            &service.hooks,
+            HookPhase::AfterBackup,
+            true,
+            yes,
+        )?);
         return Ok(());
     }
 
-    let report = backup_service(&root, &repo, &include, &exclude)?;
+    print_hook_outcomes(&run_hooks(
+        &service.hooks,
+        HookPhase::BeforeBackup,
+        false,
+        yes,
+    )?);
+    let report = backup_service_with_options(
+        &root,
+        &repo,
+        &include,
+        &exclude,
+        &BackupOptions {
+            allow_secret_looking_files,
+        },
+    )?;
+    print_hook_outcomes(&run_hooks(
+        &service.hooks,
+        HookPhase::AfterBackup,
+        false,
+        yes,
+    )?);
 
     println!("copied {} files to {}", report.copied.len(), repo.display());
     println!("manifest: {}", report.manifest_path.display());
     Ok(())
 }
 
-fn restore(paths: &LatticePaths, service_name: &str, dry_run: bool) -> Result<()> {
+fn restore(
+    paths: &LatticePaths,
+    service_name: &str,
+    dry_run: bool,
+    force: bool,
+    yes: bool,
+) -> Result<()> {
     let service = load_service(paths, service_name)?;
     let root = expand_path(&service.root)?;
     let repo = expand_path(&service.repo)?;
 
     if dry_run {
-        let manifest = read_manifest(&repo.join(".lattice").join("manifest.toml"))?;
+        print_hook_outcomes(&run_hooks(
+            &service.hooks,
+            HookPhase::BeforeRestore,
+            true,
+            yes,
+        )?);
+        let plan = restore_plan(&repo, &root)?;
         println!(
             "would restore {} files to {}",
-            manifest.entries.len(),
+            plan.entries.len(),
             root.display()
         );
-        for entry in manifest.entries {
+        if !plan.conflicts.is_empty() {
+            println!("conflicts: {}", plan.conflicts.len());
+            for conflict in &plan.conflicts {
+                println!("conflict {}", conflict.display());
+            }
+        }
+        for entry in plan.entries {
             println!("{}", entry.path.display());
         }
+        print_hook_outcomes(&run_hooks(
+            &service.hooks,
+            HookPhase::AfterRestore,
+            true,
+            yes,
+        )?);
         return Ok(());
     }
 
-    let report = restore_service(&repo, &root)?;
+    print_hook_outcomes(&run_hooks(
+        &service.hooks,
+        HookPhase::BeforeRestore,
+        false,
+        yes,
+    )?);
+    let report = restore_service_with_options(
+        &repo,
+        &root,
+        &RestoreOptions {
+            force,
+            snapshot_root: Some(paths.state_dir.join("snapshots")),
+            service_name: Some(service.name.clone()),
+        },
+    )?;
     let created_dirs = create_restore_dirs(&root, &service.restore.create_dirs)?;
     let applied_permissions = apply_permission_rules(&root, &service.permissions)?;
+    print_hook_outcomes(&run_hooks(
+        &service.hooks,
+        HookPhase::AfterRestore,
+        false,
+        yes,
+    )?);
 
     println!(
         "restored {} files to {}",
@@ -219,7 +342,30 @@ fn restore(paths: &LatticePaths, service_name: &str, dry_run: bool) -> Result<()
     if !applied_permissions.is_empty() {
         println!("applied {} permission rules", applied_permissions.len());
     }
+    if let Some(snapshot_dir) = report.snapshot_dir {
+        println!("snapshot: {}", snapshot_dir.display());
+    }
     Ok(())
+}
+
+fn print_hook_outcomes(outcomes: &[HookOutcome]) {
+    for outcome in outcomes {
+        match outcome.status {
+            HookStatus::WouldRun => {
+                println!("would run hook {}: {}", outcome.phase.label(), outcome.name);
+            }
+            HookStatus::Ran => {
+                println!("ran hook {}: {}", outcome.phase.label(), outcome.name);
+            }
+            HookStatus::SkippedConfirm => {
+                println!(
+                    "skipped hook {}: {} (requires --yes)",
+                    outcome.phase.label(),
+                    outcome.name
+                );
+            }
+        }
+    }
 }
 
 fn write_file_if_allowed(path: &Path, body: &str, force: bool) -> Result<()> {
@@ -234,6 +380,13 @@ fn load_service(paths: &LatticePaths, service_name: &str) -> Result<ServiceConfi
     let body =
         fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
     toml::from_str(&body).with_context(|| format!("failed to parse {}", path.display()))
+}
+
+fn load_global_config(paths: &LatticePaths) -> Result<GlobalConfig> {
+    let body = fs::read_to_string(&paths.config_file)
+        .with_context(|| format!("failed to read {}", paths.config_file.display()))?;
+    toml::from_str(&body)
+        .with_context(|| format!("failed to parse {}", paths.config_file.display()))
 }
 
 fn load_services(paths: &LatticePaths) -> Result<Vec<ServiceConfig>> {

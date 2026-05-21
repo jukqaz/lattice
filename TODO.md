@@ -39,10 +39,10 @@ Do not mark a task complete until formatting, full tests, and the isolated XDG b
 
 See `docs/product/mvp-scope.md`.
 
-- [ ] Add restore conflict detection.
-- [ ] Add restore snapshots before overwrite.
-- [ ] Add minimal lifecycle hooks.
-- [ ] Add a custom service fixture.
-- [ ] Add real `~/.codex` read-only dry-run coverage to `xtask verify`.
-- [ ] Add lightweight secret-looking content scan.
-- [ ] Add `validate` if it stays small.
+- [x] Add restore conflict detection.
+- [x] Add restore snapshots before overwrite.
+- [x] Add minimal lifecycle hooks.
+- [x] Add a custom service fixture.
+- [x] Add real `~/.codex` read-only dry-run coverage to `xtask verify`.
+- [x] Add lightweight secret-looking content scan.
+- [x] Add `validate` if it stays small.

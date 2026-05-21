@@ -18,6 +18,7 @@ During development:
 cargo run -- init --force
 cargo run -- status codex
 cargo run -- backup --dry-run codex
+cargo run -- restore --dry-run codex
 ```
 
 ## XDG Layout
@@ -39,12 +40,17 @@ Environment overrides are supported through `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, 
 ```bash
 lattice init
 lattice doctor
+lattice validate
 lattice service list
 lattice status codex
 lattice backup --dry-run codex
 lattice backup codex
+lattice backup --yes codex
+lattice backup --allow-secret-looking-files codex
 lattice restore --dry-run codex
 lattice restore codex
+lattice restore --force codex
+lattice restore --yes codex
 ```
 
 ## Service Config
@@ -70,6 +76,13 @@ mode = "0600"
 [[permissions]]
 path = "bin/mcp-rbw"
 mode = "0700"
+
+[[hooks.after_restore]]
+name = "codex doctor"
+command = "codex"
+args = ["doctor", "--summary"]
+timeout_sec = 60
+confirm = false
 ```
 
 Custom services can provide their own `include` and `exclude` globs:
@@ -86,6 +99,12 @@ exclude = []
 
 Lattice does not back up secret values. The v0.1 `doctor` command only checks whether `rbw` and `bw` are available. Future Vaultwarden integration should store secret metadata only and resolve secret values at runtime.
 
+Backups fail by default when file contents contain obvious secret-looking markers such as common API token prefixes. Use `--allow-secret-looking-files` only after reviewing the affected files.
+
+## Restore Safety
+
+Restore refuses to overwrite conflicting local files by default. Use `restore --dry-run <service>` to inspect conflicts and `restore --force <service>` to overwrite intentionally. Forced restores snapshot overwritten files under XDG state before applying repo contents.
+
 ## Verification
 
 Run the Rust harness:
@@ -95,4 +114,3 @@ cargo run -p xtask -- verify
 ```
 
 The harness runs formatting, the full Rust test suite, and an isolated XDG backup/restore smoke test.
-

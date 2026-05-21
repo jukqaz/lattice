@@ -188,7 +188,55 @@ mode = "0600"
         "shell_snapshots mode mismatch",
     )?;
 
+    verify_real_codex_dry_run(&root)?;
+
     println!("lattice xtask verify: ok");
+    Ok(())
+}
+
+fn verify_real_codex_dry_run(root: &Path) -> Result<(), String> {
+    let home = env::var_os("HOME")
+        .map(PathBuf::from)
+        .ok_or_else(|| "HOME is not set".to_string())?;
+    let codex_home = home.join(".codex");
+    if !codex_home.is_dir() {
+        return Ok(());
+    }
+
+    let temp = TempTree::new("lattice-real-codex-dry-run")?;
+    let xdg = XdgEnv::new(temp.path());
+    run_capture(
+        root,
+        "cargo",
+        ["run", "--quiet", "--", "init", "--force"],
+        &xdg,
+    )?;
+    let status = run_capture(
+        root,
+        "cargo",
+        ["run", "--quiet", "--", "status", "codex"],
+        &xdg,
+    )?;
+    ensure(
+        status.contains("service: codex"),
+        "real codex status did not include service",
+    )?;
+    let dry_run = run_capture(
+        root,
+        "cargo",
+        ["run", "--quiet", "--", "backup", "--dry-run", "codex"],
+        &xdg,
+    )?;
+    ensure(
+        dry_run.contains("would copy"),
+        "real codex dry-run did not report copy plan",
+    )?;
+    ensure(
+        !xdg.data
+            .join("lattice/repos/codex/.lattice/manifest.toml")
+            .exists(),
+        "real codex dry-run wrote a manifest",
+    )?;
     Ok(())
 }
 

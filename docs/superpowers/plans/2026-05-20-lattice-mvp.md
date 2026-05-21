@@ -7,7 +7,7 @@ pre-workspace v0.1 implementation path; current source lives under
 > **For agentic workers:** This is historical implementation evidence, not an
 > active plan.
 
-**Goal:** Build the first working Rust CLI slice for backing up and restoring a configured Codex service.
+**Goal:** Build the first working Rust CLI slice for backing up and restoring a configured service, using `codex` as the concrete example.
 
 **Architecture:** The binary parses commands and delegates to a small library. The library owns XDG path resolution, TOML config loading, service scanning, backup/restore copying, and permission manifests. v0.1 avoids git automation and secret materialization.
 
@@ -22,7 +22,7 @@ pre-workspace v0.1 implementation path; current source lives under
 - `src/lib.rs`: module exports.
 - `src/paths.rs`: XDG path resolver.
 - `src/config.rs`: global and service TOML models plus defaults.
-- `src/preset.rs`: Codex include/exclude preset.
+- `src/preset.rs`: built-in preset include/exclude rules.
 - `src/scanner.rs`: include/exclude file scanning.
 - `src/manifest.rs`: permission manifest read/write.
 - `src/ops.rs`: backup and restore operations.
@@ -113,7 +113,7 @@ Run: `cargo run -p xtask -- verify`
 
 Expected: formatting, full tests, and isolated CLI smoke pass.
 
-### Task 3: Codex Preset And Scanner
+### Task 3: Example Preset And Scanner
 
 **Files:**
 - Modify: `src/preset.rs`
@@ -121,7 +121,7 @@ Expected: formatting, full tests, and isolated CLI smoke pass.
 
 - [x] **Step 1: Write scanner tests**
 
-Create a fake Codex tree with `config.toml`, `agents/reviewer.toml`, `auth.json`, `sessions/current.jsonl`, `logs_2.sqlite`, and `bin/mcp-rbw`. Verify only included non-excluded files are returned.
+Create a fake `codex` service tree with `config.toml`, `agents/reviewer.toml`, `auth.json`, `sessions/current.jsonl`, `logs_2.sqlite`, and `bin/mcp-rbw`. Verify only included non-excluded files are returned.
 
 - [x] **Step 2: Run tests and verify RED**
 

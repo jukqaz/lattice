@@ -9,7 +9,9 @@ live under [docs/llm](../llm/).
 ## What Lattice Manages
 
 Lattice backs up and restores selected files for a named service. A service is
-one tool or app, such as `codex`, `zsh`, `git`, or a custom app config folder.
+one tool or app configuration root. This guide uses the built-in `codex`
+service as the concrete example; the same model applies to any service you
+define.
 
 Each service can define:
 
@@ -29,7 +31,7 @@ manager. It keeps the dotfile sync layer small and explicit.
 Install the latest tagged release:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.1 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.2 --locked
 ```
 
 Install from a local checkout while developing Lattice:
@@ -46,7 +48,7 @@ lattice --version
 
 ## 2. Initialize Local Config
 
-Create the global config and the default `codex` service:
+Create the global config and the example `codex` service:
 
 ```bash
 lattice init
@@ -68,7 +70,7 @@ The default files are stored here:
 ~/.config/lattice/services/codex.toml
 ```
 
-If the Codex service omits `repo`, Lattice stores its backup copy here:
+If the example service omits `repo`, Lattice stores its backup copy here:
 
 ```text
 ~/.local/share/lattice/repos/codex
@@ -148,35 +150,36 @@ control, and repository ownership explicit.
 
 ## 6. Add Another Service
 
-Create a service for one app config directory:
+Create a service for one app config directory. Use your own service name, root,
+and include patterns:
 
 ```bash
-lattice service add editor --root ~/.config/editor --include settings.toml --include 'themes/**'
-lattice service show editor
-lattice backup --dry-run editor
+lattice service add <service> --root <path> --include <pattern>
+lattice service show <service>
+lattice backup --dry-run <service>
 ```
 
 Add or remove tracked paths later:
 
 ```bash
-lattice include add editor keybindings.toml
-lattice include remove editor themes/old/**
-lattice exclude add editor cache/** state/**
-lattice exclude remove editor state/**
+lattice include add <service> <pattern>
+lattice include remove <service> <pattern>
+lattice exclude add <service> <pattern>
+lattice exclude remove <service> <pattern>
 ```
 
 Preserve restore permissions:
 
 ```bash
-lattice permission set editor settings.toml 0600
-lattice permission remove editor settings.toml
+lattice permission set <service> <path> 0600
+lattice permission remove <service> <path>
 ```
 
 Import existing files into a service:
 
 ```bash
-lattice track editor settings.toml themes/**
-lattice adopt editor settings.toml
+lattice track <service> <path>
+lattice adopt <service> <path>
 ```
 
 ## 7. Use Presets
@@ -186,13 +189,12 @@ Presets provide known include/exclude shapes for common tools:
 ```bash
 lattice preset list
 lattice preset show codex
-lattice preset show zsh
 ```
 
 Create a preset-backed service:
 
 ```bash
-lattice service add shell --root ~ --preset zsh --os macos
+lattice service add <service> --root <path> --preset <preset>
 ```
 
 The built-in presets are `codex`, `git`, `zsh`, `mise`, and `ssh`.
@@ -205,14 +207,14 @@ backend, item, field, environment variable name, and folder.
 Add secret metadata:
 
 ```bash
-lattice secret add --backend rbw --item "Editor API" --field password --env EDITOR_API_TOKEN editor api-token
+lattice secret add --backend rbw --item "<vault item>" --field password --env <ENV_NAME> <service> <name>
 ```
 
 List and check metadata:
 
 ```bash
-lattice secret list editor
-lattice secret check editor
+lattice secret list <service>
+lattice secret check <service>
 ```
 
 `secret check` verifies tool availability for backends such as `rbw` and `bw`
@@ -222,8 +224,12 @@ Backups also block obvious secret-looking file contents by default. Use
 `--allow-secret-looking-files` only after reviewing the affected files:
 
 ```bash
-lattice backup --allow-secret-looking-files editor
+lattice backup --allow-secret-looking-files <service>
 ```
+
+Backup scans regular files and included empty directories. It does not follow
+symlinks or copy sockets, FIFOs, device files, and other special filesystem
+entries as file content.
 
 ## 9. Advanced Restore Options
 
@@ -231,14 +237,14 @@ Use symlink restore mode when you want restored files to point into the service
 repo:
 
 ```bash
-lattice service add linked --root ~/.config/tool --include config.toml --symlink
+lattice service add <service> --root <path> --include <pattern> --symlink
 ```
 
 Use template mode when repo files should contain placeholders and restored
 files should render environment variables:
 
 ```bash
-lattice service add templated --root ~/.config/tool --include config.toml --template
+lattice service add <service> --root <path> --include <pattern> --template
 ```
 
 When symlink and template modes are both enabled, files with rendered template
@@ -248,7 +254,7 @@ Use OS or hostname conditions to make a service active only on matching
 machines:
 
 ```bash
-lattice service add shell --root ~ --preset zsh --os macos
+lattice service add <service> --root <path> --preset <preset> --os macos
 ```
 
 ## 10. Prompt UI
@@ -289,6 +295,10 @@ lattice diff codex
 
 Use `restore --force` only when you have confirmed the repo copy should replace
 the local copy.
+
+If a forced restore replaces a special filesystem entry, Lattice writes metadata
+about that entry into the snapshot instead of trying to copy it as regular file
+contents.
 
 ## Development Verification
 

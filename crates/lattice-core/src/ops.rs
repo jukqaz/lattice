@@ -562,14 +562,51 @@ fn snapshot_existing_path(source: &Path, destination: &Path) -> Result<()> {
             .with_context(|| format!("failed to snapshot {}", source.display()))?;
         return Ok(());
     }
-    fs::copy(source, destination).with_context(|| {
-        format!(
-            "failed to snapshot {} to {}",
-            source.display(),
-            destination.display()
-        )
-    })?;
+    if metadata.is_file() {
+        fs::copy(source, destination).with_context(|| {
+            format!(
+                "failed to snapshot {} to {}",
+                source.display(),
+                destination.display()
+            )
+        })?;
+        return Ok(());
+    }
+    fs::write(
+        destination,
+        format!("special file: {}\n", file_type_label(&metadata)),
+    )
+    .with_context(|| format!("failed to snapshot {}", source.display()))?;
     Ok(())
+}
+
+#[cfg(unix)]
+fn file_type_label(metadata: &fs::Metadata) -> &'static str {
+    use std::os::unix::fs::FileTypeExt;
+
+    let file_type = metadata.file_type();
+    if file_type.is_socket() {
+        "socket"
+    } else if file_type.is_fifo() {
+        "fifo"
+    } else if file_type.is_block_device() {
+        "block device"
+    } else if file_type.is_char_device() {
+        "character device"
+    } else if metadata.is_dir() {
+        "directory"
+    } else {
+        "non-regular"
+    }
+}
+
+#[cfg(not(unix))]
+fn file_type_label(metadata: &fs::Metadata) -> &'static str {
+    if metadata.is_dir() {
+        "directory"
+    } else {
+        "non-regular"
+    }
 }
 
 fn ensure_snapshot_dir<'a>(
@@ -609,7 +646,7 @@ fn join_paths(paths: &[PathBuf]) -> String {
 mod tests {
     use std::fs;
     use std::os::unix::fs::{PermissionsExt, symlink};
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
     use tempfile::tempdir;
 
@@ -1037,6 +1074,53 @@ mod tests {
 
         assert!(format!("{error:#}").contains("destination path is not a regular file"));
         assert!(root.join("config.toml").is_dir());
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn force_restore_directory_over_socket_snapshots_metadata_without_copying_socket() {
+        use std::os::unix::net::UnixListener;
+
+        let temp = tempdir().expect("tempdir");
+        let repo = temp.path().join("repo");
+        let root = temp.path().join("root");
+        let state = temp.path().join("state");
+        let socket_path = root.join("runtime");
+
+        write_manifest(
+            &repo.join(".lattice/manifest.toml"),
+            &Manifest {
+                version: 1,
+                directories: vec![ManifestEntry {
+                    path: "runtime".into(),
+                    mode: "0700".to_string(),
+                }],
+                entries: Vec::new(),
+            },
+        )
+        .expect("write manifest");
+        fs::create_dir_all(&root).expect("create root");
+        let _listener = UnixListener::bind(&socket_path).expect("create socket collision");
+
+        let report = restore_service_with_options(
+            repo.as_path(),
+            root.as_path(),
+            &RestoreOptions {
+                force: true,
+                snapshot_root: Some(state.join("snapshots")),
+                service_name: Some("service".to_string()),
+                symlink: false,
+                render_templates: false,
+            },
+        )
+        .expect("force restore should replace socket with directory");
+
+        assert_eq!(report.created_dirs, vec![PathBuf::from("runtime")]);
+        assert!(root.join("runtime").is_dir());
+        assert_eq!(mode(root.join("runtime").as_path()), 0o700);
+        let snapshot = report.snapshot_dir.expect("snapshot dir").join("runtime");
+        let snapshot_body = fs::read_to_string(&snapshot).expect("snapshot metadata");
+        assert!(snapshot_body.contains("special file:"));
     }
 
     #[test]

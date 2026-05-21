@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build a small Rust dotfiles manager that can back up and restore one configured service, starting with a Codex service preset.
+Build a small Rust dotfiles manager that can back up and restore one configured service, using `codex` as the initial example preset.
 
 ## Product Boundary
 
@@ -22,7 +22,7 @@ The main config lives at `lattice.toml`. Service configs live under `services/*.
 - `lattice init`: create default config files without overwriting existing files unless `--force` is passed.
 - `lattice doctor`: print XDG paths, config availability, and `rbw`/`bw` command availability without reading secret values.
 - `lattice service list`: list configured services.
-- `lattice backup codex`: copy included Codex files into the configured repo directory and write `.lattice/manifest.toml`.
+- `lattice backup codex`: copy included files for the example `codex` service into the configured repo directory and write `.lattice/manifest.toml`.
 - `lattice restore codex`: copy files from the repo directory back to the service root, then apply stored and configured permissions.
 
 ## Codex Preset

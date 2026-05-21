@@ -2,6 +2,19 @@
 
 [English](CHANGELOG.md) | 한국어 | [문서 인덱스](docs/README.ko.md)
 
+## v0.3.2
+
+### 수정
+
+- forced restore가 추적된 디렉터리로 덮어써야 하는 위치에 Unix socket 같은 특수
+  filesystem entry가 있을 때, 이를 일반 파일처럼 복사하지 않고 metadata
+  snapshot으로 남긴다.
+
+### 변경
+
+- 공개 문서에서 Lattice를 generic service-scoped dotfiles manager로 설명하도록
+  조정했다. 구체적인 명령 예시는 `codex`를 sample service로만 사용한다.
+
 ## v0.3.1
 
 ### 수정
@@ -51,6 +64,7 @@ public git-distributed Lattice 릴리스 후보.
 
 ## v0.1.0
 
-- Codex-scoped backup/restore를 위한 초기 Rust CLI spike.
-- XDG path, TOML config, Codex preset, permission manifest, backup, restore,
+- service-scoped backup/restore를 위한 초기 Rust CLI spike. `codex`는 첫
+  번째 구체적 예시로 사용했다.
+- XDG path, TOML config, `codex` preset, permission manifest, backup, restore,
   status, 첫 Rust `xtask` verification harness.

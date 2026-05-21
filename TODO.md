@@ -18,7 +18,7 @@
 - [x] Add config and service TOML models.
 - [x] Add XDG path resolution.
 - [x] Add `init`, `doctor`, `service list`, `backup`, and `restore` commands.
-- [x] Add an initial preset-backed example for early smoke coverage.
+- [x] Add an initial catalog-backed example for early smoke coverage.
 - [x] Add permission manifest capture and restore.
 - [x] Add focused tests for config loading, scanning, backup, and restore.
 - [x] Run formatting, tests, and a local smoke flow.

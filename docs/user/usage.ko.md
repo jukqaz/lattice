@@ -271,7 +271,7 @@ copy의 placeholder를 보존하기 위해 regular file로 복원됩니다.
 특정 OS나 hostname에서만 service를 활성화할 수 있습니다.
 
 ```bash
-lattice service add <service> --root <path> --preset <preset> --os macos
+lattice service add <service> --root <path> --include <pattern> --os macos
 ```
 
 ## 10. Automation과 JSON output

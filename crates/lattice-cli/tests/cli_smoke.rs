@@ -421,9 +421,31 @@ fn mvp2_commands_cover_presets_repo_secrets_track_adopt_diff_and_tui() {
     let adopt = run_ok(bin, &env, &["adopt", "shell", ".zprofile"]);
     assert!(adopt.contains("copied"));
 
+    fs::write(
+        env.config.join("lattice/services/\\.toml"),
+        format!(
+            r#"
+name = "\\"
+root = "{}"
+include = [".zshrc"]
+"#,
+            source.display()
+        ),
+    )
+    .expect("write service with invalid default repo name");
+
     let tui = run_ok(bin, &env, &["tui", "--dry-run"]);
-    assert!(tui.contains("service list"));
-    assert!(tui.contains("backup dry-run"));
+    assert!(tui.contains("lattice tui dashboard"));
+    assert!(tui.contains("services:"));
+    assert!(tui.contains("- codex active=yes"));
+    assert!(tui.contains("- shell active=yes"));
+    assert!(tui.contains("repo=unavailable(service name"));
+    assert!(tui.contains("files=2"));
+    assert!(tui.contains("repo="));
+    assert!(tui.contains("actions:"));
+    assert!(tui.contains("backup --dry-run <service>"));
+    assert!(tui.contains("restore --dry-run <service>"));
+    assert!(tui.contains("diff <service>"));
 }
 
 #[test]

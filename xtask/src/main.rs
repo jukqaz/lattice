@@ -19,16 +19,103 @@ fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
     match args.next().as_deref() {
         Some("verify") => verify(),
+        Some("linux-verify") => linux_verify(),
+        Some("quality") => quality(),
         Some(command) => Err(format!("unknown xtask command: {command}")),
-        None => Err("usage: cargo run -p xtask -- verify".to_string()),
+        None => Err("usage: cargo run -p xtask -- <verify|linux-verify|quality>".to_string()),
     }
+}
+
+fn linux_verify() -> Result<(), String> {
+    let root = workspace_root();
+    let root_str = root
+        .to_str()
+        .ok_or_else(|| format!("workspace path is not utf-8: {}", root.display()))?;
+    let image = env::var("LATTICE_LINUX_IMAGE").unwrap_or_else(|_| "rust:1.95-bookworm".into());
+    let mount = format!("{root_str}:/workspace:ro");
+    let script = "set -euo pipefail; \
+mkdir -p /tmp/lattice; \
+tar --exclude=target --exclude=.git --exclude=.lattice-snapshots -cf - -C /workspace . | tar -xf - -C /tmp/lattice; \
+cd /tmp/lattice; \
+rustup component add rustfmt clippy; \
+rustup target add wasm32-wasip2; \
+cargo run -p xtask -- verify";
+
+    run_passthrough(
+        &root,
+        "docker",
+        [
+            "run",
+            "--rm",
+            "-v",
+            &mount,
+            "-e",
+            "CARGO_TERM_COLOR=never",
+            &image,
+            "bash",
+            "-c",
+            script,
+        ],
+        [],
+    )?;
+    println!("lattice xtask linux-verify: ok");
+    Ok(())
+}
+
+fn quality() -> Result<(), String> {
+    let root = workspace_root();
+    ensure_required_tool("cargo-deny", &["--version"])?;
+    ensure_required_tool("cargo-machete", &["--version"])?;
+    ensure_required_tool("cargo", &["llvm-cov", "--version"])?;
+    ensure_required_tool("typos", &["--version"])?;
+
+    verify()?;
+    run_passthrough(&root, "cargo-deny", ["check"], [])?;
+    run_passthrough(
+        &root,
+        "cargo-machete",
+        ["--with-metadata", "--skip-target-dir"],
+        [],
+    )?;
+    run_passthrough(&root, "typos", ["--config", "_typos.toml"], [])?;
+    run_passthrough(
+        &root,
+        "rustup",
+        ["component", "add", "llvm-tools-preview"],
+        [],
+    )?;
+    fs::create_dir_all(root.join("target/llvm-cov"))
+        .map_err(|error| format!("failed to create target/llvm-cov: {error}"))?;
+    run_passthrough(
+        &root,
+        "cargo",
+        [
+            "llvm-cov",
+            "--workspace",
+            "--all-features",
+            "--locked",
+            "--lcov",
+            "--output-path",
+            "target/llvm-cov/lcov.info",
+        ],
+        [],
+    )?;
+
+    println!("lattice xtask quality: ok");
+    Ok(())
 }
 
 fn verify() -> Result<(), String> {
     let root = workspace_root();
 
     run_passthrough(&root, "cargo", ["fmt", "--check"], [])?;
-    run_passthrough(&root, "cargo", ["test"], [])?;
+    run_passthrough(
+        &root,
+        "cargo",
+        ["clippy", "--workspace", "--all-targets", "--all-features"],
+        [],
+    )?;
+    run_passthrough(&root, "cargo", ["test", "--workspace"], [])?;
 
     let temp = TempTree::new("lattice-harness")?;
     let xdg = XdgEnv::new(temp.path());
@@ -38,6 +125,14 @@ fn verify() -> Result<(), String> {
         "cargo",
         ["run", "--quiet", "--", "init", "--force"],
         &xdg,
+    )?;
+    ensure(
+        mode(&xdg.config.join("lattice/lattice.toml"))? == 0o600,
+        "global config mode mismatch",
+    )?;
+    ensure(
+        mode(&xdg.config.join("lattice/services/codex.toml"))? == 0o600,
+        "codex service config mode mismatch",
     )?;
     run_capture(&root, "cargo", ["run", "--quiet", "--", "doctor"], &xdg)?;
 
@@ -189,8 +284,297 @@ mode = "0600"
     )?;
 
     verify_real_codex_dry_run(&root)?;
+    verify_cli_edge_harness(&root)?;
+    verify_non_unix_compile_harness(&root)?;
 
     println!("lattice xtask verify: ok");
+    Ok(())
+}
+
+fn ensure_required_tool(tool: &str, args: &[&str]) -> Result<(), String> {
+    let status = Command::new(tool)
+        .args(args)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map_err(|error| {
+            format!(
+                "required quality tool {tool} {args:?} is not installed or not executable: {error}. \
+Install with cargo install cargo-deny cargo-machete cargo-llvm-cov typos-cli --locked"
+            )
+        })?;
+    ensure(
+        status.success(),
+        &format!("required quality tool {tool} {args:?} exited with {status}"),
+    )
+}
+
+fn verify_cli_edge_harness(root: &Path) -> Result<(), String> {
+    let temp = TempTree::new("lattice-edge-harness")?;
+    let xdg = XdgEnv::new(temp.path());
+    run_capture(
+        root,
+        "cargo",
+        ["run", "--quiet", "--", "init", "--force"],
+        &xdg,
+    )?;
+
+    let mismatch_source = temp.path().join("mismatch-source");
+    write_file(
+        &mismatch_source,
+        "settings.toml",
+        "theme = \"dark\"\n",
+        0o600,
+    )?;
+    let mismatch_service = format!(
+        r#"name = "different"
+root = "{}"
+include = ["settings.toml"]
+"#,
+        mismatch_source.display()
+    );
+    write_file(
+        &xdg.config.join("lattice/services"),
+        "mismatch.toml",
+        &mismatch_service,
+        0o600,
+    )?;
+    let mismatch_error =
+        run_capture_fail(root, "cargo", ["run", "--quiet", "--", "validate"], &xdg)?;
+    ensure(
+        mismatch_error.contains("service config name mismatch"),
+        "service name mismatch did not fail validation",
+    )?;
+    fs::remove_file(xdg.config.join("lattice/services/mismatch.toml"))
+        .map_err(|error| format!("failed to remove mismatched service config: {error}"))?;
+
+    let tui_error = run_capture_fail(root, "cargo", ["run", "--quiet", "--", "tui"], &xdg)?;
+    ensure(
+        tui_error.contains("interactive TUI requires a terminal"),
+        "noninteractive TUI did not fail with terminal guidance",
+    )?;
+
+    fs::write(xdg.config.join("lattice/lattice.toml"), "version =\n")
+        .map_err(|error| format!("failed to write invalid global config: {error}"))?;
+    let validate_error =
+        run_capture_fail(root, "cargo", ["run", "--quiet", "--", "validate"], &xdg)?;
+    ensure(
+        validate_error.contains("failed to parse"),
+        "invalid config did not fail validate",
+    )?;
+    run_capture(
+        root,
+        "cargo",
+        ["run", "--quiet", "--", "init", "--force"],
+        &xdg,
+    )?;
+
+    let source = temp.path().join("edge-source");
+    write_file(&source, "settings.toml", "theme = \"dark\"\n", 0o600)?;
+    let source_str = source
+        .to_str()
+        .ok_or_else(|| "edge source path is not utf-8".to_string())?;
+    run_capture(
+        root,
+        "cargo",
+        [
+            "run",
+            "--quiet",
+            "--",
+            "service",
+            "add",
+            "edge",
+            "--root",
+            source_str,
+            "--include",
+            "settings.toml",
+        ],
+        &xdg,
+    )?;
+    ensure(
+        mode(&xdg.config.join("lattice/services/edge.toml"))? == 0o600,
+        "edge service config mode mismatch",
+    )?;
+    let permission_error = run_capture_fail(
+        root,
+        "cargo",
+        [
+            "run",
+            "--quiet",
+            "--",
+            "permission",
+            "set",
+            "edge",
+            "../secret.txt",
+            "0600",
+        ],
+        &xdg,
+    )?;
+    ensure(
+        permission_error.contains("unsafe relative path"),
+        "unsafe permission path did not fail",
+    )?;
+    let service_config = run_capture(
+        root,
+        "cargo",
+        ["run", "--quiet", "--", "service", "show", "edge"],
+        &xdg,
+    )?;
+    ensure(
+        !service_config.contains("../secret.txt"),
+        "unsafe permission path was persisted",
+    )?;
+    write_file(
+        &source,
+        "secret.env",
+        &format!(
+            "OPENAI_API_KEY={}proj_fake_but_token_shaped\n",
+            ["s", "k-"].concat()
+        ),
+        0o600,
+    )?;
+    let adopt_error = run_capture_fail(
+        root,
+        "cargo",
+        ["run", "--quiet", "--", "adopt", "edge", "secret.env"],
+        &xdg,
+    )?;
+    ensure(
+        adopt_error.contains("secret-looking content"),
+        "failed adopt did not report secret-looking content",
+    )?;
+    let service_config = run_capture(
+        root,
+        "cargo",
+        ["run", "--quiet", "--", "service", "show", "edge"],
+        &xdg,
+    )?;
+    ensure(
+        !service_config.contains("secret.env"),
+        "failed adopt persisted secret.env tracking",
+    )?;
+    run_capture(
+        root,
+        "cargo",
+        ["run", "--quiet", "--", "backup", "edge"],
+        &xdg,
+    )?;
+    let repo = xdg.data.join("lattice/repos/edge");
+    ensure(
+        !repo.join("secret.env").exists(),
+        "failed adopt copied secret.env into repo",
+    )?;
+    let repo_status_error = run_capture_fail(
+        root,
+        "cargo",
+        ["run", "--quiet", "--", "repo", "status", "edge"],
+        &xdg,
+    )?;
+    ensure(
+        repo_status_error.contains("repo is not a git repository"),
+        "repo status did not reject non-git repo",
+    )?;
+    run_git(&repo, ["init"])?;
+    run_git(&repo, ["config", "user.email", "lattice@example.test"])?;
+    run_git(&repo, ["config", "user.name", "Lattice Test"])?;
+    let push_error = run_capture_fail(
+        root,
+        "cargo",
+        ["run", "--quiet", "--", "repo", "push", "edge"],
+        &xdg,
+    )?;
+    ensure(
+        push_error.contains("git exited"),
+        "repo push without remote did not surface git failure",
+    )?;
+    fs::write(
+        repo.join("leak.env"),
+        format!(
+            "OPENAI_API_KEY={}proj_fake_but_token_shaped\n",
+            ["s", "k-"].concat()
+        ),
+    )
+    .map_err(|error| format!("failed to write repo leak: {error}"))?;
+    let commit_error = run_capture_fail(
+        root,
+        "cargo",
+        [
+            "run",
+            "--quiet",
+            "--",
+            "repo",
+            "commit",
+            "edge",
+            "--message",
+            "backup configs",
+        ],
+        &xdg,
+    )?;
+    ensure(
+        commit_error.contains("secret-looking content"),
+        "repo commit did not block secret-looking content",
+    )?;
+
+    let binary_source = temp.path().join("binary-source");
+    let binary_repo = temp.path().join("binary-repo");
+    fs::create_dir_all(&binary_source)
+        .map_err(|error| format!("failed to create binary source: {error}"))?;
+    write_bytes(&binary_source.join("blob.bin"), &[0, 159, 146, 150])?;
+    let binary_service = format!(
+        r#"name = "binary"
+root = "{}"
+repo = "{}"
+include = ["blob.bin"]
+"#,
+        binary_source.display(),
+        binary_repo.display()
+    );
+    write_file(
+        &xdg.config.join("lattice/services"),
+        "binary.toml",
+        &binary_service,
+        0o600,
+    )?;
+    run_capture(
+        root,
+        "cargo",
+        ["run", "--quiet", "--", "backup", "binary"],
+        &xdg,
+    )?;
+    write_bytes(&binary_source.join("blob.bin"), &[0, 1, 2, 3, 255])?;
+    let diff = run_capture(
+        root,
+        "cargo",
+        ["run", "--quiet", "--", "diff", "binary"],
+        &xdg,
+    )?;
+    ensure(
+        diff.contains("binary content differs; line diff hidden"),
+        "binary diff did not hide line output",
+    )?;
+
+    Ok(())
+}
+
+fn verify_non_unix_compile_harness(root: &Path) -> Result<(), String> {
+    let output = Command::new("rustup")
+        .args(["target", "list", "--installed"])
+        .output()
+        .map_err(|error| format!("failed to list rustup targets: {error}"))?;
+    ensure(output.status.success(), "rustup target list failed")?;
+    let installed = String::from_utf8_lossy(&output.stdout);
+    if installed.lines().any(|line| line == "wasm32-wasip2") {
+        run_passthrough(
+            root,
+            "cargo",
+            ["check", "-p", "lattice-core", "--target", "wasm32-wasip2"],
+            [],
+        )?;
+    } else {
+        println!(
+            "lattice xtask verify: skipped non-unix compile check; wasm32-wasip2 target is not installed"
+        );
+    }
     Ok(())
 }
 
@@ -243,8 +627,8 @@ fn verify_real_codex_dry_run(root: &Path) -> Result<(), String> {
 fn workspace_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
-        .expect("xtask manifest should have a parent")
-        .to_path_buf()
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from("."))
 }
 
 fn run_passthrough<const N: usize, const M: usize>(
@@ -283,6 +667,31 @@ fn run_capture<const N: usize>(
     ))
 }
 
+fn run_capture_fail<const N: usize>(
+    root: &Path,
+    program: &str,
+    args: [&str; N],
+    xdg: &XdgEnv,
+) -> Result<String, String> {
+    let output = base_command(root, program, args, xdg.envs())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .map_err(|error| format!("failed to run {program}: {error}"))?;
+
+    if output.status.success() {
+        return Err(format!(
+            "{program} unexpectedly succeeded for args {args:?}"
+        ));
+    }
+
+    Ok(format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    ))
+}
+
 fn base_command<const N: usize, const M: usize>(
     root: &Path,
     program: &str,
@@ -307,6 +716,32 @@ fn write_file(root: &Path, relative: &str, body: &str, mode: u32) -> Result<(), 
     fs::write(&path, body)
         .map_err(|error| format!("failed to write {}: {error}", path.display()))?;
     set_mode(&path, mode)
+}
+
+fn write_bytes(path: &Path, body: &[u8]) -> Result<(), String> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| format!("{} has no parent", path.display()))?;
+    fs::create_dir_all(parent)
+        .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
+    fs::write(path, body).map_err(|error| format!("failed to write {}: {error}", path.display()))
+}
+
+fn run_git<const N: usize>(repo: &Path, args: [&str; N]) -> Result<(), String> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repo)
+        .args(args)
+        .output()
+        .map_err(|error| format!("failed to run git: {error}"))?;
+    ensure(
+        output.status.success(),
+        &format!(
+            "git failed\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        ),
+    )
 }
 
 #[cfg(unix)]
@@ -399,7 +834,7 @@ impl Drop for TempTree {
             .file_name()
             .and_then(OsStr::to_str)
             .is_some_and(|name| {
-                name.starts_with("lattice-harness-") && self.path.starts_with(env::temp_dir())
+                name.starts_with("lattice-") && self.path.starts_with(env::temp_dir())
             })
         {
             let _ = fs::remove_dir_all(&self.path);

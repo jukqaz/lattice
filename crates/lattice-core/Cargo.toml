@@ -1,0 +1,21 @@
+[package]
+name = "lattice-core"
+version.workspace = true
+edition.workspace = true
+description = "Core backup, restore, and configuration logic for Lattice."
+license.workspace = true
+publish = false
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+globset.workspace = true
+serde = { workspace = true, features = ["derive"] }
+toml.workspace = true
+walkdir.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

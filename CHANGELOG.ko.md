@@ -12,6 +12,8 @@
   normalization과 case folding 이후 충돌하는 추적 path를 거부한다.
 - copy backup이 보존하지 못하는 hard link, extended attribute, macOS resource
   fork를 기본적으로 거부한다.
+- xattr list를 지원하지 않는 filesystem에서는 이를 non-fatal로 처리해 모든
+  backup이 실패하지 않게 한다.
 
 ### 추가
 

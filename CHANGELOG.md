@@ -12,6 +12,8 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
   or collide after Unicode normalization plus case-insensitive comparison.
 - Reject hard-linked files, extended attributes, and macOS resource forks by
   default because copy backup does not preserve that metadata.
+- Treat unsupported xattr listing as non-fatal so filesystems without xattr
+  support do not fail every backup.
 
 ### Added
 

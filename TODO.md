@@ -34,3 +34,15 @@ cargo run -p xtask -- verify
 ```
 
 Do not mark a task complete until formatting, full tests, and the isolated XDG backup/restore smoke pass.
+
+## v0.2 Light MVP
+
+See `docs/product/mvp-scope.md`.
+
+- [ ] Add restore conflict detection.
+- [ ] Add restore snapshots before overwrite.
+- [ ] Add minimal lifecycle hooks.
+- [ ] Add a custom service fixture.
+- [ ] Add real `~/.codex` read-only dry-run coverage to `xtask verify`.
+- [ ] Add lightweight secret-looking content scan.
+- [ ] Add `validate` if it stays small.

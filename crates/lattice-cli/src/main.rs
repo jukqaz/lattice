@@ -841,21 +841,21 @@ fn tui(paths: &LatticePaths, dry_run: bool) -> Result<()> {
     let actions = vec![
         "service list",
         "validate",
-        "backup dry-run",
-        "restore dry-run",
+        "status <service>",
+        "diff <service>",
+        "backup --dry-run <service>",
+        "restore --dry-run <service>",
         "preset list",
     ];
     if dry_run {
-        println!("tui actions:");
-        for action in actions {
-            println!("{action}");
-        }
+        print_tui_dashboard(paths, &actions)?;
         return Ok(());
     }
     if !std::io::stdin().is_terminal() || !std::io::stdout().is_terminal() {
         bail!("interactive TUI requires a terminal; use --dry-run");
     }
 
+    print_tui_dashboard(paths, &actions)?;
     let action = Select::new("Lattice action", actions)
         .prompt()
         .context("failed to read TUI selection")?;
@@ -863,20 +863,65 @@ fn tui(paths: &LatticePaths, dry_run: bool) -> Result<()> {
         "service list" => service_list(paths),
         "validate" => validate(paths),
         "preset list" => preset_command(PresetCommands::List),
-        "backup dry-run" | "restore dry-run" => {
-            let services = load_services(paths)?;
-            let names: Vec<String> = services.into_iter().map(|service| service.name).collect();
-            let service = Select::new("Service", names)
-                .prompt()
-                .context("failed to read service selection")?;
-            if action == "backup dry-run" {
-                backup(paths, &service, true, false, false, false)
-            } else {
-                restore(paths, &service, true, false, false)
+        "status <service>"
+        | "diff <service>"
+        | "backup --dry-run <service>"
+        | "restore --dry-run <service>" => {
+            let service = select_service_name(paths)?;
+            match action {
+                "status <service>" => status(paths, &service),
+                "diff <service>" => diff(paths, &service),
+                "backup --dry-run <service>" => backup(paths, &service, true, false, false, false),
+                "restore --dry-run <service>" => restore(paths, &service, true, false, false),
+                _ => Ok(()),
             }
         }
         _ => Ok(()),
     }
+}
+
+fn print_tui_dashboard(paths: &LatticePaths, actions: &[&str]) -> Result<()> {
+    println!("lattice tui dashboard");
+    println!("config: {}", paths.config_file.display());
+    println!("services:");
+    for service in load_services(paths)? {
+        let active = if service_is_active(&service) {
+            "yes"
+        } else {
+            "no"
+        };
+        let root = expand_path(&service.root)?;
+        let repo = resolve_repo_path(paths, &service)?;
+        let (include, exclude) = effective_patterns(&service);
+        let files = match scan_service(&root, &include, &exclude) {
+            Ok(files) => files.len().to_string(),
+            Err(error) => format!("unavailable({error})"),
+        };
+        println!(
+            "- {} active={} files={} root={} repo={}",
+            service.name,
+            active,
+            files,
+            root.display(),
+            repo.display()
+        );
+    }
+    println!("actions:");
+    for action in actions {
+        println!("- {action}");
+    }
+    Ok(())
+}
+
+fn select_service_name(paths: &LatticePaths) -> Result<String> {
+    let services = load_services(paths)?;
+    let names: Vec<String> = services.into_iter().map(|service| service.name).collect();
+    if names.is_empty() {
+        bail!("no services configured");
+    }
+    Select::new("Service", names)
+        .prompt()
+        .context("failed to read service selection")
 }
 
 fn status(paths: &LatticePaths, service_name: &str) -> Result<()> {

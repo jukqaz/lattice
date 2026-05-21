@@ -9,7 +9,9 @@
 ## Lattice가 관리하는 것
 
 Lattice는 이름이 붙은 service의 선택된 파일을 백업하고 복원합니다. Service는
-`codex`, `zsh`, `git` 또는 특정 앱 설정 폴더처럼 하나의 도구나 앱을 뜻합니다.
+하나의 도구나 앱 설정 root를 뜻합니다. 이 가이드는 명령을 구체적으로 보여주기
+위해 내장 `codex` service를 예시로 사용하며, 같은 모델은 사용자가 정의한 어떤
+service에도 적용됩니다.
 
 각 service는 다음을 가질 수 있습니다.
 
@@ -29,7 +31,7 @@ Lattice는 package manager, secret manager, full system configuration manager가
 최신 tagged release 설치:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.1 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.2 --locked
 ```
 
 Lattice를 개발 중이면 local checkout에서 설치:
@@ -46,7 +48,7 @@ lattice --version
 
 ## 2. 로컬 설정 만들기
 
-global config와 기본 `codex` service를 만듭니다.
+global config와 예시 `codex` service를 만듭니다.
 
 ```bash
 lattice init
@@ -68,7 +70,7 @@ lattice status codex
 ~/.config/lattice/services/codex.toml
 ```
 
-Codex service에서 `repo`를 생략하면 backup copy는 여기에 저장됩니다.
+예시 service에서 `repo`를 생략하면 backup copy는 여기에 저장됩니다.
 
 ```text
 ~/.local/share/lattice/repos/codex
@@ -148,35 +150,36 @@ repository 소유권을 명시적으로 관리하기 위해서입니다.
 
 ## 6. 다른 서비스 추가하기
 
-앱 설정 directory 하나를 service로 만듭니다.
+앱 설정 directory 하나를 service로 만듭니다. 실제 service name, root, include
+pattern은 원하는 값으로 바꿉니다.
 
 ```bash
-lattice service add editor --root ~/.config/editor --include settings.toml --include 'themes/**'
-lattice service show editor
-lattice backup --dry-run editor
+lattice service add <service> --root <path> --include <pattern>
+lattice service show <service>
+lattice backup --dry-run <service>
 ```
 
 나중에 추적 path를 추가하거나 제거합니다.
 
 ```bash
-lattice include add editor keybindings.toml
-lattice include remove editor themes/old/**
-lattice exclude add editor cache/** state/**
-lattice exclude remove editor state/**
+lattice include add <service> <pattern>
+lattice include remove <service> <pattern>
+lattice exclude add <service> <pattern>
+lattice exclude remove <service> <pattern>
 ```
 
 복원 권한 보존:
 
 ```bash
-lattice permission set editor settings.toml 0600
-lattice permission remove editor settings.toml
+lattice permission set <service> <path> 0600
+lattice permission remove <service> <path>
 ```
 
 기존 파일을 service로 가져오기:
 
 ```bash
-lattice track editor settings.toml themes/**
-lattice adopt editor settings.toml
+lattice track <service> <path>
+lattice adopt <service> <path>
 ```
 
 ## 7. Preset 사용하기
@@ -186,13 +189,12 @@ Preset은 흔한 도구의 include/exclude 형태를 제공합니다.
 ```bash
 lattice preset list
 lattice preset show codex
-lattice preset show zsh
 ```
 
 Preset 기반 service 생성:
 
 ```bash
-lattice service add shell --root ~ --preset zsh --os macos
+lattice service add <service> --root <path> --preset <preset>
 ```
 
 내장 preset은 `codex`, `git`, `zsh`, `mise`, `ssh`입니다.
@@ -205,14 +207,14 @@ field, environment variable name, folder 같은 metadata만 저장합니다.
 Secret metadata 추가:
 
 ```bash
-lattice secret add --backend rbw --item "Editor API" --field password --env EDITOR_API_TOKEN editor api-token
+lattice secret add --backend rbw --item "<vault item>" --field password --env <ENV_NAME> <service> <name>
 ```
 
 Metadata 목록과 상태 확인:
 
 ```bash
-lattice secret list editor
-lattice secret check editor
+lattice secret list <service>
+lattice secret check <service>
 ```
 
 `secret check`는 `rbw`, `bw` 같은 backend tool 사용 가능 여부만 확인하고,
@@ -222,22 +224,26 @@ secret 값을 읽거나 출력하지 않습니다.
 뒤에만 `--allow-secret-looking-files`를 사용합니다.
 
 ```bash
-lattice backup --allow-secret-looking-files editor
+lattice backup --allow-secret-looking-files <service>
 ```
+
+Backup은 regular file과 include된 empty directory를 scan합니다. symlink를
+따라가지 않으며 socket, FIFO, device file 같은 특수 filesystem entry를 file
+content로 복사하지 않습니다.
 
 ## 9. 고급 복원 옵션
 
 복원된 파일이 service repo를 가리키게 하려면 symlink restore mode를 사용합니다.
 
 ```bash
-lattice service add linked --root ~/.config/tool --include config.toml --symlink
+lattice service add <service> --root <path> --include <pattern> --symlink
 ```
 
 Repo file에는 placeholder를 두고 restore된 file에는 environment variable을
 render하고 싶으면 template mode를 사용합니다.
 
 ```bash
-lattice service add templated --root ~/.config/tool --include config.toml --template
+lattice service add <service> --root <path> --include <pattern> --template
 ```
 
 Symlink와 template mode가 모두 켜져 있으면, template 값이 render된 파일은 repo
@@ -246,7 +252,7 @@ copy의 placeholder를 보존하기 위해 regular file로 복원됩니다.
 특정 OS나 hostname에서만 service를 활성화할 수 있습니다.
 
 ```bash
-lattice service add shell --root ~ --preset zsh --os macos
+lattice service add <service> --root <path> --preset <preset> --os macos
 ```
 
 ## 10. Prompt UI
@@ -287,6 +293,9 @@ lattice diff codex
 
 Repo copy가 local copy를 대체해야 한다는 것을 확인했을 때만 `restore --force`를
 사용합니다.
+
+Forced restore가 특수 filesystem entry를 교체해야 하는 경우, Lattice는 이를
+regular file content처럼 복사하지 않고 snapshot에 metadata로 남깁니다.
 
 ## 개발 검증
 

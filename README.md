@@ -6,19 +6,18 @@ Lattice is a small Rust CLI for backing up and restoring dotfiles by service.
 It is designed for personal configuration repos where each tool can have its
 own root, include rules, restore permissions, and optional sync repository.
 
-The first-class preset is `codex`: it backs up user-managed files under
-`~/.codex` while excluding auth, sessions, logs, databases, caches, generated
-files, worktrees, and other runtime state.
+The examples below use the built-in `codex` service so the commands stay
+concrete. The same workflow applies to any service you define.
 
 ## Start Here
 
 Install the latest tagged release:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.1 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.2 --locked
 ```
 
-Initialize local config and inspect the default Codex service:
+Initialize local config and inspect the example service:
 
 ```bash
 lattice init
@@ -68,18 +67,18 @@ include/exclude rules, permissions, and an optional repo path. If `repo` is not
 set, Lattice stores it at `$XDG_DATA_HOME/lattice/repos/<service-name>`.
 
 ```bash
-lattice service add editor --root ~/.config/editor --include settings.toml --include 'themes/**'
-lattice service show editor
-lattice backup --dry-run editor
-lattice backup editor
+lattice service add <service> --root <path> --include <pattern>
+lattice service show <service>
+lattice backup --dry-run <service>
+lattice backup <service>
 ```
 
 Use presets when the common shape is already known:
 
 ```bash
 lattice preset list
-lattice preset show zsh
-lattice service add shell --root ~ --preset zsh --os macos
+lattice preset show codex
+lattice service add <service> --root <path> --preset <preset>
 ```
 
 ## Daily Commands
@@ -123,6 +122,10 @@ repo at it with normal `git remote` commands.
   service root.
 - Source symlinks and symlinked destination parents are rejected for restore
   safety.
+- Backup tracks regular files and included empty directories. Symlinks, sockets,
+  FIFOs, and other special filesystem entries are not followed as file content.
+- Forced restore snapshots existing special filesystem entries as metadata before
+  replacing them with tracked directories.
 
 ## Config Locations
 

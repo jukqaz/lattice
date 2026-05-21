@@ -8,8 +8,8 @@
 
 ## 추천 읽기 순서
 
-1. [사용자 가이드](user/usage.ko.md): 설치, 첫 Codex 백업, 안전한 복원, 다른
-   서비스 추가, Git sync를 다룹니다.
+1. [사용자 가이드](user/usage.ko.md): 설치, `codex` 예시 service를 사용한 첫
+   백업, 안전한 복원, 다른 서비스 추가, Git sync를 다룹니다.
 2. [제품 범위](product/mvp-scope.ko.md): Lattice가 하는 일, 하지 않는 일, 현재
    릴리스 범위를 정리합니다.
 3. [변경 로그](../CHANGELOG.ko.md): 릴리스별 변경점과 업그레이드 시 확인할

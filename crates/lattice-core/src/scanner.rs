@@ -150,6 +150,44 @@ mod tests {
         assert_eq!(rels, vec!["skills/empty-skill"]);
     }
 
+    #[test]
+    #[cfg(unix)]
+    fn skips_special_paths_and_symlink_only_dirs_are_not_empty() {
+        use std::os::unix::fs::symlink;
+        use std::os::unix::net::UnixListener;
+
+        let temp = tempdir().expect("tempdir");
+        let root = temp.path();
+        write_file(root, "config.toml", "model = \"gpt-5.5\"\n");
+        fs::create_dir_all(root.join("empty")).expect("create empty dir");
+        fs::create_dir_all(root.join("links")).expect("create link dir");
+        symlink(root.join("config.toml"), root.join("linked-config.toml"))
+            .expect("create file symlink");
+        symlink(root.join("missing.toml"), root.join("broken-link.toml"))
+            .expect("create broken symlink");
+        symlink(root.join("config.toml"), root.join("links/config.toml"))
+            .expect("create nested symlink");
+        let _listener = UnixListener::bind(root.join("socket")).expect("create socket");
+
+        let include = vec!["**".to_string()];
+        let exclude = Vec::new();
+        let files = scan_service(root, &include, &exclude).expect("scan files should work");
+        let file_rels = files
+            .iter()
+            .map(|path| path.to_string_lossy().to_string())
+            .collect::<Vec<_>>();
+
+        assert_eq!(file_rels, vec!["config.toml"]);
+
+        let dirs = scan_empty_dirs(root, &include, &exclude).expect("scan dirs should work");
+        let dir_rels = dirs
+            .iter()
+            .map(|path| path.to_string_lossy().to_string())
+            .collect::<Vec<_>>();
+
+        assert_eq!(dir_rels, vec!["empty"]);
+    }
+
     fn write_file(root: &Path, relative: &str, body: &str) {
         let path = root.join(relative);
         fs::create_dir_all(path.parent().expect("parent")).expect("create parent");

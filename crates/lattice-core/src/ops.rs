@@ -594,9 +594,15 @@ fn ensure_no_metadata_loss_risks(path: &Path) -> Result<()> {
         );
     }
 
-    let attrs = xattr::list(path)
-        .with_context(|| format!("failed to list extended attributes for {}", path.display()))?
-        .collect::<Vec<_>>();
+    let attrs = match xattr::list(path) {
+        Ok(attrs) => attrs.collect::<Vec<_>>(),
+        Err(error) if xattr_listing_is_unsupported(&error) => return Ok(()),
+        Err(error) => {
+            return Err(error).with_context(|| {
+                format!("failed to list extended attributes for {}", path.display())
+            });
+        }
+    };
     if !attrs.is_empty() {
         bail!(
             "metadata loss risk: extended attributes or resource forks are not preserved by copy backup: {}",
@@ -605,6 +611,17 @@ fn ensure_no_metadata_loss_risks(path: &Path) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(unix)]
+const MACOS_ENOTSUP: i32 = 45;
+#[cfg(unix)]
+const LINUX_EOPNOTSUPP: i32 = 95;
+
+#[cfg(unix)]
+fn xattr_listing_is_unsupported(error: &std::io::Error) -> bool {
+    error.kind() == std::io::ErrorKind::Unsupported
+        || matches!(error.raw_os_error(), Some(MACOS_ENOTSUP | LINUX_EOPNOTSUPP))
 }
 
 #[cfg(not(unix))]
@@ -1501,6 +1518,26 @@ mod tests {
 
         assert!(format!("{error:#}").contains("metadata loss"));
         assert!(!repo.join("config.toml").exists());
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn xattr_unsupported_errors_are_not_metadata_loss() {
+        use std::io;
+
+        assert!(super::xattr_listing_is_unsupported(&io::Error::new(
+            io::ErrorKind::Unsupported,
+            "unsupported"
+        )));
+        assert!(super::xattr_listing_is_unsupported(
+            &io::Error::from_raw_os_error(super::LINUX_EOPNOTSUPP)
+        ));
+        assert!(super::xattr_listing_is_unsupported(
+            &io::Error::from_raw_os_error(super::MACOS_ENOTSUP)
+        ));
+        assert!(!super::xattr_listing_is_unsupported(
+            &io::Error::from_raw_os_error(13)
+        ));
     }
 
     #[test]

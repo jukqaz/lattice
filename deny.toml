@@ -1,0 +1,41 @@
+[graph]
+all-features = true
+targets = [
+  "aarch64-apple-darwin",
+  "aarch64-unknown-linux-gnu",
+  "wasm32-wasip2",
+  "x86_64-unknown-linux-gnu",
+]
+
+[advisories]
+ignore = []
+
+[licenses]
+allow = [
+  "Apache-2.0",
+  "MIT",
+  "Unicode-3.0",
+]
+confidence-threshold = 0.8
+
+[licenses.private]
+ignore = true
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+workspace-default-features = "warn"
+external-default-features = "allow"
+allow-workspace = true
+deny = [
+  { crate = "openssl", reason = "Prefer Rust-native TLS if network features are added later." },
+  { crate = "native-tls", reason = "Prefer Rust-native TLS if network features are added later." },
+]
+skip = []
+skip-tree = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

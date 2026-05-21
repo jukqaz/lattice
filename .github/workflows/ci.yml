@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: "1"
+
+jobs:
+  verify:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x86_64
+            runner: ubuntu-latest
+          - name: Linux ARM64
+            runner: ubuntu-24.04-arm
+          - name: macOS Apple Silicon
+            runner: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Print runner
+        shell: bash
+        run: |
+          uname -a
+          uname -m
+
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy,llvm-tools-preview --target wasm32-wasip2
+          rustup default stable
+          rustc --version
+          cargo --version
+          rustup show active-toolchain
+
+      - name: Run verification harness
+        shell: bash
+        run: cargo run -p xtask -- verify
+
+  quality:
+    name: Quality gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy,llvm-tools-preview --target wasm32-wasip2
+          rustup default stable
+          rustc --version
+          cargo --version
+
+      - name: Install quality tools
+        shell: bash
+        run: |
+          cargo install cargo-deny --locked
+          cargo install cargo-machete --locked
+          cargo install cargo-llvm-cov --locked
+          cargo install typos-cli --locked
+
+      - name: Run quality gate
+        shell: bash
+        run: cargo run -p xtask -- quality

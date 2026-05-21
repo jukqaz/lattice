@@ -1,0 +1,14 @@
+[default]
+extend-ignore-re = [
+  "OPENAI_API_KEY=sk-proj_fake_but_token_shaped",
+]
+
+[files]
+extend-exclude = [
+  "target",
+  "Cargo.lock",
+]
+
+[default.extend-words]
+ba = "ba"
+ratatui = "ratatui"

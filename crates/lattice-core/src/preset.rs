@@ -69,6 +69,7 @@ pub fn codex_preset() -> ServicePreset {
             ".tmp/**",
             "tmp/**",
             "plugins/cache/**",
+            "skills/.system/**",
             "browser/**",
             "computer-use/**",
             "generated_images/**",
@@ -112,6 +113,7 @@ mod tests {
         assert!(preset.exclude.contains(&"archived_sessions/**".to_string()));
         assert!(preset.exclude.contains(&"*.sqlite".to_string()));
         assert!(preset.exclude.contains(&"plugins/cache/**".to_string()));
+        assert!(preset.exclude.contains(&"skills/.system/**".to_string()));
         assert!(preset.exclude.contains(&"shell_snapshots/**".to_string()));
     }
 

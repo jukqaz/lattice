@@ -217,6 +217,7 @@ fn service_without_repo_uses_xdg_data_repo_named_after_service() {
 
     let source = temp.path().join("editor-source");
     write_file(&source, "settings.toml", "theme = \"dark\"\n", 0o600);
+    fs::create_dir_all(source.join("profiles/empty")).expect("create empty profile");
 
     fs::write(
         env.config.join("lattice/services/editor.toml"),
@@ -224,7 +225,7 @@ fn service_without_repo_uses_xdg_data_repo_named_after_service() {
             r#"
 name = "editor"
 root = "{}"
-include = ["settings.toml"]
+include = ["settings.toml", "profiles/**"]
 "#,
             source.display()
         ),
@@ -237,8 +238,15 @@ include = ["settings.toml"]
 
     let backup = run_ok(bin, &env, &["backup", "editor"]);
     assert!(backup.contains(&format!("copied 1 files to {}", expected_repo.display())));
+    assert!(backup.contains("tracked 1 empty dirs"));
     assert!(expected_repo.join("settings.toml").exists());
+    assert!(expected_repo.join("profiles/empty").is_dir());
     assert!(expected_repo.join(".lattice/manifest.toml").exists());
+
+    fs::remove_dir_all(source.join("profiles/empty")).expect("remove empty profile");
+    let restore = run_ok(bin, &env, &["restore", "editor"]);
+    assert!(restore.contains("created 1 backed-up empty dirs"));
+    assert!(source.join("profiles/empty").is_dir());
 }
 
 #[test]

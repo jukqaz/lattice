@@ -1,0 +1,49 @@
+# 변경 로그
+
+[English](CHANGELOG.md) | 한국어 | [문서 인덱스](docs/README.ko.md)
+
+## v0.3.0
+
+public git-distributed Lattice 릴리스 후보.
+
+### 추가
+
+- `lattice-core`, `lattice` CLI, `xtask`로 나뉜 Rust workspace.
+- service, include/exclude pattern, permission, preset, repository operation,
+  secret metadata, `track`, `adopt`, `diff`, `tui` 관리 command.
+- `$XDG_DATA_HOME/lattice/repos` 아래 service별 기본 repo 위치.
+- `codex`, `git`, `zsh`, `mise`, `ssh` preset.
+- restore safety check, overwrite snapshot, symlink restore mode, OS/hostname
+  condition, 단순 environment-variable template rendering.
+- dependency policy, typo scan, unused dependency check, LCOV 생성,
+  Docker-backed Linux verification, GitHub Actions matrix verification.
+- 영어/한국어 공개 문서와 영어 전용 LLM workflow guidance.
+
+### 변경
+
+- Lattice는 git-distributed only로 유지한다. crates는 `publish = false`다.
+- release verification은 `cargo run -p xtask -- verify`, `linux-verify`,
+  `quality`로 모은다.
+- `doctor`는 가벼운 environment check로 유지하고, config parsing은
+  `validate`가 담당한다.
+
+### 보안
+
+- 명백한 secret-looking content는 명시적 bypass 없이는 backup을 막는다.
+- secret command는 `rbw`, `bw` metadata만 저장하며 secret 값을 읽거나
+  출력하지 않는다.
+- path traversal, unsafe symlink, manifest escape, restore conflict, binary diff
+  exposure case를 harness test로 검증한다.
+
+## v0.2.0
+
+- restore conflict detection과 forced-restore snapshot.
+- minimal lifecycle hook.
+- secret-looking content guard.
+- `validate`와 강화된 real-Codex dry-run harness coverage.
+
+## v0.1.0
+
+- Codex-scoped backup/restore를 위한 초기 Rust CLI spike.
+- XDG path, TOML config, Codex preset, permission manifest, backup, restore,
+  status, 첫 Rust `xtask` verification harness.

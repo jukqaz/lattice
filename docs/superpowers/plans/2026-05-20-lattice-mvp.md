@@ -1,6 +1,11 @@
 # Lattice MVP Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+Status: archived after completion. The file structure below reflects the
+pre-workspace v0.1 implementation path; current source lives under
+`crates/lattice-core`, `crates/lattice-cli`, and `xtask`.
+
+> **For agentic workers:** This is historical implementation evidence, not an
+> active plan.
 
 **Goal:** Build the first working Rust CLI slice for backing up and restoring a configured Codex service.
 
@@ -47,7 +52,7 @@ Expected: `cargo fmt --check`, `cargo test`, and the isolated XDG CLI harness al
 - Create: `src/manifest.rs`
 - Create: `src/ops.rs`
 
-- [ ] **Step 1: Add dependencies**
+- [x] **Step 1: Add dependencies**
 
 Use:
 
@@ -64,13 +69,13 @@ walkdir = "2"
 tempfile = "3"
 ```
 
-- [ ] **Step 2: Create empty modules and compile**
+- [x] **Step 2: Create empty modules and compile**
 
 Run: `cargo test`
 
 Expected: the crate compiles with zero tests or the default generated test set.
 
-- [ ] **Step 3: Run task-completion harness**
+- [x] **Step 3: Run task-completion harness**
 
 Run: `cargo run -p xtask -- verify`
 
@@ -82,27 +87,27 @@ Expected: formatting, full tests, and isolated CLI smoke pass.
 - Modify: `src/paths.rs`
 - Modify: `src/config.rs`
 
-- [ ] **Step 1: Write tests for fallback XDG paths and config parsing**
+- [x] **Step 1: Write tests for fallback XDG paths and config parsing**
 
 Use temp directories and explicit environment overrides in tests. Verify that `lattice.toml` and `services/codex.toml` parse into typed structs.
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run: `cargo test`
 
 Expected: tests fail because the modules are not implemented yet.
 
-- [ ] **Step 3: Implement path resolution and TOML models**
+- [x] **Step 3: Implement path resolution and TOML models**
 
 Implement `LatticePaths`, `GlobalConfig`, `ServiceConfig`, and `PermissionRule`.
 
-- [ ] **Step 4: Run tests and verify GREEN**
+- [x] **Step 4: Run tests and verify GREEN**
 
 Run: `cargo test`
 
 Expected: all config and path tests pass.
 
-- [ ] **Step 5: Run task-completion harness**
+- [x] **Step 5: Run task-completion harness**
 
 Run: `cargo run -p xtask -- verify`
 
@@ -114,27 +119,27 @@ Expected: formatting, full tests, and isolated CLI smoke pass.
 - Modify: `src/preset.rs`
 - Modify: `src/scanner.rs`
 
-- [ ] **Step 1: Write scanner tests**
+- [x] **Step 1: Write scanner tests**
 
 Create a fake Codex tree with `config.toml`, `agents/reviewer.toml`, `auth.json`, `sessions/current.jsonl`, `logs_2.sqlite`, and `bin/mcp-rbw`. Verify only included non-excluded files are returned.
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run: `cargo test`
 
 Expected: tests fail because scan behavior is missing.
 
-- [ ] **Step 3: Implement preset expansion and glob scanning**
+- [x] **Step 3: Implement preset expansion and glob scanning**
 
 Use `globset` and `walkdir`. Return relative paths sorted for stable output.
 
-- [ ] **Step 4: Run tests and verify GREEN**
+- [x] **Step 4: Run tests and verify GREEN**
 
 Run: `cargo test`
 
 Expected: scanner tests pass.
 
-- [ ] **Step 5: Run task-completion harness**
+- [x] **Step 5: Run task-completion harness**
 
 Run: `cargo run -p xtask -- verify`
 
@@ -146,27 +151,27 @@ Expected: formatting, full tests, and isolated CLI smoke pass.
 - Modify: `src/manifest.rs`
 - Modify: `src/ops.rs`
 
-- [ ] **Step 1: Write operation tests**
+- [x] **Step 1: Write operation tests**
 
 Use temp source and repo directories. Back up `config.toml` and `bin/mcp-rbw`, assert files exist in repo, assert `.lattice/manifest.toml` exists, then restore into an empty destination and assert file contents and modes are restored.
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run: `cargo test`
 
 Expected: tests fail because operations are not implemented yet.
 
-- [ ] **Step 3: Implement backup and restore**
+- [x] **Step 3: Implement backup and restore**
 
 Copy regular files, create parent directories, write a TOML manifest with relative paths and Unix modes, restore files, and apply modes on Unix.
 
-- [ ] **Step 4: Run tests and verify GREEN**
+- [x] **Step 4: Run tests and verify GREEN**
 
 Run: `cargo test`
 
 Expected: operation tests pass.
 
-- [ ] **Step 5: Run task-completion harness**
+- [x] **Step 5: Run task-completion harness**
 
 Run: `cargo run -p xtask -- verify`
 
@@ -178,27 +183,27 @@ Expected: formatting, full tests, and isolated CLI smoke pass.
 - Modify: `src/main.rs`
 - Create: `tests/cli_smoke.rs`
 
-- [ ] **Step 1: Write CLI smoke tests**
+- [x] **Step 1: Write CLI smoke tests**
 
 Test `init`, `doctor`, `service list`, `backup codex`, and `restore codex` with isolated XDG env vars.
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run: `cargo test --test cli_smoke`
 
 Expected: tests fail because CLI behavior is incomplete.
 
-- [ ] **Step 3: Implement CLI commands**
+- [x] **Step 3: Implement CLI commands**
 
 Use `clap` subcommands. `init` writes default TOML. `doctor` checks paths and command availability. `service list` prints configured services. `backup` and `restore` call library operations.
 
-- [ ] **Step 4: Run tests and verify GREEN**
+- [x] **Step 4: Run tests and verify GREEN**
 
 Run: `cargo test --test cli_smoke`
 
 Expected: smoke tests pass.
 
-- [ ] **Step 5: Run task-completion harness**
+- [x] **Step 5: Run task-completion harness**
 
 Run: `cargo run -p xtask -- verify`
 
@@ -209,30 +214,30 @@ Expected: formatting, full tests, and isolated CLI smoke pass.
 **Files:**
 - Modify: `TODO.md`
 
-- [ ] **Step 1: Format**
+- [x] **Step 1: Format**
 
 Run: `cargo fmt --check`
 
 Expected: no formatting diff.
 
-- [ ] **Step 2: Test**
+- [x] **Step 2: Test**
 
 Run: `cargo test`
 
 Expected: all tests pass.
 
-- [ ] **Step 3: Manual smoke**
+- [x] **Step 3: Manual smoke**
 
 Run: `cargo run -- init --force`
 
 Expected: default config appears under the active XDG config directory.
 
-- [ ] **Step 4: Run task-completion harness**
+- [x] **Step 4: Run task-completion harness**
 
 Run: `cargo run -p xtask -- verify`
 
 Expected: formatting, full tests, and isolated CLI smoke pass.
 
-- [ ] **Step 5: Update TODO**
+- [x] **Step 5: Update TODO**
 
 Mark completed v0.1 items in `TODO.md`.

@@ -8,9 +8,8 @@ people evaluating or using Lattice.
 
 ## Recommended Reading Order
 
-1. [User Guide](user/usage.md): install Lattice, create a first backup using
-   the `codex` example service, restore safely, add another service, and sync
-   service repos with Git.
+1. [User Guide](user/usage.md): install Lattice, create services, make the first
+   backup, restore safely, and sync service repos with Git.
 2. [Product Scope](product/mvp-scope.md): understand what Lattice intentionally
    does, what it avoids, and what belongs in the current release.
 3. [Changelog](../CHANGELOG.md): review release-by-release behavior changes and

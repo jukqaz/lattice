@@ -8,10 +8,9 @@ live under [docs/llm](../llm/).
 
 ## What Lattice Manages
 
-Lattice backs up and restores selected files for a named service. A service is
-one tool or app configuration root. This guide uses the built-in `codex`
-service as the concrete example; the same model applies to any service you
-define.
+Lattice backs up and restores selected files for named services. A service is
+one tool or app configuration root. The service names in this guide are generic
+examples; use the names and paths that match your own dotfiles.
 
 Each service can define:
 
@@ -48,40 +47,73 @@ lattice --version
 
 ## 2. Initialize Local Config
 
-Create the global config and the example `codex` service:
+Create the global config and storage directories:
 
 ```bash
 lattice init
 ```
 
-Check the environment and configured services:
+Check the environment:
 
 ```bash
 lattice doctor
 lattice validate
 lattice service list
-lattice status codex
 ```
 
-The default files are stored here:
+The default config files are stored here:
 
 ```text
 ~/.config/lattice/lattice.toml
-~/.config/lattice/services/codex.toml
+~/.config/lattice/services/*.toml
 ```
 
-If the example service omits `repo`, Lattice stores its backup copy here:
+When a service omits `repo`, Lattice stores its backup copy here:
 
 ```text
-~/.local/share/lattice/repos/codex
+~/.local/share/lattice/repos/<service-name>
 ```
 
-## 3. Create The First Backup
+## 3. Add A First Service
+
+Create a service for one app config directory. Replace the example name, root,
+and include pattern with the dotfiles you want to manage:
+
+```bash
+lattice service add shell --root ~/.config/shell --include config.toml
+lattice service show shell
+lattice status shell
+```
+
+Add or remove tracked paths later:
+
+```bash
+lattice include add shell scripts/**
+lattice include remove shell scripts/**
+lattice exclude add shell cache/**
+lattice exclude remove shell cache/**
+```
+
+Preserve restore permissions:
+
+```bash
+lattice permission set shell config.toml 0600
+lattice permission remove shell config.toml
+```
+
+Import existing files into a service:
+
+```bash
+lattice track shell config.toml
+lattice adopt shell scripts/sync
+```
+
+## 4. Create The First Backup
 
 Always run a dry-run first:
 
 ```bash
-lattice backup --dry-run codex
+lattice backup --dry-run shell
 ```
 
 The output lists files that would be copied and empty directories that would be
@@ -90,36 +122,36 @@ tracked. Review this list before writing to the service repo.
 Create the backup:
 
 ```bash
-lattice backup codex
+lattice backup shell
 ```
 
 Check for drift between the live service root and the repo copy:
 
 ```bash
-lattice diff codex
+lattice diff shell
 ```
 
 No output means there is no file-content drift for the tracked files.
 
-## 4. Restore Safely
+## 5. Restore Safely
 
 Preview restore work first:
 
 ```bash
-lattice restore --dry-run codex
+lattice restore --dry-run shell
 ```
 
 Restore without overwriting conflicts:
 
 ```bash
-lattice restore codex
+lattice restore shell
 ```
 
 If local files conflict and you intentionally want the repo copy to win, use
 `--force`:
 
 ```bash
-lattice restore --force codex
+lattice restore --force shell
 ```
 
 Forced restore snapshots overwritten files under XDG state before writing:
@@ -128,15 +160,15 @@ Forced restore snapshots overwritten files under XDG state before writing:
 ~/.local/state/lattice/snapshots/
 ```
 
-## 5. Sync The Backup Repo
+## 6. Sync The Backup Repo
 
 Service repos are normal directories. Use Git directly or use Lattice helpers:
 
 ```bash
-lattice repo status codex
-lattice repo pull codex
-lattice repo commit --message "backup codex config" codex
-lattice repo push codex
+lattice repo status shell
+lattice repo pull shell
+lattice repo commit --message "backup shell config" shell
+lattice repo push shell
 ```
 
 For a private GitHub repository:
@@ -148,47 +180,13 @@ For a private GitHub repository:
 Lattice does not create remotes automatically. That keeps credentials, access
 control, and repository ownership explicit.
 
-## 6. Add Another Service
-
-Create a service for one app config directory. Use your own service name, root,
-and include patterns:
-
-```bash
-lattice service add <service> --root <path> --include <pattern>
-lattice service show <service>
-lattice backup --dry-run <service>
-```
-
-Add or remove tracked paths later:
-
-```bash
-lattice include add <service> <pattern>
-lattice include remove <service> <pattern>
-lattice exclude add <service> <pattern>
-lattice exclude remove <service> <pattern>
-```
-
-Preserve restore permissions:
-
-```bash
-lattice permission set <service> <path> 0600
-lattice permission remove <service> <path>
-```
-
-Import existing files into a service:
-
-```bash
-lattice track <service> <path>
-lattice adopt <service> <path>
-```
-
 ## 7. Use Presets
 
 Presets provide known include/exclude shapes for common tools:
 
 ```bash
 lattice preset list
-lattice preset show codex
+lattice preset show <preset>
 ```
 
 Create a preset-backed service:
@@ -197,7 +195,8 @@ Create a preset-backed service:
 lattice service add <service> --root <path> --preset <preset>
 ```
 
-The built-in presets are `codex`, `git`, `zsh`, `mise`, and `ssh`.
+Presets are optional shortcuts. The core model remains the same service config,
+include/exclude rules, backup, diff, and restore flow.
 
 ## 8. Manage Secrets Safely
 
@@ -277,17 +276,17 @@ Use `--json` when scripts, CI jobs, or agents need stable machine-readable
 output:
 
 ```bash
-lattice status --json codex
-lattice backup --dry-run --json codex
-lattice diff --json codex
-lattice restore --dry-run --json codex
+lattice status --json shell
+lattice backup --dry-run --json shell
+lattice diff --json shell
+lattice restore --dry-run --json shell
 ```
 
 For write flows, prefer the dry-run JSON command first. Parse the plan and stop
 if unexpected files, directories, entries, or conflicts appear:
 
 ```bash
-plan="$(lattice restore --dry-run --json codex)"
+plan="$(lattice restore --dry-run --json shell)"
 printf '%s\n' "$plan" | jq '.conflicts'
 ```
 
@@ -295,10 +294,10 @@ Use `--only` and `--exclude` to narrow status, backup, diff, and restore work to
 specific tracked paths. Quote glob selectors so the shell does not expand them:
 
 ```bash
-lattice status --json --only config.toml codex
-lattice backup --dry-run --json --only config.toml codex
-lattice diff --json --exclude 'shell_snapshots/**' codex
-lattice restore --dry-run --json --only config.toml codex
+lattice status --json --only config.toml shell
+lattice backup --dry-run --json --only config.toml shell
+lattice diff --json --exclude 'cache/**' shell
+lattice restore --dry-run --json --only config.toml shell
 ```
 
 The selectors are intentionally path-scoped, not service-group orchestration.
@@ -327,8 +326,8 @@ lattice validate
 Inspect a service:
 
 ```bash
-lattice service show codex
-lattice status codex
+lattice service show shell
+lattice status shell
 ```
 
 If backup fails because of secret-looking content, inspect the file before
@@ -337,8 +336,8 @@ deciding whether `--allow-secret-looking-files` is appropriate.
 If restore reports conflicts, run:
 
 ```bash
-lattice restore --dry-run codex
-lattice diff codex
+lattice restore --dry-run shell
+lattice diff shell
 ```
 
 Use `restore --force` only when you have confirmed the repo copy should replace

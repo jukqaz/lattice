@@ -7,7 +7,7 @@ license.workspace = true
 publish = false
 readme = "../../README.md"
 repository.workspace = true
-keywords = ["dotfiles", "backup", "restore", "xdg", "codex"]
+keywords = ["dotfiles", "backup", "restore", "xdg", "config"]
 categories = ["command-line-utilities", "config"]
 
 [lints]

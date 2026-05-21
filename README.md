@@ -6,8 +6,9 @@ Lattice is a small Rust CLI for backing up and restoring dotfiles by service.
 It is designed for personal configuration repos where each tool can have its
 own root, include rules, restore permissions, and optional sync repository.
 
-The examples below use the built-in `codex` service so the commands stay
-concrete. The same workflow applies to any service you define.
+Lattice is generic: no single tool or service is the product center. Create the
+services you want to manage, then back up and restore them through the same
+safe workflow.
 
 ## Start Here
 
@@ -17,25 +18,33 @@ Install the latest tagged release:
 cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.3 --locked
 ```
 
-Initialize local config and inspect the example service:
+Initialize local config:
 
 ```bash
 lattice init
 lattice doctor
 lattice validate
-lattice status codex
+```
+
+Add a first service explicitly. Replace `shell`, `~/.config/shell`, and
+`config.toml` with the app or tool config you want to manage:
+
+```bash
+lattice service add shell --root ~/.config/shell --include config.toml
+lattice service show shell
+lattice status shell
 ```
 
 Preview the first backup before writing anything:
 
 ```bash
-lattice backup --dry-run codex
+lattice backup --dry-run shell
 ```
 
 If the plan looks right, create the backup:
 
 ```bash
-lattice backup codex
+lattice backup shell
 ```
 
 ## Restore Safely
@@ -43,13 +52,13 @@ lattice backup codex
 Always preview restore changes first:
 
 ```bash
-lattice restore --dry-run codex
+lattice restore --dry-run shell
 ```
 
 Apply the restore when there are no unexpected conflicts:
 
 ```bash
-lattice restore codex
+lattice restore shell
 ```
 
 If you intentionally want to overwrite local files, use `--force`. Forced
@@ -57,10 +66,10 @@ restores snapshot overwritten files under XDG state before writing repo
 contents.
 
 ```bash
-lattice restore --force codex
+lattice restore --force shell
 ```
 
-## Add Another Service
+## Add More Services
 
 Lattice manages configuration per service. A service has a root directory,
 include/exclude rules, permissions, and an optional repo path. If `repo` is not
@@ -77,7 +86,7 @@ Use presets when the common shape is already known:
 
 ```bash
 lattice preset list
-lattice preset show codex
+lattice preset show <preset>
 lattice service add <service> --root <path> --preset <preset>
 ```
 
@@ -87,12 +96,12 @@ lattice service add <service> --root <path> --preset <preset>
 | --- | --- |
 | Check installation and configured tools | `lattice doctor` |
 | Validate config files | `lattice validate` |
-| See one service | `lattice status codex` |
-| Preview backup | `lattice backup --dry-run codex` |
-| Backup now | `lattice backup codex` |
-| Preview restore | `lattice restore --dry-run codex` |
-| Restore now | `lattice restore codex` |
-| Compare local files with repo copy | `lattice diff codex` |
+| See one service | `lattice status shell` |
+| Preview backup | `lattice backup --dry-run shell` |
+| Backup now | `lattice backup shell` |
+| Preview restore | `lattice restore --dry-run shell` |
+| Restore now | `lattice restore shell` |
+| Compare local files with repo copy | `lattice diff shell` |
 | Open the prompt-based UI | `lattice tui` |
 
 ## Automation And JSON Output
@@ -101,20 +110,20 @@ Use `--json` when scripts or agents need stable machine-readable output instead
 of human text:
 
 ```bash
-lattice status --json codex
-lattice backup --dry-run --json codex
-lattice diff --json codex
-lattice restore --dry-run --json codex
+lattice status --json shell
+lattice backup --dry-run --json shell
+lattice diff --json shell
+lattice restore --dry-run --json shell
 ```
 
 Use `--only` and `--exclude` to narrow a plan to specific tracked paths. These
 selectors are available on `status`, `backup`, `diff`, and `restore` flows:
 
 ```bash
-lattice status --json --only config.toml codex
-lattice backup --dry-run --json --only config.toml codex
-lattice diff --json --exclude 'shell_snapshots/**' codex
-lattice restore --dry-run --json --only config.toml codex
+lattice status --json --only config.toml shell
+lattice backup --dry-run --json --only config.toml shell
+lattice diff --json --exclude 'cache/**' shell
+lattice restore --dry-run --json --only config.toml shell
 ```
 
 For automation, prefer the dry-run JSON commands before any write. Inspect the
@@ -127,10 +136,10 @@ Service repos are plain directories, so you can manage Git yourself or use the
 built-in helpers:
 
 ```bash
-lattice repo status codex
-lattice repo pull codex
-lattice repo commit --message "backup codex config" codex
-lattice repo push codex
+lattice repo status shell
+lattice repo pull shell
+lattice repo commit --message "backup shell config" shell
+lattice repo push shell
 ```
 
 For a private GitHub repo, create the remote yourself, then point the service
@@ -177,14 +186,14 @@ Environment overrides are supported through `XDG_CONFIG_HOME`,
 ## Service Config Example
 
 ```toml
-name = "codex"
-root = "~/.codex"
-preset = "codex"
+name = "shell"
+root = "~/.config/shell"
+include = ["config.toml", "scripts/**"]
+exclude = ["cache/**", "state/**"]
 
 [restore]
 create_dirs = [
-  { path = "shell_snapshots", mode = "0700" },
-  { path = "bin", mode = "0755" },
+  { path = "cache", mode = "0700" },
 ]
 
 [[permissions]]
@@ -192,7 +201,7 @@ path = "config.toml"
 mode = "0600"
 
 [[permissions]]
-path = "bin/mcp-rbw"
+path = "scripts/sync"
 mode = "0700"
 ```
 

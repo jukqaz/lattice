@@ -7,8 +7,8 @@
   parallel products.
 - [x] Keep the core generic: service-scoped scan, plan, backup, restore, diff,
   and narrow lifecycle hooks.
-- [x] Keep Codex-specific support thin: presets, docs, and `doctor` checks rather
-  than a Codex-only core.
+- [x] Keep tool-specific behavior out of the product direction; presets are
+  optional shortcuts, not the center of the manager.
 
 ## v0.1 Scope
 
@@ -18,7 +18,7 @@
 - [x] Add config and service TOML models.
 - [x] Add XDG path resolution.
 - [x] Add `init`, `doctor`, `service list`, `backup`, and `restore` commands.
-- [x] Add Codex preset include/exclude defaults.
+- [x] Add an initial preset-backed example for early smoke coverage.
 - [x] Add permission manifest capture and restore.
 - [x] Add focused tests for config loading, scanning, backup, and restore.
 - [x] Run formatting, tests, and a local smoke flow.
@@ -58,7 +58,7 @@ See `docs/product/mvp-scope.md`.
 - [x] Add restore snapshots before overwrite.
 - [x] Add minimal lifecycle hooks.
 - [x] Add a custom service fixture.
-- [x] Add real `~/.codex` read-only dry-run coverage to `xtask verify`.
+- [x] Add read-only dry-run coverage for a real local service root when available.
 - [x] Add lightweight secret-looking content scan.
 - [x] Add `validate` if it stays small.
 - [x] Default omitted service repos to `$XDG_DATA_HOME/lattice/repos/<service>`.
@@ -69,8 +69,8 @@ See `docs/product/mvp-scope.md`.
 - [x] Add `include add/remove` and `exclude add/remove`.
 - [x] Add `permission set/remove`.
 - [x] Add git repo commands: `repo status`, `repo pull`, `repo commit`, `repo push`.
-- [x] Add Vaultwarden-backed secret metadata with `rbw` and `bw`.
-- [x] Add preset catalog for `git`, `zsh`, `mise`, and `ssh`.
+- [x] Add secret metadata with `rbw` and `bw` without materializing values.
+- [x] Add a small preset catalog for common dotfile layouts.
 - [x] Add `track` / `adopt` command.
 - [x] Add TUI over the same core/config model.
 - [x] Add optional symlink restore mode.
@@ -83,6 +83,7 @@ See `docs/product/mvp-scope.md`.
 
 ## v0.4.x Automation-Friendly CLI
 
+- [x] Make `lattice init` generic by default: create config/storage only, not a tool-specific service.
 - [x] Add richer `lattice tui --dry-run` dashboard output.
 - [x] Keep TUI dashboard best-effort per service when a root or repo path is unavailable.
 - [x] Add machine-readable JSON output for `status`.
@@ -97,16 +98,16 @@ See `docs/product/mvp-scope.md`.
 ## v0.5.x New Machine Bootstrap
 
 - [ ] Document a complete new-machine bootstrap flow:
-  `install -> init -> preset enable/add service -> repo pull -> restore --dry-run -> restore`.
+  `install -> init -> service add -> repo pull -> restore --dry-run -> restore`.
 - [ ] Improve first-run guidance after `init`.
 - [ ] Add diagnostics for missing tools and disconnected repos without installing anything automatically.
 - [ ] Make restore dry-run summaries easy to trust before the real restore.
 
-## v0.6.x Codex Baseline
+## v0.6.x Preset And Diagnostics Polish
 
-- [ ] Keep Codex support in preset/docs/doctor checks, not core-only behavior.
-- [ ] Improve Codex preset documentation for managed files versus runtime/auth state.
-- [ ] Add targeted `doctor` warnings for common Codex config risks if they stay deterministic.
+- [ ] Keep presets optional and documented as shortcuts over the generic service model.
+- [ ] Add deterministic, tool-agnostic diagnostics before adding any preset-specific checks.
+- [ ] Ensure no preset or example becomes product-defining.
 
 ## v0.7.x Service Groups
 

@@ -2,12 +2,12 @@
 
 [English](README.md) | 한국어
 
-Lattice는 dotfiles를 서비스 단위로 백업하고 복원하는 작은 Rust CLI입니다.
+Lattice는 dotfiles를 service 단위로 백업하고 복원하는 작은 Rust CLI입니다.
 각 도구마다 root, include 규칙, restore 권한, 선택적 sync repository를 따로
 둘 수 있게 만드는 개인 설정 관리자입니다.
 
-아래 예시는 명령을 구체적으로 보여주기 위해 내장 `codex` service를 사용합니다.
-같은 흐름은 사용자가 정의한 어떤 service에도 그대로 적용됩니다.
+Lattice는 범용 도구입니다. 특정 tool이나 service 하나가 제품의 중심이 아닙니다.
+관리하려는 service를 직접 만들고, 같은 안전한 workflow로 backup/restore합니다.
 
 ## 먼저 할 일
 
@@ -17,25 +17,33 @@ Lattice는 dotfiles를 서비스 단위로 백업하고 복원하는 작은 Rust
 cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.3 --locked
 ```
 
-로컬 설정을 만들고 예시 service를 확인합니다.
+로컬 설정 만들기:
 
 ```bash
 lattice init
 lattice doctor
 lattice validate
-lattice status codex
+```
+
+첫 service를 명시적으로 추가합니다. `shell`, `~/.config/shell`, `config.toml`은
+관리하려는 앱이나 도구 설정에 맞게 바꿉니다.
+
+```bash
+lattice service add shell --root ~/.config/shell --include config.toml
+lattice service show shell
+lattice status shell
 ```
 
 처음에는 실제 백업 전에 계획만 확인합니다.
 
 ```bash
-lattice backup --dry-run codex
+lattice backup --dry-run shell
 ```
 
 대상이 맞으면 백업합니다.
 
 ```bash
-lattice backup codex
+lattice backup shell
 ```
 
 ## 안전하게 복원하기
@@ -43,23 +51,23 @@ lattice backup codex
 복원도 먼저 dry-run으로 확인합니다.
 
 ```bash
-lattice restore --dry-run codex
+lattice restore --dry-run shell
 ```
 
 예상 밖 충돌이 없으면 복원합니다.
 
 ```bash
-lattice restore codex
+lattice restore shell
 ```
 
 로컬 파일을 의도적으로 덮어쓰려면 `--force`를 사용합니다. Forced restore는
 쓰기 전에 XDG state 아래에 덮어쓸 파일 snapshot을 남깁니다.
 
 ```bash
-lattice restore --force codex
+lattice restore --force shell
 ```
 
-## 다른 서비스 추가하기
+## 서비스 더 추가하기
 
 Lattice는 설정을 service 단위로 관리합니다. Service에는 root directory,
 include/exclude 규칙, 권한, 선택적 repo path가 있습니다. `repo`를 생략하면
@@ -76,7 +84,7 @@ lattice backup <service>
 
 ```bash
 lattice preset list
-lattice preset show codex
+lattice preset show <preset>
 lattice service add <service> --root <path> --preset <preset>
 ```
 
@@ -86,12 +94,12 @@ lattice service add <service> --root <path> --preset <preset>
 | --- | --- |
 | 설치와 외부 도구 점검 | `lattice doctor` |
 | 설정 파일 검증 | `lattice validate` |
-| 서비스 상태 확인 | `lattice status codex` |
-| 백업 미리보기 | `lattice backup --dry-run codex` |
-| 백업 실행 | `lattice backup codex` |
-| 복원 미리보기 | `lattice restore --dry-run codex` |
-| 복원 실행 | `lattice restore codex` |
-| 로컬 파일과 repo copy 비교 | `lattice diff codex` |
+| 서비스 상태 확인 | `lattice status shell` |
+| 백업 미리보기 | `lattice backup --dry-run shell` |
+| 백업 실행 | `lattice backup shell` |
+| 복원 미리보기 | `lattice restore --dry-run shell` |
+| 복원 실행 | `lattice restore shell` |
+| 로컬 파일과 repo copy 비교 | `lattice diff shell` |
 | prompt 기반 UI 열기 | `lattice tui` |
 
 ## Automation과 JSON output
@@ -100,20 +108,20 @@ Script나 agent가 사람이 읽는 stdout을 parsing하지 않게 하려면 `--
 사용합니다.
 
 ```bash
-lattice status --json codex
-lattice backup --dry-run --json codex
-lattice diff --json codex
-lattice restore --dry-run --json codex
+lattice status --json shell
+lattice backup --dry-run --json shell
+lattice diff --json shell
+lattice restore --dry-run --json shell
 ```
 
 특정 tracked path만 계획하려면 `--only`와 `--exclude`를 사용합니다. 이 selector는
 `status`, `backup`, `diff`, `restore` flow에서 사용할 수 있습니다.
 
 ```bash
-lattice status --json --only config.toml codex
-lattice backup --dry-run --json --only config.toml codex
-lattice diff --json --exclude 'shell_snapshots/**' codex
-lattice restore --dry-run --json --only config.toml codex
+lattice status --json --only config.toml shell
+lattice backup --dry-run --json --only config.toml shell
+lattice diff --json --exclude 'cache/**' shell
+lattice restore --dry-run --json --only config.toml shell
 ```
 
 Automation에서는 쓰기 작업 전에 dry-run JSON 명령을 먼저 사용합니다. 계획의
@@ -126,10 +134,10 @@ Service repo는 일반 directory입니다. 직접 Git을 써도 되고, 내장 h
 써도 됩니다.
 
 ```bash
-lattice repo status codex
-lattice repo pull codex
-lattice repo commit --message "backup codex config" codex
-lattice repo push codex
+lattice repo status shell
+lattice repo pull shell
+lattice repo commit --message "backup shell config" shell
+lattice repo push shell
 ```
 
 private GitHub repo를 쓸 때는 remote repository를 직접 만든 뒤 일반
@@ -176,14 +184,14 @@ Lattice는 XDG 위치를 사용합니다.
 ## 서비스 설정 예시
 
 ```toml
-name = "codex"
-root = "~/.codex"
-preset = "codex"
+name = "shell"
+root = "~/.config/shell"
+include = ["config.toml", "scripts/**"]
+exclude = ["cache/**", "state/**"]
 
 [restore]
 create_dirs = [
-  { path = "shell_snapshots", mode = "0700" },
-  { path = "bin", mode = "0755" },
+  { path = "cache", mode = "0700" },
 ]
 
 [[permissions]]
@@ -191,7 +199,7 @@ path = "config.toml"
 mode = "0600"
 
 [[permissions]]
-path = "bin/mcp-rbw"
+path = "scripts/sync"
 mode = "0700"
 ```
 

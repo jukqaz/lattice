@@ -10,6 +10,12 @@ Lattice is generic: no single tool or service is the product center. Create the
 services you want to manage, then back up and restore them through the same
 safe workflow.
 
+Product language uses **apps** for common managed targets such as `git`, `ssh`,
+`zsh`, `starship`, `mise`, or `codex`. Apps are not product centers; they are
+catalog entries that expand into ordinary service config. The current CLI still
+exposes this catalog through the `preset` command until the app-facing command
+surface is added.
+
 ## Start Here
 
 Install the latest tagged release:
@@ -82,12 +88,14 @@ lattice backup --dry-run <service>
 lattice backup <service>
 ```
 
-Use presets when the common shape is already known:
+Use the app catalog when the common shape is already known. Until the
+app-facing command surface lands, catalog entries are exposed by the `preset`
+command:
 
 ```bash
 lattice preset list
-lattice preset show <preset>
-lattice service add <service> --root <path> --preset <preset>
+lattice preset show <app>
+lattice service add <service> --root <path> --preset <app>
 ```
 
 ## Daily Commands

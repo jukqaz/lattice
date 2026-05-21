@@ -16,9 +16,10 @@ small: scan, plan, backup, restore, diff, and run narrowly configured lifecycle
 hooks.
 
 Lattice is not a full system configuration manager, package manager, or secret
-manager. It should not be shaped around one specific tool. Tool-specific
-knowledge belongs in optional presets and examples only when it improves the
-generic dotfile-management workflow.
+manager. It should not be shaped around one specific tool. Product-facing
+language calls common managed targets **apps**. App knowledge belongs in an
+optional app catalog only when it improves the generic dotfile-management
+workflow. Codex is one example app, not the product center.
 
 ## Current Baseline: v0.3.3
 
@@ -34,7 +35,7 @@ Released v0.3.3 scope:
 - Service root and optional repo path.
 - Default service repos at `$XDG_DATA_HOME/lattice/repos/<service>`.
 - Include and exclude globs.
-- Optional presets for common dotfile layouts.
+- Optional app catalog entries for common dotfile layouts.
 - `init`, `doctor`, `validate`, `service list/show/add/remove`, and `status`.
 - `include add/remove`, `exclude add/remove`, and `permission set/remove`.
 - `backup`, `backup --dry-run`, `restore`, `restore --dry-run`, and
@@ -86,7 +87,7 @@ surfaces on top of the safe personal backup baseline:
 | `v0.3.x` | Safe Personal Backup | Safely back up and restore personal dotfiles. | Full safety harness, platform CI, install smoke, and v0.3.3 tag smoke pass. |
 | `v0.4.x` | Automation-Friendly CLI | Let scripts and agents call Lattice without parsing human stdout. | Generic init, JSON output, and selectors are documented, tested, and stable enough for CI/Hermes use. |
 | `v0.5.x` | New Machine Bootstrap | Restore a developer home baseline on a new machine in minutes. | A new VM or Mac can run install, init, service add, repo pull, dry-run restore, and restore with clear diagnostics. |
-| `v0.6.x` | Preset And Diagnostics Polish | Improve optional presets and deterministic diagnostics without changing the generic core. | Presets are documented as shortcuts, diagnostics remain tool-agnostic by default, and no preset becomes product-defining. |
+| `v0.6.x` | App Catalog And Diagnostics Polish | Improve optional app catalog entries and deterministic diagnostics without changing the generic core. | Apps are documented as shortcuts, diagnostics remain tool-agnostic by default, and no app becomes product-defining. |
 | `v0.7.x` | Service Groups | Plan and run safe multi-service operations. | Group status and dry-run plans are clear, conservative, and machine-readable. |
 | `v1.0` | Public Stable CLI | Make Lattice recommendable to external users. | Install, changelog, release, migration, compatibility, and issue workflows are stable. |
 

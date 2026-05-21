@@ -25,6 +25,12 @@ Each service can define:
 Lattice is not a package manager, secret manager, or full system configuration
 manager. It keeps the dotfile sync layer small and explicit.
 
+Terminology: an **app** is a common managed target, such as `git`, `ssh`,
+`zsh`, `starship`, `mise`, or `codex`. An app catalog entry is only a shortcut
+for creating ordinary service config. No app is product-defining, and Codex is
+only one example app. The current CLI exposes app catalog entries through the
+`preset` command until `lattice app ...` is added.
+
 ## 1. Install
 
 Install the latest tagged release:
@@ -180,22 +186,24 @@ For a private GitHub repository:
 Lattice does not create remotes automatically. That keeps credentials, access
 control, and repository ownership explicit.
 
-## 7. Use Presets
+## 7. Use The App Catalog
 
-Presets provide known include/exclude shapes for common tools:
+App catalog entries provide known include/exclude shapes for common tools and
+apps. Until the app-facing command surface lands, use the `preset` command to
+inspect the catalog:
 
 ```bash
 lattice preset list
-lattice preset show <preset>
+lattice preset show <app>
 ```
 
-Create a preset-backed service:
+Create an app-backed service:
 
 ```bash
-lattice service add <service> --root <path> --preset <preset>
+lattice service add <service> --root <path> --preset <app>
 ```
 
-Presets are optional shortcuts. The core model remains the same service config,
+Apps are optional shortcuts. The core model remains the same service config,
 include/exclude rules, backup, diff, and restore flow.
 
 ## 8. Manage Secrets Safely

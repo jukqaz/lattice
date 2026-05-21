@@ -9,6 +9,11 @@ Lattice는 dotfiles를 service 단위로 백업하고 복원하는 작은 Rust C
 Lattice는 범용 도구입니다. 특정 tool이나 service 하나가 제품의 중심이 아닙니다.
 관리하려는 service를 직접 만들고, 같은 안전한 workflow로 backup/restore합니다.
 
+제품 용어로는 `git`, `ssh`, `zsh`, `starship`, `mise`, `codex` 같은 관리
+대상을 **앱**이라고 부릅니다. 앱은 제품의 중심이 아니라, 일반 service 설정으로
+확장되는 catalog entry입니다. 현재 CLI는 app-facing command surface가 추가되기
+전까지 이 catalog를 `preset` command로 노출합니다.
+
 ## 먼저 할 일
 
 최신 tagged release 설치:
@@ -80,12 +85,13 @@ lattice backup --dry-run <service>
 lattice backup <service>
 ```
 
-이미 알려진 형태는 preset을 사용합니다.
+이미 알려진 형태는 app catalog를 사용합니다. App-facing command surface가
+추가되기 전까지 catalog entry는 `preset` command로 노출됩니다.
 
 ```bash
 lattice preset list
-lattice preset show <preset>
-lattice service add <service> --root <path> --preset <preset>
+lattice preset show <app>
+lattice service add <service> --root <path> --preset <app>
 ```
 
 ## 자주 쓰는 명령

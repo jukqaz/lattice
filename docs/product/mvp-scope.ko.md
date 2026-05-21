@@ -14,8 +14,9 @@ Lattice로 흡수하는 feature-mining source로 둔다. 핵심 제품은 작게
 scan, plan, backup, restore, diff, 좁게 설정된 lifecycle hook 실행.
 
 Lattice는 full system configuration manager, package manager, secret manager가
-아니다. 특정 tool 하나를 중심으로 제품을 만들지 않는다. Tool-specific 지식은
-범용 dotfile-management workflow를 개선할 때만 선택적 preset과 example에 둔다.
+아니다. 특정 tool 하나를 중심으로 제품을 만들지 않는다. 제품 용어로 흔한 관리
+대상을 **앱**이라고 부른다. 앱 지식은 범용 dotfile-management workflow를 개선할
+때만 선택적 app catalog에 둔다. Codex는 제품의 중심이 아니라 예시 앱 중 하나다.
 
 ## 현재 기준선: v0.3.3
 
@@ -31,7 +32,7 @@ filesystem safety check를 포함한다.
 - service root와 optional repo path.
 - 기본 service repo 위치: `$XDG_DATA_HOME/lattice/repos/<service>`.
 - include/exclude glob.
-- 흔한 dotfile layout을 위한 선택적 preset.
+- 흔한 dotfile layout을 위한 선택적 app catalog entry.
 - `init`, `doctor`, `validate`, `service list/show/add/remove`, `status`.
 - `include add/remove`, `exclude add/remove`, `permission set/remove`.
 - `backup`, `backup --dry-run`, `restore`, `restore --dry-run`,
@@ -82,7 +83,7 @@ automation-friendly surface를 추가한다.
 | `v0.3.x` | Safe Personal Backup | 개인 dotfiles를 안전하게 backup/restore. | full safety harness, platform CI, install smoke, v0.3.3 tag smoke 통과. |
 | `v0.4.x` | Automation-Friendly CLI | script와 agent가 human stdout parsing 없이 Lattice를 호출. | generic init, JSON output, selector가 문서화되고 CI/Hermes 사용에 충분히 안정적. |
 | `v0.5.x` | New Machine Bootstrap | 새 머신에서 developer home baseline을 몇 분 안에 restore. | 새 VM/Mac에서 install, init, service add, repo pull, dry-run restore, restore가 명확한 진단과 함께 동작. |
-| `v0.6.x` | Preset And Diagnostics Polish | generic core를 바꾸지 않고 선택적 preset과 deterministic diagnostic을 개선. | preset은 shortcut으로 문서화되고, diagnostic은 기본적으로 tool-agnostic이며, 어떤 preset도 제품을 정의하지 않음. |
+| `v0.6.x` | App Catalog And Diagnostics Polish | generic core를 바꾸지 않고 선택적 app catalog와 deterministic diagnostic을 개선. | 앱은 shortcut으로 문서화되고, diagnostic은 기본적으로 tool-agnostic이며, 어떤 앱도 제품을 정의하지 않음. |
 | `v0.7.x` | Service Groups | 여러 service 작업을 안전하게 plan/run. | group status와 dry-run plan이 명확하고 보수적이며 machine-readable. |
 | `v1.0` | Public Stable CLI | 외부 사용자에게 추천 가능한 안정 CLI. | install, changelog, release, migration, compatibility, issue workflow 안정화. |
 

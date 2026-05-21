@@ -7,8 +7,8 @@
   parallel products.
 - [x] Keep the core generic: service-scoped scan, plan, backup, restore, diff,
   and narrow lifecycle hooks.
-- [x] Keep tool-specific behavior out of the product direction; presets are
-  optional shortcuts, not the center of the manager.
+- [x] Keep tool-specific behavior out of the product direction; app catalog
+  entries are optional shortcuts, not the center of the manager.
 
 ## v0.1 Scope
 
@@ -70,7 +70,7 @@ See `docs/product/mvp-scope.md`.
 - [x] Add `permission set/remove`.
 - [x] Add git repo commands: `repo status`, `repo pull`, `repo commit`, `repo push`.
 - [x] Add secret metadata with `rbw` and `bw` without materializing values.
-- [x] Add a small preset catalog for common dotfile layouts.
+- [x] Add a small initial catalog for common dotfile layouts.
 - [x] Add `track` / `adopt` command.
 - [x] Add TUI over the same core/config model.
 - [x] Add optional symlink restore mode.
@@ -100,14 +100,31 @@ See `docs/product/mvp-scope.md`.
 - [ ] Document a complete new-machine bootstrap flow:
   `install -> init -> service add -> repo pull -> restore --dry-run -> restore`.
 - [ ] Improve first-run guidance after `init`.
+- [ ] Add `bootstrap check` with human and JSON output for new-machine readiness.
+- [ ] Add `plan` as the single human/JSON preflight surface before backup or restore.
 - [ ] Add diagnostics for missing tools and disconnected repos without installing anything automatically.
 - [ ] Make restore dry-run summaries easy to trust before the real restore.
 
-## v0.6.x Preset And Diagnostics Polish
+## v0.6.x App Catalog And Diagnostics Polish
 
-- [ ] Keep presets optional and documented as shortcuts over the generic service model.
-- [ ] Add deterministic, tool-agnostic diagnostics before adding any preset-specific checks.
-- [ ] Ensure no preset or example becomes product-defining.
+- [ ] Add user-facing `app` commands or aliases for the existing catalog:
+  `app list`, `app show <app>`, and `app add <app>`.
+- [ ] Keep app catalog entries optional and documented as shortcuts over the generic service model.
+- [ ] Treat Codex as an example app only, not a default or product-defining path.
+- [ ] Add deterministic, tool-agnostic diagnostics before adding any app-specific checks.
+- [ ] Ensure no app or example becomes product-defining.
+
+## v0.6.x+ Safety And Recovery Polish
+
+- [ ] Expose snapshot/history commands for forced restore backups.
+- [ ] Add `undo` or snapshot restore dry-run before any destructive rollback.
+- [ ] Add safe snapshot pruning with `--dry-run` and conservative defaults.
+
+## v0.6.x+ Discovery Polish
+
+- [ ] Add `discover` to suggest service/app candidates from the local home directory.
+- [ ] Keep discovery generic and conservative: exclude secrets, sessions, caches, databases, auth, and large files by default.
+- [ ] Make discovery output machine-readable with `--json`.
 
 ## v0.7.x Service Groups
 

@@ -10,13 +10,15 @@ CLI that manages service-scoped files and directories with explicit TOML
 configuration, predictable XDG storage, permission preservation, and safe
 restore behavior.
 
-Historical dotfiles-manager experiments should feed proven ideas into Lattice
-instead of becoming parallel products. The core product should stay small:
-scan, plan, backup, restore, diff, and run narrowly configured lifecycle hooks.
+Historical dotfiles-manager experiments should feed proven generic ideas into
+Lattice instead of becoming parallel products. The core product should stay
+small: scan, plan, backup, restore, diff, and run narrowly configured lifecycle
+hooks.
 
 Lattice is not a full system configuration manager, package manager, or secret
-manager. Codex-specific behavior belongs in presets, docs, and `doctor` checks
-rather than making the core product a Codex-only tool.
+manager. It should not be shaped around one specific tool. Tool-specific
+knowledge belongs in optional presets and examples only when it improves the
+generic dotfile-management workflow.
 
 ## Current Baseline: v0.3.3
 
@@ -32,7 +34,7 @@ Released v0.3.3 scope:
 - Service root and optional repo path.
 - Default service repos at `$XDG_DATA_HOME/lattice/repos/<service>`.
 - Include and exclude globs.
-- Presets for `codex`, `git`, `zsh`, `mise`, and `ssh`.
+- Optional presets for common dotfile layouts.
 - `init`, `doctor`, `validate`, `service list/show/add/remove`, and `status`.
 - `include add/remove`, `exclude add/remove`, and `permission set/remove`.
 - `backup`, `backup --dry-run`, `restore`, `restore --dry-run`, and
@@ -65,6 +67,8 @@ Released v0.3.3 scope:
 The current main branch is the v0.4 candidate line. It adds automation-friendly
 surfaces on top of the safe personal backup baseline:
 
+- `lattice init` creates generic Lattice config and storage directories without
+  creating a tool-specific service by default.
 - Richer `lattice tui --dry-run` dashboard with per-service status, file counts,
   root paths, repo paths, and action summaries.
 - Best-effort TUI dashboard behavior: one service with an unavailable root or
@@ -80,9 +84,9 @@ surfaces on top of the safe personal backup baseline:
 | Line | Name | Goal | Acceptance |
 | --- | --- | --- | --- |
 | `v0.3.x` | Safe Personal Backup | Safely back up and restore personal dotfiles. | Full safety harness, platform CI, install smoke, and v0.3.3 tag smoke pass. |
-| `v0.4.x` | Automation-Friendly CLI | Let scripts and agents call Lattice without parsing human stdout. | JSON output and selectors are documented, tested, and stable enough for CI/Hermes use. |
-| `v0.5.x` | New Machine Bootstrap | Restore a developer home baseline on a new machine in minutes. | A new VM or Mac can run install, init, preset enable, repo pull, dry-run restore, and restore with clear diagnostics. |
-| `v0.6.x` | Codex Baseline | Add thin Codex power-user support without bloating core. | Codex preset/docs/doctor checks cover common config risks while secrets and runtime state stay out of Lattice. |
+| `v0.4.x` | Automation-Friendly CLI | Let scripts and agents call Lattice without parsing human stdout. | Generic init, JSON output, and selectors are documented, tested, and stable enough for CI/Hermes use. |
+| `v0.5.x` | New Machine Bootstrap | Restore a developer home baseline on a new machine in minutes. | A new VM or Mac can run install, init, service add, repo pull, dry-run restore, and restore with clear diagnostics. |
+| `v0.6.x` | Preset And Diagnostics Polish | Improve optional presets and deterministic diagnostics without changing the generic core. | Presets are documented as shortcuts, diagnostics remain tool-agnostic by default, and no preset becomes product-defining. |
 | `v0.7.x` | Service Groups | Plan and run safe multi-service operations. | Group status and dry-run plans are clear, conservative, and machine-readable. |
 | `v1.0` | Public Stable CLI | Make Lattice recommendable to external users. | Install, changelog, release, migration, compatibility, and issue workflows are stable. |
 
@@ -96,19 +100,21 @@ surfaces on top of the safe personal backup baseline:
 - Home Manager or Nix-style declarative program modules.
 - GUI.
 - Database-backed state.
+- Tool-specific product features in the generic dotfile manager.
 
 ## Configuration Shape
 
 Service config should remain readable TOML:
 
 ```toml
-name = "codex"
-root = "~/.codex"
-preset = "codex"
+name = "shell"
+root = "~/.config/shell"
+include = ["config.toml", "scripts/**"]
+exclude = ["cache/**", "state/**"]
 
 [restore]
 create_dirs = [
-  { path = "shell_snapshots", mode = "0700" },
+  { path = "cache", mode = "0700" },
 ]
 
 [[permissions]]
@@ -116,9 +122,9 @@ path = "config.toml"
 mode = "0600"
 
 [[hooks.after_restore]]
-name = "codex doctor"
-command = "codex"
-args = ["doctor", "--summary"]
+name = "reload shell config"
+command = "/bin/sh"
+args = ["-c", "true"]
 timeout_sec = 60
 confirm = false
 ```

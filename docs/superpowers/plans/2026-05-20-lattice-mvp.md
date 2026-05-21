@@ -7,7 +7,7 @@ pre-workspace v0.1 implementation path; current source lives under
 > **For agentic workers:** This is historical implementation evidence, not an
 > active plan.
 
-**Goal:** Build the first working Rust CLI slice for backing up and restoring a configured service, using `codex` as the concrete example.
+**Goal:** Build the first working Rust CLI slice for backing up and restoring an explicitly configured service. Concrete examples should stay generic.
 
 **Architecture:** The binary parses commands and delegates to a small library. The library owns XDG path resolution, TOML config loading, service scanning, backup/restore copying, and permission manifests. v0.1 avoids git automation and secret materialization.
 
@@ -89,7 +89,7 @@ Expected: formatting, full tests, and isolated CLI smoke pass.
 
 - [x] **Step 1: Write tests for fallback XDG paths and config parsing**
 
-Use temp directories and explicit environment overrides in tests. Verify that `lattice.toml` and `services/codex.toml` parse into typed structs.
+Use temp directories and explicit environment overrides in tests. Verify that `lattice.toml` and a service TOML file parse into typed structs.
 
 - [x] **Step 2: Run tests and verify RED**
 
@@ -121,7 +121,7 @@ Expected: formatting, full tests, and isolated CLI smoke pass.
 
 - [x] **Step 1: Write scanner tests**
 
-Create a fake `codex` service tree with `config.toml`, `agents/reviewer.toml`, `auth.json`, `sessions/current.jsonl`, `logs_2.sqlite`, and `bin/mcp-rbw`. Verify only included non-excluded files are returned.
+Create a fake service tree with config files, an auth file, runtime/session files, logs, and an executable helper. Verify only included non-excluded files are returned.
 
 - [x] **Step 2: Run tests and verify RED**
 
@@ -153,7 +153,7 @@ Expected: formatting, full tests, and isolated CLI smoke pass.
 
 - [x] **Step 1: Write operation tests**
 
-Use temp source and repo directories. Back up `config.toml` and `bin/mcp-rbw`, assert files exist in repo, assert `.lattice/manifest.toml` exists, then restore into an empty destination and assert file contents and modes are restored.
+Use temp source and repo directories. Back up `config.toml` and an executable helper, assert files exist in repo, assert `.lattice/manifest.toml` exists, then restore into an empty destination and assert file contents and modes are restored.
 
 - [x] **Step 2: Run tests and verify RED**
 
@@ -185,7 +185,7 @@ Expected: formatting, full tests, and isolated CLI smoke pass.
 
 - [x] **Step 1: Write CLI smoke tests**
 
-Test `init`, `doctor`, `service list`, `backup codex`, and `restore codex` with isolated XDG env vars.
+Test `init`, `doctor`, `service list`, `backup shell`, and `restore shell` with isolated XDG env vars.
 
 - [x] **Step 2: Run tests and verify RED**
 

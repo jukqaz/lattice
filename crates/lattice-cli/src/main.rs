@@ -417,27 +417,8 @@ fn init(paths: &LatticePaths, force: bool) -> Result<()> {
 
     write_file_if_allowed(&paths.config_file, DEFAULT_GLOBAL_CONFIG, force)?;
 
-    let codex_service = r#"name = "codex"
-root = "~/.codex"
-preset = "codex"
-
-[restore]
-create_dirs = [
-  { path = "shell_snapshots", mode = "0700" },
-  { path = "bin", mode = "0755" },
-]
-
-[[permissions]]
-path = "config.toml"
-mode = "0600"
-
-[[permissions]]
-path = "bin/mcp-rbw"
-mode = "0700"
-"#;
-    write_file_if_allowed(&paths.services_dir.join("codex.toml"), codex_service, force)?;
-
     println!("initialized {}", config_dir.display());
+    println!("add a service with: lattice service add <name> --root <path> --include <pattern>");
     Ok(())
 }
 

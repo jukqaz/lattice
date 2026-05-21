@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build a small Rust dotfiles manager that can back up and restore one configured service, using `codex` as the initial example preset.
+Build a small Rust dotfiles manager that can back up and restore one explicitly configured service. Presets are optional shortcuts, not the product center.
 
 ## Product Boundary
 
@@ -22,18 +22,18 @@ The main config lives at `lattice.toml`. Service configs live under `services/*.
 - `lattice init`: create default config files without overwriting existing files unless `--force` is passed.
 - `lattice doctor`: print XDG paths, config availability, and `rbw`/`bw` command availability without reading secret values.
 - `lattice service list`: list configured services.
-- `lattice backup codex`: copy included files for the example `codex` service into the configured repo directory and write `.lattice/manifest.toml`.
-- `lattice restore codex`: copy files from the repo directory back to the service root, then apply stored and configured permissions.
+- `lattice backup shell`: copy included files for an example `shell` service into the configured repo directory and write `.lattice/manifest.toml`.
+- `lattice restore shell`: copy files from the repo directory back to the service root, then apply stored and configured permissions.
 
-## Codex Preset
+## Presets
 
-The Codex preset includes configuration assets such as `config.toml`, `AGENTS.md`, `agents/**`, `bin/**`, `docs/**`, `hooks/**`, `prompts/**`, `rules/**`, and `skills/**`.
+Presets may include known configuration assets for common tools. They should remain optional shortcuts over the same generic service model.
 
-It excludes sensitive or runtime-owned surfaces such as `auth.json`, history, sessions, archived sessions, sqlite databases, logs, caches, temp directories, plugin caches, worktrees, backups, shell snapshots, generated images, browser state, computer-use state, and global app state files.
+Presets exclude sensitive or runtime-owned surfaces such as auth files, history, sessions, databases, logs, caches, temp directories, plugin caches, worktrees, backups, generated images, browser state, and global app state files.
 
 ## Permissions
 
-Backups capture file modes in `.lattice/manifest.toml`. Restore reapplies captured modes and configured restore directories. Runtime directories such as `shell_snapshots` may be created with secure permissions without tracking their contents.
+Backups capture file modes in `.lattice/manifest.toml`. Restore reapplies captured modes and configured restore directories. Runtime directories such as caches may be created with secure permissions without tracking their contents.
 
 ## Secret Policy
 
@@ -43,4 +43,4 @@ Lattice v0.1 only checks whether `rbw` and `bw` commands are available. It store
 
 The MVP uses unit tests and temporary directories to verify config parsing, default XDG path fallback, include/exclude scanning, backup copy behavior, manifest writing, restore copy behavior, and mode preservation on Unix.
 
-Every implementation task must finish by running the Rust harness with `cargo run -p xtask -- verify`. The harness runs formatting, the full Rust test suite, and an isolated XDG smoke flow covering `init`, `doctor`, `service list`, `backup codex`, and `restore codex`.
+Every implementation task must finish by running the Rust harness with `cargo run -p xtask -- verify`. The harness runs formatting, the full Rust test suite, and an isolated XDG smoke flow covering `init`, `doctor`, `service list`, `backup shell`, and `restore shell`.

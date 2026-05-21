@@ -131,8 +131,8 @@ fn verify() -> Result<(), String> {
         "global config mode mismatch",
     )?;
     ensure(
-        mode(&xdg.config.join("lattice/services/codex.toml"))? == 0o600,
-        "codex service config mode mismatch",
+        xdg.config.join("lattice/services").is_dir(),
+        "services directory missing after init",
     )?;
     run_capture(&root, "cargo", ["run", "--quiet", "--", "doctor"], &xdg)?;
 
@@ -143,48 +143,64 @@ fn verify() -> Result<(), String> {
         &xdg,
     )?;
     ensure(
-        services.lines().any(|line| line == "codex"),
-        "service list did not include codex",
+        services.trim().is_empty(),
+        "init should not create a tool-specific service",
     )?;
 
-    let source = temp.path().join("codex-source");
-    let repo = temp.path().join("codex-repo");
-    write_file(&source, "config.toml", "model = \"gpt-5.5\"\n", 0o600)?;
-    write_file(&source, "bin/mcp-rbw", "#!/usr/bin/env bash\n", 0o700)?;
+    let source = temp.path().join("shell-source");
+    let repo = temp.path().join("shell-repo");
+    write_file(&source, "config.toml", "prompt = \"compact\"\n", 0o600)?;
+    write_file(&source, "bin/tool", "#!/usr/bin/env bash\n", 0o700)?;
     write_file(&source, "auth.json", "{}\n", 0o600)?;
 
     let service_config = format!(
-        r#"name = "codex"
+        r#"name = "shell"
 root = "{}"
 repo = "{}"
-preset = "codex"
+include = ["config.toml", "bin/**"]
+exclude = ["auth.json"]
 
 [restore]
 create_dirs = [
-  {{ path = "shell_snapshots", mode = "0700" }},
+  {{ path = "cache", mode = "0700" }},
 ]
 
 [[permissions]]
 path = "config.toml"
 mode = "0600"
+
+[[permissions]]
+path = "bin/tool"
+mode = "0700"
 "#,
         source.display(),
         repo.display()
     );
     fs::write(
-        xdg.config.join("lattice/services/codex.toml"),
+        xdg.config.join("lattice/services/shell.toml"),
         service_config,
     )
     .map_err(|error| format!("failed to write service config: {error}"))?;
 
-    let status = run_capture(
+    let services = run_capture(
         &root,
         "cargo",
-        ["run", "--quiet", "--", "status", "codex"],
+        ["run", "--quiet", "--", "service", "list"],
         &xdg,
     )?;
     ensure(
-        status.contains("service: codex"),
+        services.lines().any(|line| line == "shell"),
+        "service list did not include shell",
+    )?;
+
+    let status = run_capture(
+        &root,
+        "cargo",
+        ["run", "--quiet", "--", "status", "shell"],
+        &xdg,
+    )?;
+    ensure(
+        status.contains("service: shell"),
         "status output did not include service name",
     )?;
     ensure(
@@ -199,7 +215,7 @@ mode = "0600"
     let dry_backup = run_capture(
         &root,
         "cargo",
-        ["run", "--quiet", "--", "backup", "--dry-run", "codex"],
+        ["run", "--quiet", "--", "backup", "--dry-run", "shell"],
         &xdg,
     )?;
     ensure(
@@ -218,17 +234,14 @@ mode = "0600"
     run_capture(
         &root,
         "cargo",
-        ["run", "--quiet", "--", "backup", "codex"],
+        ["run", "--quiet", "--", "backup", "shell"],
         &xdg,
     )?;
     ensure(
         repo.join("config.toml").is_file(),
         "repo missing config.toml",
     )?;
-    ensure(
-        repo.join("bin/mcp-rbw").is_file(),
-        "repo missing bin/mcp-rbw",
-    )?;
+    ensure(repo.join("bin/tool").is_file(), "repo missing bin/tool")?;
     ensure(
         !repo.join("auth.json").exists(),
         "repo should not contain auth.json",
@@ -241,7 +254,7 @@ mode = "0600"
     let dry_restore = run_capture(
         &root,
         "cargo",
-        ["run", "--quiet", "--", "restore", "--dry-run", "codex"],
+        ["run", "--quiet", "--", "restore", "--dry-run", "shell"],
         &xdg,
     )?;
     ensure(
@@ -254,7 +267,7 @@ mode = "0600"
     run_capture(
         &root,
         "cargo",
-        ["run", "--quiet", "--", "restore", "codex"],
+        ["run", "--quiet", "--", "restore", "shell"],
         &xdg,
     )?;
 
@@ -263,27 +276,20 @@ mode = "0600"
         "restore missing config.toml",
     )?;
     ensure(
-        source.join("bin/mcp-rbw").is_file(),
-        "restore missing bin/mcp-rbw",
+        source.join("bin/tool").is_file(),
+        "restore missing bin/tool",
     )?;
-    ensure(
-        source.join("shell_snapshots").is_dir(),
-        "restore missing shell_snapshots",
-    )?;
+    ensure(source.join("cache").is_dir(), "restore missing cache")?;
     ensure(
         mode(&source.join("config.toml"))? == 0o600,
         "config.toml mode mismatch",
     )?;
     ensure(
-        mode(&source.join("bin/mcp-rbw"))? == 0o700,
-        "bin/mcp-rbw mode mismatch",
+        mode(&source.join("bin/tool"))? == 0o700,
+        "bin/tool mode mismatch",
     )?;
-    ensure(
-        mode(&source.join("shell_snapshots"))? == 0o700,
-        "shell_snapshots mode mismatch",
-    )?;
+    ensure(mode(&source.join("cache"))? == 0o700, "cache mode mismatch")?;
 
-    verify_real_codex_dry_run(&root)?;
     verify_cli_edge_harness(&root)?;
     verify_non_unix_compile_harness(&root)?;
 
@@ -575,52 +581,6 @@ fn verify_non_unix_compile_harness(root: &Path) -> Result<(), String> {
             "lattice xtask verify: skipped non-unix compile check; wasm32-wasip2 target is not installed"
         );
     }
-    Ok(())
-}
-
-fn verify_real_codex_dry_run(root: &Path) -> Result<(), String> {
-    let home = env::var_os("HOME")
-        .map(PathBuf::from)
-        .ok_or_else(|| "HOME is not set".to_string())?;
-    let codex_home = home.join(".codex");
-    if !codex_home.is_dir() {
-        return Ok(());
-    }
-
-    let temp = TempTree::new("lattice-real-codex-dry-run")?;
-    let xdg = XdgEnv::new(temp.path());
-    run_capture(
-        root,
-        "cargo",
-        ["run", "--quiet", "--", "init", "--force"],
-        &xdg,
-    )?;
-    let status = run_capture(
-        root,
-        "cargo",
-        ["run", "--quiet", "--", "status", "codex"],
-        &xdg,
-    )?;
-    ensure(
-        status.contains("service: codex"),
-        "real codex status did not include service",
-    )?;
-    let dry_run = run_capture(
-        root,
-        "cargo",
-        ["run", "--quiet", "--", "backup", "--dry-run", "codex"],
-        &xdg,
-    )?;
-    ensure(
-        dry_run.contains("would copy"),
-        "real codex dry-run did not report copy plan",
-    )?;
-    ensure(
-        !xdg.data
-            .join("lattice/repos/codex/.lattice/manifest.toml")
-            .exists(),
-        "real codex dry-run wrote a manifest",
-    )?;
     Ok(())
 }
 

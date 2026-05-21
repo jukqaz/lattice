@@ -2,6 +2,15 @@
 
 [English](CHANGELOG.md) | 한국어 | [문서 인덱스](docs/README.ko.md)
 
+## Unreleased
+
+### 변경
+
+- `lattice init`은 이제 tool-specific service를 기본 생성하지 않고 범용 Lattice
+  config와 storage directory만 만든다.
+- README와 사용자 문서는 명시적 `service add` 흐름에서 시작해 Lattice를 범용
+  dotfile manager로 설명한다.
+
 ## v0.3.3
 
 ### 수정
@@ -31,7 +40,7 @@
 ### 변경
 
 - 공개 문서에서 Lattice를 generic service-scoped dotfiles manager로 설명하도록
-  조정했다. 구체적인 명령 예시는 `codex`를 sample service로만 사용한다.
+  조정했다. 구체적인 명령 예시는 service 예시이며 제품 방향이 아니다.
 
 ## v0.3.1
 
@@ -78,11 +87,11 @@ public git-distributed Lattice 릴리스 후보.
 - restore conflict detection과 forced-restore snapshot.
 - minimal lifecycle hook.
 - secret-looking content guard.
-- `validate`와 강화된 real-Codex dry-run harness coverage.
+- `validate`와 강화된 isolated dry-run harness coverage.
 
 ## v0.1.0
 
-- service-scoped backup/restore를 위한 초기 Rust CLI spike. `codex`는 첫
-  번째 구체적 예시로 사용했다.
+- service-scoped backup/restore를 위한 초기 Rust CLI spike와 명시적인 example
+  service.
 - XDG path, TOML config, `codex` preset, permission manifest, backup, restore,
   status, 첫 Rust `xtask` verification harness.

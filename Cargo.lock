@@ -344,6 +344,7 @@ dependencies = [
  "clap",
  "inquire",
  "lattice-core",
+ "serde_json",
  "similar",
  "tempfile",
  "toml",

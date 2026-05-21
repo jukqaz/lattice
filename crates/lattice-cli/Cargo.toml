@@ -1,0 +1,26 @@
+[package]
+name = "lattice"
+version.workspace = true
+edition.workspace = true
+description = "A small XDG-aware dotfiles backup and restore manager."
+license.workspace = true
+publish = false
+readme = "../../README.md"
+repository.workspace = true
+keywords = ["dotfiles", "backup", "restore", "xdg", "codex"]
+categories = ["command-line-utilities", "config"]
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+inquire = "0.9.4"
+lattice-core = { path = "../lattice-core", version = "0.3.0" }
+similar = "3.1.0"
+toml.workspace = true
+which = "8.0.2"
+
+[dev-dependencies]
+tempfile.workspace = true

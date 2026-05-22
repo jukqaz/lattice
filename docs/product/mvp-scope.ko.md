@@ -89,10 +89,8 @@ automation-friendly surface를 추가한다.
 | 라인 | 이름 | 목표 | 완료 기준 |
 | --- | --- | --- | --- |
 | `v0.3.x` | Safe Personal Backup | 개인 dotfiles를 안전하게 backup/restore. | full safety harness, platform CI, install smoke, v0.3.3 tag smoke 통과. |
-| `v0.4.x` | Automation-Friendly CLI | script와 agent가 human stdout parsing 없이 Lattice를 호출. | generic init, JSON output, selector, `plan`, `bootstrap check`, `app` command, product-surface harness coverage가 문서화되고 테스트됨. |
-| `v0.5.x` | New Machine Bootstrap | 새 머신에서 developer home baseline을 몇 분 안에 restore. | first-run guidance, disconnected repo/tool diagnostic, 신뢰할 수 있는 restore summary로 새 VM/Mac restore flow가 명확함. |
-| `v0.6.x` | Recovery And Discovery Polish | generic core를 바꾸지 않고 recovery history와 보수적 local discovery를 개선. | 앱은 shortcut으로 문서화되고, diagnostic은 기본적으로 tool-agnostic이며, snapshot/undo/discover는 문서화·테스트되고, service group은 뒤로 미룸. |
-| `v0.7.x` | Service Groups | 여러 service 작업을 안전하게 plan/run. | group status와 dry-run plan이 명확하고 보수적이며 machine-readable. |
+| `v0.4.x` | Automation, Bootstrap, Recovery, And Discovery | script와 agent가 human stdout parsing 없이 Lattice를 호출하고, 새 머신 restore, recovery history, 보수적 discovery를 first-class로 만든다. | generic init, JSON output, selector, `plan`, `bootstrap check`, `app` command, snapshot/undo, `discover`, product-surface harness coverage가 v0.4.0 release line에 문서화되고 테스트됨. |
+| `v0.5.x` | Service Groups | 여러 service 작업을 안전하게 plan/run. | batch backup/restore 전 group status와 dry-run plan이 명확하고 보수적이며 machine-readable. |
 | `v1.0` | Public Stable CLI | 외부 사용자에게 추천 가능한 안정 CLI. | install, changelog, release, migration, change policy, issue workflow 안정화. |
 
 ## 의도적으로 하지 않는 것

@@ -15,15 +15,14 @@ Lattice는 범용 도구입니다. 특정 tool이나 service 하나가 제품의
 
 ## 먼저 할 일
 
-아래에 문서화된 현재 v0.4 후보 command surface 설치:
+아래에 문서화된 현재 v0.4 release command surface 설치:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --branch main --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.4.0 --locked
 ```
 
-최신 tagged stable 기준선은 아직 `v0.3.3`입니다. v0.4.0 tag를 자르기 전에
-`app`, `plan`, `bootstrap check`를 테스트하려면 current branch나 local checkout을
-사용합니다.
+v0.4.0 tag 이후 unreleased change를 테스트할 때만 `main` branch나 local
+checkout을 사용합니다.
 
 로컬 설정을 만들고 새 머신에서 복원 준비가 되었는지 확인합니다.
 

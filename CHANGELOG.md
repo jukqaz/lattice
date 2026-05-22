@@ -2,7 +2,7 @@
 
 English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
-## Unreleased
+## v0.4.0 - 2026-05-22
 
 ### Added
 
@@ -27,7 +27,7 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
   bootstrap commands.
 - README and user docs now start from app/service examples while keeping app
   entries as optional shortcuts, not the product center.
-- Workspace package version is now `0.4.0` for the v0.4 candidate command
+- Workspace package version is now `0.4.0` for the v0.4 release command
   surface.
 
 ### Removed

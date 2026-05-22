@@ -2,7 +2,7 @@
 
 [English](CHANGELOG.md) | 한국어 | [문서 인덱스](docs/README.ko.md)
 
-## Unreleased
+## v0.4.0 - 2026-05-22
 
 ### 추가
 
@@ -23,7 +23,7 @@
   config와 storage directory만 만들며, 다음 safe bootstrap command를 출력한다.
 - README와 사용자 문서는 app/service 예시에서 시작하되 app entry를 제품 중심이
   아니라 선택적 shortcut으로 유지한다.
-- v0.4 후보 command surface에 맞춰 workspace package version을 `0.4.0`으로
+- v0.4 release command surface에 맞춰 workspace package version을 `0.4.0`으로
   올렸다.
 
 ### 제거

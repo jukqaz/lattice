@@ -65,8 +65,8 @@ Released v0.3.3 scope:
 
 ## Main Branch After v0.3.3
 
-The current main branch is the v0.4 candidate line. It adds automation-friendly
-surfaces on top of the safe personal backup baseline:
+The current tagged release is v0.4.0. It adds automation-friendly surfaces on
+top of the safe personal backup baseline:
 
 - `lattice init` creates generic Lattice config and storage directories without
   creating a tool-specific service by default.

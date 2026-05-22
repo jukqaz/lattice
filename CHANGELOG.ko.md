@@ -9,6 +9,10 @@
 - 일반 service config 위의 public app-catalog surface로 `lattice app list/show/add`.
 - 새 머신 readiness check를 위한 human/JSON `lattice bootstrap check`.
 - backup/restore 전 권장 preflight surface인 human/JSON `lattice plan`.
+- forced restore snapshot을 확인하고 rollback을 dry-run하며 history를 보수적으로
+  정리하기 위한 `lattice snapshot list/show/prune`과 `lattice undo`.
+- config를 변경하지 않고 local service 후보를 보수적으로 찾는 human/JSON
+  `lattice discover`.
 - CLI help와 유지 관리 중인 문서가 app/service terminology를 유지하고 예전 catalog
   wording으로 되돌아가지 않도록 `cargo run -p xtask -- verify`에
   product-surface verification 추가.
@@ -16,7 +20,7 @@
 ### 변경
 
 - `lattice init`은 이제 tool-specific service를 기본 생성하지 않고 범용 Lattice
-  config와 storage directory만 만든다.
+  config와 storage directory만 만들며, 다음 safe bootstrap command를 출력한다.
 - README와 사용자 문서는 app/service 예시에서 시작하되 app entry를 제품 중심이
   아니라 선택적 shortcut으로 유지한다.
 - v0.4 후보 command surface에 맞춰 workspace package version을 `0.4.0`으로

@@ -1,5 +1,5 @@
 use std::fs;
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{PermissionsExt, symlink};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -1049,6 +1049,287 @@ include = ["**"]
     assert_eq!(dry_restore["would_restore"], 1);
     assert_eq!(dry_restore["entries"], serde_json::json!(["config.toml"]));
     assert_eq!(dry_restore["conflicts"], serde_json::json!(["config.toml"]));
+}
+
+#[test]
+fn bootstrap_diagnostics_and_restore_plan_are_trustworthy() {
+    let temp = tempdir().expect("tempdir");
+    let env = TestEnv::new(temp.path());
+    let bin = env!("CARGO_BIN_EXE_lattice");
+
+    let init = run_ok(bin, &env, &["init", "--force"]);
+    assert!(init.contains("next steps:"));
+    assert!(init.contains("lattice bootstrap check"));
+    assert!(init.contains("lattice plan <service>"));
+
+    let missing_root = temp.path().join("missing-root");
+    let disconnected_repo = temp.path().join("disconnected-repo");
+    fs::write(
+        env.config.join("lattice/services/disconnected.toml"),
+        format!(
+            r#"
+name = "disconnected"
+root = "{}"
+repo = "{}"
+include = ["config.toml"]
+"#,
+            missing_root.display(),
+            disconnected_repo.display()
+        ),
+    )
+    .expect("write disconnected service config");
+
+    let bootstrap = run_json(bin, &env, &["bootstrap", "check", "--json"]);
+    assert_eq!(bootstrap["ok"], false);
+    assert_eq!(bootstrap["diagnostics"]["git"], "available");
+    assert_eq!(bootstrap["services"][0]["root_exists"], false);
+    assert_eq!(bootstrap["services"][0]["repo_exists"], false);
+    assert_eq!(bootstrap["services"][0]["git_repo"], false);
+    assert_eq!(bootstrap["services"][0]["remote"], "missing");
+    assert_eq!(bootstrap["services"][0]["dirty"], false);
+    assert!(
+        bootstrap["services"][0]["issues"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("missing_root"))
+    );
+    assert!(
+        bootstrap["services"][0]["issues"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("missing_repo"))
+    );
+    assert!(
+        bootstrap["next_actions"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!(
+                "create or restore missing service roots"
+            ))
+    );
+
+    fs::remove_file(env.config.join("lattice/services/disconnected.toml"))
+        .expect("remove disconnected config");
+    let source = temp.path().join("plan-source");
+    let repo = temp.path().join("plan-repo");
+    write_file(&source, "config.toml", "stable = true\n", 0o600);
+    fs::write(
+        env.config.join("lattice/services/plan.toml"),
+        format!(
+            r#"
+name = "plan"
+root = "{}"
+repo = "{}"
+include = ["config.toml"]
+"#,
+            source.display(),
+            repo.display()
+        ),
+    )
+    .expect("write plan config");
+    run_ok(bin, &env, &["backup", "plan"]);
+    let bootstrap_ready = run_json(bin, &env, &["bootstrap", "check", "--json"]);
+    assert_eq!(bootstrap_ready["ok"], true);
+    assert_eq!(bootstrap_ready["ready_services"], 1);
+    assert!(
+        bootstrap_ready["services"][0]["issues"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        bootstrap_ready["services"][0]["warnings"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("repo_not_git"))
+    );
+    fs::write(source.join("config.toml"), "local drift\n").expect("write local drift");
+
+    let plan = run_json(bin, &env, &["plan", "--json", "plan"]);
+    assert_eq!(plan["ready"], false);
+    assert_eq!(plan["safe_to_restore_without_force"], false);
+    assert_eq!(plan["requires_force"], true);
+    assert_eq!(
+        plan["snapshot_policy"],
+        "forced restore snapshots conflicts before overwrite"
+    );
+    assert_eq!(plan["conflicts"], serde_json::json!(["config.toml"]));
+
+    let dry_restore = run_json(bin, &env, &["restore", "--dry-run", "--json", "plan"]);
+    assert_eq!(dry_restore["safe_to_restore_without_force"], false);
+    assert_eq!(dry_restore["requires_force"], true);
+    assert_eq!(
+        dry_restore["snapshot_policy"],
+        "forced restore snapshots conflicts before overwrite"
+    );
+    assert_eq!(dry_restore["conflicts"], serde_json::json!(["config.toml"]));
+}
+
+#[test]
+fn snapshot_history_supports_dry_run_restore_and_prune() {
+    let temp = tempdir().expect("tempdir");
+    let env = TestEnv::new(temp.path());
+    let bin = env!("CARGO_BIN_EXE_lattice");
+
+    run_ok(bin, &env, &["init", "--force"]);
+    let source = temp.path().join("snapshot-source");
+    let repo = temp.path().join("snapshot-repo");
+    write_file(&source, "config.toml", "repo version\n", 0o600);
+    fs::write(
+        env.config.join("lattice/services/snap.toml"),
+        format!(
+            r#"
+name = "snap"
+root = "{}"
+repo = "{}"
+include = ["config.toml"]
+"#,
+            source.display(),
+            repo.display()
+        ),
+    )
+    .expect("write snap config");
+    run_ok(bin, &env, &["backup", "snap"]);
+    fs::write(source.join("config.toml"), "local version\n").expect("write local version");
+    let restore = run_ok(bin, &env, &["restore", "--force", "snap"]);
+    assert!(restore.contains("snapshot:"));
+    assert_eq!(
+        fs::read_to_string(source.join("config.toml")).unwrap(),
+        "repo version\n"
+    );
+
+    let snapshots = run_json(bin, &env, &["snapshot", "list", "--json"]);
+    let snapshot_id = snapshots["snapshots"][0]["id"]
+        .as_str()
+        .expect("snapshot id")
+        .to_string();
+    assert_eq!(snapshots["snapshots"][0]["service"], "snap");
+    assert_eq!(snapshots["snapshots"][0]["files"], 1);
+
+    let show = run_json(bin, &env, &["snapshot", "show", "--json", &snapshot_id]);
+    assert_eq!(show["id"], snapshot_id);
+    assert_eq!(show["entries"], serde_json::json!(["config.toml"]));
+
+    let undo_plan = run_json(bin, &env, &["undo", "--dry-run", "--json", &snapshot_id]);
+    assert_eq!(undo_plan["dry_run"], true);
+    assert_eq!(undo_plan["would_restore"], 1);
+    assert_eq!(undo_plan["entries"], serde_json::json!(["config.toml"]));
+    assert_eq!(
+        fs::read_to_string(source.join("config.toml")).unwrap(),
+        "repo version\n"
+    );
+
+    let outside = temp.path().join("outside-target");
+    fs::write(&outside, "outside\n").expect("write outside target");
+    fs::remove_file(source.join("config.toml")).expect("remove config before symlink");
+    symlink(&outside, source.join("config.toml")).expect("symlink config to outside target");
+    let symlink_error = run_fail(bin, &env, &["undo", "--yes", "--json", &snapshot_id]);
+    assert!(symlink_error.contains("symlink"));
+    assert_eq!(fs::read_to_string(&outside).unwrap(), "outside\n");
+    fs::remove_file(source.join("config.toml")).expect("remove symlink");
+    fs::write(source.join("config.toml"), "repo version\n")
+        .expect("restore repo version before undo");
+
+    let undo = run_json(bin, &env, &["undo", "--yes", "--json", &snapshot_id]);
+    assert_eq!(undo["dry_run"], false);
+    assert_eq!(undo["restored"], 1);
+    assert_eq!(
+        fs::read_to_string(source.join("config.toml")).unwrap(),
+        "local version\n"
+    );
+
+    let prune_plan = run_json(
+        bin,
+        &env,
+        &["snapshot", "prune", "--dry-run", "--json", "--keep", "0"],
+    );
+    assert_eq!(prune_plan["dry_run"], true);
+    assert_eq!(prune_plan["would_remove"], 1);
+    assert!(env.state.join("lattice/snapshots").exists());
+
+    let pruned = run_json(
+        bin,
+        &env,
+        &["snapshot", "prune", "--yes", "--json", "--keep", "0"],
+    );
+    assert_eq!(pruned["dry_run"], false);
+    assert_eq!(pruned["removed"], 1);
+    let snapshots_after_prune = run_json(bin, &env, &["snapshot", "list", "--json"]);
+    assert!(
+        snapshots_after_prune["snapshots"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[test]
+fn discover_suggests_conservative_generic_services_with_json() {
+    let temp = tempdir().expect("tempdir");
+    let env = TestEnv::new(temp.path());
+    let bin = env!("CARGO_BIN_EXE_lattice");
+
+    run_ok(bin, &env, &["init", "--force"]);
+    fs::create_dir_all(env.home.join(".config/tool/cache")).expect("create cache");
+    fs::create_dir_all(env.home.join(".config/tool/sessions")).expect("create sessions");
+    fs::write(
+        env.home.join(".config/tool/settings.toml"),
+        "theme = 'dark'\n",
+    )
+    .expect("write settings");
+    fs::write(env.home.join(".config/tool/cache/state.db"), "cache\n").expect("write cache");
+    fs::write(env.home.join(".config/tool/token.json"), "token\n").expect("write token");
+    symlink(
+        env.home.join(".config/tool"),
+        env.home.join(".config/linked-tool"),
+    )
+    .expect("symlink config dir");
+    symlink(
+        env.home.join(".config/tool/settings.toml"),
+        env.home.join(".bashrc"),
+    )
+    .expect("symlink shell rc");
+    fs::write(env.home.join(".zshrc"), "export EDITOR=vim\n").expect("write zshrc");
+
+    let discovery = run_json(bin, &env, &["discover", "--json"]);
+    let services = discovery["suggestions"].as_array().expect("suggestions");
+    assert!(services.iter().any(|item| item["name"] == "tool"));
+    assert!(services.iter().all(|item| item["name"] != "linked-tool"));
+    assert!(services.iter().any(|item| item["name"] == "shell"));
+    let tool = services
+        .iter()
+        .find(|item| item["name"] == "tool")
+        .expect("tool suggestion");
+    assert_eq!(
+        tool["root"],
+        env.home.join(".config/tool").display().to_string()
+    );
+    assert!(
+        tool["include"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("settings.toml"))
+    );
+    assert!(
+        tool["exclude"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("cache/**"))
+    );
+    assert!(
+        tool["exclude"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("sessions/**"))
+    );
+    assert!(
+        tool["exclude"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("token.json"))
+    );
+    assert_eq!(discovery["mutated"], false);
+    assert!(!env.config.join("lattice/services/tool.toml").exists());
 }
 
 struct TestEnv {

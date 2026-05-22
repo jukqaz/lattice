@@ -150,6 +150,48 @@ enum Commands {
         exclude: Vec<String>,
         service: String,
     },
+    Snapshot {
+        #[command(subcommand)]
+        command: SnapshotCommands,
+    },
+    Undo {
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(long)]
+        json: bool,
+        #[arg(long)]
+        yes: bool,
+        snapshot: String,
+        service: Option<String>,
+    },
+    Discover {
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum SnapshotCommands {
+    List {
+        #[arg(long)]
+        json: bool,
+    },
+    Show {
+        #[arg(long)]
+        json: bool,
+        snapshot: String,
+        service: Option<String>,
+    },
+    Prune {
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(long)]
+        json: bool,
+        #[arg(long)]
+        yes: bool,
+        #[arg(long, default_value_t = 20)]
+        keep: usize,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -425,6 +467,15 @@ fn run() -> Result<()> {
             yes,
             selection(only, exclude),
         ),
+        Commands::Snapshot { command } => snapshot_command(&paths, command),
+        Commands::Undo {
+            dry_run,
+            json,
+            yes,
+            snapshot,
+            service,
+        } => undo_snapshot(&paths, &snapshot, service.as_deref(), dry_run, json, yes),
+        Commands::Discover { json } => discover(&paths, json),
     }
 }
 
@@ -462,6 +513,12 @@ fn init(paths: &LatticePaths, force: bool) -> Result<()> {
 
     println!("initialized {}", config_dir.display());
     println!("add a service with: lattice service add <name> --root <path> --include <pattern>");
+    println!("next steps:");
+    println!("  lattice app list");
+    println!("  lattice app add <app> --root <path>");
+    println!("  lattice bootstrap check");
+    println!("  lattice plan <service>");
+    println!("  lattice restore --dry-run <service>");
     Ok(())
 }
 
@@ -487,38 +544,105 @@ fn bootstrap_check(paths: &LatticePaths, json_output: bool) -> Result<()> {
     };
     let mut service_reports = Vec::new();
     let mut ready_count = 0usize;
+    let mut any_service_issues = false;
+    let mut any_service_warnings = false;
+    let mut next_actions = Vec::<String>::new();
+
+    if !config_exists {
+        next_actions.push("run lattice init".to_string());
+    }
+    if !services_dir_exists {
+        next_actions.push("create services directory".to_string());
+    }
+    if !git_available {
+        next_actions.push("install git".to_string());
+    }
 
     for service in services {
         let root = expand_path(&service.root)?;
         let repo = resolve_repo_path(paths, &service)?;
         let manifest = repo.join(".lattice").join("manifest.toml");
         let active = service_is_active(&service);
-        let ready = active && root.exists() && manifest.exists();
+        let root_exists = root.exists();
+        let repo_exists = repo.exists();
+        let git_repo = repo.join(".git").exists();
+        let remote = git_remote_status(&repo);
+        let dirty = git_repo && git_dirty(&repo);
+        let mut issues = Vec::<String>::new();
+        let mut warnings = Vec::<String>::new();
+        if !active {
+            issues.push("inactive".to_string());
+        }
+        if !root_exists {
+            issues.push("missing_root".to_string());
+        }
+        if !repo_exists {
+            issues.push("missing_repo".to_string());
+        }
+        if repo_exists && !git_repo {
+            warnings.push("repo_not_git".to_string());
+        }
+        if git_repo && remote == "missing" {
+            warnings.push("missing_remote".to_string());
+        }
+        if dirty {
+            warnings.push("dirty_repo".to_string());
+        }
+        if !manifest.exists() {
+            issues.push("missing_manifest".to_string());
+        }
+        let ready = active && root_exists && manifest.exists() && issues.is_empty();
         if ready {
             ready_count += 1;
+        }
+        if !issues.is_empty() {
+            any_service_issues = true;
+        }
+        if !warnings.is_empty() {
+            any_service_warnings = true;
         }
         service_reports.push(serde_json::json!({
             "service": service.name,
             "active": active,
             "root": root.display().to_string(),
-            "root_exists": root.exists(),
+            "root_exists": root_exists,
             "repo": repo.display().to_string(),
-            "repo_exists": repo.exists(),
+            "repo_exists": repo_exists,
+            "git_repo": git_repo,
+            "remote": remote,
+            "dirty": dirty,
             "manifest": if manifest.exists() { "present" } else { "missing" },
+            "issues": issues,
+            "warnings": warnings,
             "ready": ready
         }));
     }
 
-    let ok = config_exists && services_dir_exists && git_available;
+    if any_service_issues {
+        next_actions.push("create or restore missing service roots".to_string());
+        next_actions.push("pull or initialize disconnected repos".to_string());
+        next_actions.push("review lattice plan <service> before restore".to_string());
+    }
+    if any_service_warnings {
+        next_actions.push("review repo warnings before sharing across machines".to_string());
+    }
+    next_actions.sort();
+    next_actions.dedup();
+
+    let ok = config_exists && services_dir_exists && git_available && !any_service_issues;
     if json_output {
         print_json(serde_json::json!({
             "config": paths.config_file.display().to_string(),
             "config_exists": config_exists,
             "services_dir": paths.services_dir.display().to_string(),
             "services_dir_exists": services_dir_exists,
+            "diagnostics": {
+                "git": if git_available { "available" } else { "missing" }
+            },
             "git": if git_available { "available" } else { "missing" },
             "services": service_reports,
             "ready_services": ready_count,
+            "next_actions": next_actions,
             "ok": ok
         }))?;
         return Ok(());
@@ -550,7 +674,7 @@ fn bootstrap_check(paths: &LatticePaths, json_output: bool) -> Result<()> {
     println!("ready services: {ready_count}");
     for report in service_reports {
         println!(
-            "- {} active={} root={} manifest={} ready={}",
+            "- {} active={} root={} repo={} git={} manifest={} ready={} issues={} warnings={}",
             report["service"].as_str().unwrap_or_default(),
             if report["active"].as_bool().unwrap_or(false) {
                 "yes"
@@ -562,13 +686,31 @@ fn bootstrap_check(paths: &LatticePaths, json_output: bool) -> Result<()> {
             } else {
                 "missing"
             },
+            if report["repo_exists"].as_bool().unwrap_or(false) {
+                "present"
+            } else {
+                "missing"
+            },
+            if report["git_repo"].as_bool().unwrap_or(false) {
+                "yes"
+            } else {
+                "no"
+            },
             report["manifest"].as_str().unwrap_or_default(),
             if report["ready"].as_bool().unwrap_or(false) {
                 "yes"
             } else {
                 "no"
-            }
+            },
+            report["issues"].as_array().map_or(0, Vec::len),
+            report["warnings"].as_array().map_or(0, Vec::len)
         );
+    }
+    if !next_actions.is_empty() {
+        println!("next actions:");
+        for action in next_actions {
+            println!("- {action}");
+        }
     }
     println!("ok: {}", if ok { "yes" } else { "no" });
     Ok(())
@@ -1291,7 +1433,8 @@ fn plan(
         (0, 0, Vec::new(), Vec::new(), Vec::new())
     };
 
-    let ready = active && root.exists() && manifest.exists() && conflicts.is_empty();
+    let requires_force = !conflicts.is_empty();
+    let ready = active && root.exists() && manifest.exists() && !requires_force;
     if json_output {
         print_json(serde_json::json!({
             "service": service.name,
@@ -1306,7 +1449,10 @@ fn plan(
             "conflicts": path_strings(&conflicts),
             "entries": entries,
             "dirs": dirs,
-            "snapshot_on_conflict": !conflicts.is_empty(),
+            "safe_to_restore_without_force": !requires_force,
+            "requires_force": requires_force,
+            "snapshot_policy": snapshot_policy(requires_force),
+            "snapshot_on_conflict": requires_force,
             "ready": ready
         }))?;
         return Ok(());
@@ -1452,6 +1598,9 @@ fn restore(
                 "entries": manifest_entry_strings(&plan.entries),
                 "dirs": manifest_entry_strings(&plan.directories),
                 "conflicts": path_strings(&plan.conflicts),
+                "safe_to_restore_without_force": plan.conflicts.is_empty(),
+                "requires_force": !plan.conflicts.is_empty(),
+                "snapshot_policy": snapshot_policy(!plan.conflicts.is_empty()),
                 "hooks": hook_outcomes_json(&before_hooks, &after_hooks)
             }))?;
         } else {
@@ -1533,6 +1682,572 @@ fn restore(
         }
     }
     Ok(())
+}
+
+fn snapshot_command(paths: &LatticePaths, command: SnapshotCommands) -> Result<()> {
+    match command {
+        SnapshotCommands::List { json } => snapshot_list(paths, json),
+        SnapshotCommands::Show {
+            json,
+            snapshot,
+            service,
+        } => snapshot_show(paths, &snapshot, service.as_deref(), json),
+        SnapshotCommands::Prune {
+            dry_run,
+            json,
+            yes,
+            keep,
+        } => snapshot_prune(paths, keep, dry_run, json, yes),
+    }
+}
+
+fn snapshot_list(paths: &LatticePaths, json_output: bool) -> Result<()> {
+    let snapshots = snapshot_records(paths)?;
+    if json_output {
+        let values = snapshots
+            .iter()
+            .map(|record| {
+                serde_json::json!({
+                    "id": record.id,
+                    "service": record.service,
+                    "path": record.path.display().to_string(),
+                    "files": record.entries.len(),
+                    "entries": record.entries
+                })
+            })
+            .collect::<Vec<_>>();
+        print_json(serde_json::json!({ "snapshots": values }))?;
+        return Ok(());
+    }
+
+    for record in snapshots {
+        println!(
+            "{} service={} files={} path={}",
+            record.id,
+            record.service,
+            record.entries.len(),
+            record.path.display()
+        );
+    }
+    Ok(())
+}
+
+fn snapshot_show(
+    paths: &LatticePaths,
+    snapshot: &str,
+    service: Option<&str>,
+    json_output: bool,
+) -> Result<()> {
+    let record = find_snapshot(paths, snapshot, service)?;
+    if json_output {
+        print_json(serde_json::json!({
+            "id": record.id,
+            "service": record.service,
+            "path": record.path.display().to_string(),
+            "files": record.entries.len(),
+            "entries": record.entries
+        }))?;
+        return Ok(());
+    }
+
+    println!("snapshot: {}", record.id);
+    println!("service: {}", record.service);
+    println!("path: {}", record.path.display());
+    for entry in record.entries {
+        println!("{entry}");
+    }
+    Ok(())
+}
+
+fn snapshot_prune(
+    paths: &LatticePaths,
+    keep: usize,
+    dry_run: bool,
+    json_output: bool,
+    yes: bool,
+) -> Result<()> {
+    if !dry_run && !yes {
+        bail!("snapshot prune requires --yes unless --dry-run is used");
+    }
+    let root = snapshot_root(paths);
+    let mut ids = snapshot_ids(&root)?;
+    ids.sort_by(|left, right| right.cmp(left));
+    let remove = ids.into_iter().skip(keep).collect::<Vec<_>>();
+
+    if dry_run {
+        if json_output {
+            print_json(serde_json::json!({
+                "dry_run": true,
+                "keep": keep,
+                "would_remove": remove.len(),
+                "remove": remove
+            }))?;
+            return Ok(());
+        }
+        println!("would remove {} snapshots", remove.len());
+        for id in remove {
+            println!("{id}");
+        }
+        return Ok(());
+    }
+
+    for id in &remove {
+        let path = root.join(id);
+        if snapshot_path_is_directory(&path)? {
+            fs::remove_dir_all(&path)
+                .with_context(|| format!("failed to remove {}", path.display()))?;
+        }
+    }
+    if json_output {
+        print_json(serde_json::json!({
+            "dry_run": false,
+            "keep": keep,
+            "removed": remove.len(),
+            "remove": remove
+        }))?;
+    } else {
+        println!("removed {} snapshots", remove.len());
+    }
+    Ok(())
+}
+
+fn undo_snapshot(
+    paths: &LatticePaths,
+    snapshot: &str,
+    service: Option<&str>,
+    dry_run: bool,
+    json_output: bool,
+    yes: bool,
+) -> Result<()> {
+    if !dry_run && !yes {
+        bail!("undo requires --yes unless --dry-run is used");
+    }
+    let record = find_snapshot(paths, snapshot, service)?;
+    let service_config = load_service(paths, &record.service)?;
+    ensure_service_active(&service_config)?;
+    let root = expand_path(&service_config.root)?;
+
+    if dry_run {
+        if json_output {
+            print_json(serde_json::json!({
+                "snapshot": record.id,
+                "service": record.service,
+                "dry_run": true,
+                "destination": root.display().to_string(),
+                "would_restore": record.entries.len(),
+                "entries": record.entries
+            }))?;
+            return Ok(());
+        }
+        println!(
+            "would restore {} files from snapshot {} to {}",
+            record.entries.len(),
+            record.id,
+            root.display()
+        );
+        for entry in record.entries {
+            println!("{entry}");
+        }
+        return Ok(());
+    }
+
+    let restored = restore_snapshot_entries(&record.path, &root, &record.entries)?;
+    if json_output {
+        print_json(serde_json::json!({
+            "snapshot": record.id,
+            "service": record.service,
+            "dry_run": false,
+            "destination": root.display().to_string(),
+            "restored": restored,
+            "entries": record.entries
+        }))?;
+    } else {
+        println!("restored {} files from snapshot {}", restored, record.id);
+    }
+    Ok(())
+}
+
+fn discover(paths: &LatticePaths, json_output: bool) -> Result<()> {
+    let home = PathBuf::from(std::env::var_os("HOME").context("HOME is not set")?);
+    let mut suggestions = Vec::new();
+    suggestions.extend(discover_config_dirs(&home)?);
+    if let Some(shell) = discover_shell(&home) {
+        suggestions.push(shell);
+    }
+    suggestions.sort_by(|left, right| left.name.cmp(&right.name));
+
+    if json_output {
+        let values = suggestions
+            .iter()
+            .map(|suggestion| {
+                serde_json::json!({
+                    "name": suggestion.name,
+                    "root": suggestion.root.display().to_string(),
+                    "include": suggestion.include,
+                    "exclude": suggestion.exclude,
+                    "reason": suggestion.reason
+                })
+            })
+            .collect::<Vec<_>>();
+        print_json(serde_json::json!({
+            "suggestions": values,
+            "mutated": false,
+            "services_dir": paths.services_dir.display().to_string()
+        }))?;
+        return Ok(());
+    }
+
+    for suggestion in suggestions {
+        println!("{} root={}", suggestion.name, suggestion.root.display());
+        println!("  include: {}", suggestion.include.join(", "));
+        if !suggestion.exclude.is_empty() {
+            println!("  exclude: {}", suggestion.exclude.join(", "));
+        }
+    }
+    println!("mutated: no");
+    Ok(())
+}
+
+#[derive(Debug, Clone)]
+struct SnapshotRecord {
+    id: String,
+    service: String,
+    path: PathBuf,
+    entries: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+struct DiscoverySuggestion {
+    name: String,
+    root: PathBuf,
+    include: Vec<String>,
+    exclude: Vec<String>,
+    reason: String,
+}
+
+fn snapshot_root(paths: &LatticePaths) -> PathBuf {
+    paths.state_dir.join("snapshots")
+}
+
+fn snapshot_records(paths: &LatticePaths) -> Result<Vec<SnapshotRecord>> {
+    let root = snapshot_root(paths);
+    let mut records = Vec::new();
+    for id in snapshot_ids(&root)? {
+        let id_path = root.join(&id);
+        for entry in fs::read_dir(&id_path)
+            .with_context(|| format!("failed to read {}", id_path.display()))?
+        {
+            let entry = entry?;
+            let path = entry.path();
+            if !snapshot_path_is_directory(&path)? {
+                continue;
+            }
+            let service = entry.file_name().to_string_lossy().to_string();
+            let mut entries = relative_files(&path)?;
+            entries.sort();
+            records.push(SnapshotRecord {
+                id: id.clone(),
+                service,
+                path,
+                entries,
+            });
+        }
+    }
+    records.sort_by(|left, right| {
+        right
+            .id
+            .cmp(&left.id)
+            .then_with(|| left.service.cmp(&right.service))
+    });
+    Ok(records)
+}
+
+fn snapshot_ids(root: &Path) -> Result<Vec<String>> {
+    if !root.exists() {
+        return Ok(Vec::new());
+    }
+    if !snapshot_path_is_directory(root)? {
+        bail!("snapshot root is not a directory: {}", root.display());
+    }
+    let mut ids = Vec::new();
+    for entry in fs::read_dir(root).with_context(|| format!("failed to read {}", root.display()))? {
+        let entry = entry?;
+        let id = entry.file_name().to_string_lossy().to_string();
+        if snapshot_path_is_directory(&entry.path())? && snapshot_id_name_is_safe(&id) {
+            ids.push(id);
+        }
+    }
+    Ok(ids)
+}
+
+fn snapshot_id_name_is_safe(id: &str) -> bool {
+    !id.is_empty() && id.chars().all(|ch| ch.is_ascii_digit())
+}
+
+fn snapshot_path_is_directory(path: &Path) -> Result<bool> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) => Ok(!metadata.file_type().is_symlink() && metadata.is_dir()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error).with_context(|| format!("failed to stat {}", path.display())),
+    }
+}
+
+fn find_snapshot(
+    paths: &LatticePaths,
+    snapshot: &str,
+    service: Option<&str>,
+) -> Result<SnapshotRecord> {
+    let matches = snapshot_records(paths)?
+        .into_iter()
+        .filter(|record| record.id == snapshot && service.is_none_or(|name| record.service == name))
+        .collect::<Vec<_>>();
+    match matches.as_slice() {
+        [record] => Ok(record.clone()),
+        [] => bail!("snapshot not found: {snapshot}"),
+        _ => bail!("snapshot {snapshot} has multiple services; pass a service name"),
+    }
+}
+
+fn relative_files(root: &Path) -> Result<Vec<String>> {
+    let mut files = Vec::new();
+    collect_relative_files(root, root, &mut files)?;
+    files.sort();
+    Ok(files)
+}
+
+fn collect_relative_files(root: &Path, dir: &Path, files: &mut Vec<String>) -> Result<()> {
+    for entry in fs::read_dir(dir).with_context(|| format!("failed to read {}", dir.display()))? {
+        let entry = entry?;
+        let path = entry.path();
+        let metadata = fs::symlink_metadata(&path)
+            .with_context(|| format!("failed to stat {}", path.display()))?;
+        if metadata.file_type().is_symlink() {
+            continue;
+        }
+        if metadata.is_dir() {
+            collect_relative_files(root, &path, files)?;
+            continue;
+        }
+        if metadata.is_file() {
+            let relative = path
+                .strip_prefix(root)
+                .with_context(|| format!("failed to make {} relative", path.display()))?;
+            files.push(relative.to_string_lossy().to_string());
+        }
+    }
+    Ok(())
+}
+
+fn restore_snapshot_entries(
+    snapshot_root: &Path,
+    destination_root: &Path,
+    entries: &[String],
+) -> Result<usize> {
+    for entry in entries {
+        let relative = Path::new(entry);
+        validate_relative_config_path(entry)?;
+        let source = snapshot_root.join(relative);
+        let destination = destination_root.join(relative);
+        ensure_no_snapshot_path_symlinks(snapshot_root, relative, false)?;
+        ensure_regular_snapshot_source(&source)?;
+        ensure_no_snapshot_path_symlinks(destination_root, relative, true)?;
+        if let Some(parent) = destination.parent() {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("failed to create {}", parent.display()))?;
+        }
+        let source_permissions = fs::metadata(&source)
+            .with_context(|| format!("failed to stat {}", source.display()))?
+            .permissions();
+        fs::copy(&source, &destination).with_context(|| {
+            format!(
+                "failed to restore snapshot {} to {}",
+                source.display(),
+                destination.display()
+            )
+        })?;
+        fs::set_permissions(&destination, source_permissions)
+            .with_context(|| format!("failed to chmod {}", destination.display()))?;
+    }
+    Ok(entries.len())
+}
+
+fn ensure_regular_snapshot_source(path: &Path) -> Result<()> {
+    let metadata = fs::symlink_metadata(path)
+        .with_context(|| format!("failed to stat snapshot source {}", path.display()))?;
+    if metadata.file_type().is_symlink() {
+        bail!("snapshot source is a symlink: {}", path.display());
+    }
+    if !metadata.is_file() {
+        bail!("snapshot source is not a regular file: {}", path.display());
+    }
+    Ok(())
+}
+
+fn ensure_no_snapshot_path_symlinks(
+    root: &Path,
+    relative: &Path,
+    include_final: bool,
+) -> Result<()> {
+    let mut current = root.to_path_buf();
+    let mut components = relative.components().peekable();
+    while let Some(component) = components.next() {
+        let is_final = components.peek().is_none();
+        if is_final && !include_final {
+            break;
+        }
+        current.push(component.as_os_str());
+        if snapshot_path_is_symlink(&current)? {
+            bail!("snapshot restore path is a symlink: {}", current.display());
+        }
+    }
+    Ok(())
+}
+
+fn snapshot_path_is_symlink(path: &Path) -> Result<bool> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) => Ok(metadata.file_type().is_symlink()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error).with_context(|| format!("failed to stat {}", path.display())),
+    }
+}
+
+fn discover_config_dirs(home: &Path) -> Result<Vec<DiscoverySuggestion>> {
+    let config = home.join(".config");
+    if !config.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut suggestions = Vec::new();
+    for entry in
+        fs::read_dir(&config).with_context(|| format!("failed to read {}", config.display()))?
+    {
+        let entry = entry?;
+        let root = entry.path();
+        if !snapshot_path_is_directory(&root)? {
+            continue;
+        }
+        let name = entry.file_name().to_string_lossy().to_string();
+        if name == "lattice" || name.starts_with('.') {
+            continue;
+        }
+        let (include, exclude) = conservative_patterns(&root)?;
+        if include.is_empty() {
+            continue;
+        }
+        suggestions.push(DiscoverySuggestion {
+            name,
+            root,
+            include,
+            exclude,
+            reason: "local XDG config directory with non-secret-looking files".to_string(),
+        });
+    }
+    Ok(suggestions)
+}
+
+fn discover_shell(home: &Path) -> Option<DiscoverySuggestion> {
+    let mut include = [".bashrc", ".zshrc", ".profile"]
+        .into_iter()
+        .filter(|name| discovery_file_is_small(&home.join(name)).unwrap_or(false))
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+    include.sort();
+    if include.is_empty() {
+        return None;
+    }
+    Some(DiscoverySuggestion {
+        name: "shell".to_string(),
+        root: home.to_path_buf(),
+        include,
+        exclude: vec![
+            ".cache/**".to_string(),
+            ".local/share/**".to_string(),
+            ".ssh/**".to_string(),
+        ],
+        reason: "common shell startup files".to_string(),
+    })
+}
+
+fn conservative_patterns(root: &Path) -> Result<(Vec<String>, Vec<String>)> {
+    let mut include = Vec::new();
+    let mut exclude = Vec::new();
+    for entry in fs::read_dir(root).with_context(|| format!("failed to read {}", root.display()))? {
+        let entry = entry?;
+        let name = entry.file_name().to_string_lossy().to_string();
+        let metadata = fs::symlink_metadata(entry.path())
+            .with_context(|| format!("failed to stat {}", entry.path().display()))?;
+        if metadata.file_type().is_symlink() {
+            continue;
+        }
+        let is_dir = metadata.is_dir();
+        if should_exclude_discovery_name(&name, is_dir) {
+            exclude.push(if is_dir { format!("{name}/**") } else { name });
+            continue;
+        }
+        if metadata.is_file() && discovery_file_is_small(&entry.path())? {
+            include.push(name);
+        }
+    }
+    include.sort();
+    include.dedup();
+    exclude.sort();
+    exclude.dedup();
+    Ok((include, exclude))
+}
+
+fn should_exclude_discovery_name(name: &str, is_dir: bool) -> bool {
+    let lower = name.to_ascii_lowercase();
+    lower.contains("secret")
+        || lower.contains("token")
+        || lower.contains("auth")
+        || lower.contains("credential")
+        || lower.contains("session")
+        || lower.contains("cache")
+        || lower.ends_with(".db")
+        || lower.ends_with(".sqlite")
+        || lower.ends_with(".sqlite3")
+        || (is_dir && lower == "logs")
+}
+
+fn discovery_file_is_small(path: &Path) -> Result<bool> {
+    let metadata =
+        fs::symlink_metadata(path).with_context(|| format!("failed to stat {}", path.display()))?;
+    Ok(!metadata.file_type().is_symlink() && metadata.is_file() && metadata.len() <= 1024 * 1024)
+}
+
+fn git_remote_status(repo: &Path) -> String {
+    if !repo.join(".git").exists() {
+        return "missing".to_string();
+    }
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repo)
+        .args(["remote", "get-url", "origin"])
+        .output();
+    match output {
+        Ok(output) if output.status.success() => {
+            String::from_utf8_lossy(&output.stdout).trim().to_string()
+        }
+        _ => "missing".to_string(),
+    }
+}
+
+fn git_dirty(repo: &Path) -> bool {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repo)
+        .args(["status", "--porcelain"])
+        .output();
+    output
+        .map(|output| output.status.success() && !output.stdout.is_empty())
+        .unwrap_or(false)
+}
+
+fn snapshot_policy(requires_force: bool) -> &'static str {
+    if requires_force {
+        "forced restore snapshots conflicts before overwrite"
+    } else {
+        "no snapshot needed for non-conflicting restore"
+    }
 }
 
 fn path_strings(paths: &[PathBuf]) -> Vec<String> {

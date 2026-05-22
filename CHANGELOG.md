@@ -12,6 +12,10 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
   checks.
 - `lattice plan` with human and JSON output as the preferred preflight surface
   before backup or restore.
+- `lattice snapshot list/show/prune`, plus `lattice undo`, for inspecting forced
+  restore snapshots, dry-running rollback, and pruning history conservatively.
+- `lattice discover` with human and JSON output for conservative local service
+  candidate discovery without mutating config.
 - Product-surface verification in `cargo run -p xtask -- verify` so CLI help and
   maintained docs keep app/service terminology and do not drift back to the old
   catalog wording.
@@ -19,7 +23,8 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 ### Changed
 
 - `lattice init` now creates generic Lattice config and storage directories
-  without creating a tool-specific service by default.
+  without creating a tool-specific service by default, and prints the next safe
+  bootstrap commands.
 - README and user docs now start from app/service examples while keeping app
   entries as optional shortcuts, not the product center.
 - Workspace package version is now `0.4.0` for the v0.4 candidate command

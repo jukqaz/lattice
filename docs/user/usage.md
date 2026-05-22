@@ -172,6 +172,16 @@ Forced restore snapshots overwritten files under XDG state before writing:
 ~/.local/state/lattice/snapshots/
 ```
 
+Inspect snapshot history and dry-run rollback before any destructive undo:
+
+```bash
+lattice snapshot list
+lattice snapshot show <snapshot-id>
+lattice undo --dry-run <snapshot-id>
+lattice undo --yes <snapshot-id>
+lattice snapshot prune --dry-run --keep 20
+```
+
 ## 6. Sync The Backup Repo
 
 Service repos are normal directories. Use Git directly or use Lattice helpers:
@@ -211,7 +221,22 @@ lattice app add <app> --root <path>
 Apps are optional shortcuts. The core model remains the same service config,
 include/exclude rules, backup, diff, and restore flow.
 
-## 8. Manage Secrets Safely
+## 8. Discover Conservative Service Candidates
+
+Use discovery to suggest local service/app candidates without writing service
+config. Discovery intentionally excludes secret-, auth-, session-, cache-,
+database-, and large-file-looking paths by default.
+
+```bash
+lattice discover
+lattice discover --json
+```
+
+Review the suggestions, then add the service explicitly with `lattice app add` or
+`lattice service add`.
+
+## 9. Manage Secrets Safely
+
 
 Lattice does not back up secret values. Secret commands store metadata such as
 backend, item, field, environment variable name, and folder.
@@ -257,7 +282,7 @@ macOS resource forks. Lattice blocks those files by default. Use
 lattice backup --allow-metadata-loss <service>
 ```
 
-## 9. Advanced Restore Options
+## 10. Advanced Restore Options
 
 Use symlink restore mode when you want restored files to point into the service
 repo:
@@ -283,7 +308,7 @@ machines:
 lattice service add <service> --root <path> --include <pattern> --os macos
 ```
 
-## 10. Automation And JSON Output
+## 11. Automation And JSON Output
 
 Use `--json` when scripts, CI jobs, or agents need stable machine-readable
 output:
@@ -291,6 +316,11 @@ output:
 ```bash
 lattice status --json shell
 lattice plan --json shell
+lattice discover --json
+lattice snapshot list --json
+lattice snapshot show --json <snapshot-id>
+lattice undo --dry-run --json <snapshot-id>
+lattice snapshot prune --dry-run --json --keep 20
 lattice backup --dry-run --json shell
 lattice diff --json shell
 lattice restore --dry-run --json shell
@@ -318,7 +348,7 @@ The selectors are intentionally path-scoped, not service-group orchestration.
 Use them for small, reviewable operations such as backing up one changed config
 file or excluding noisy generated state from a diff.
 
-## 11. Prompt UI
+## 12. Prompt UI
 
 Open the prompt-based UI:
 

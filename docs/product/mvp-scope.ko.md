@@ -72,11 +72,14 @@ automation-friendly surface를 추가한다.
 - best-effort TUI dashboard 동작: 한 service의 root/repo가 unavailable이어도
   다른 service와 action 목록은 계속 출력.
 - `status`, `plan`, `backup --dry-run`, `diff`, `restore --dry-run`,
-  `bootstrap check`의 machine-readable JSON output.
+  `bootstrap check`, `snapshot`, `undo`, `discover`의 machine-readable JSON output.
 - `plan`을 backup/restore 전 단일 human/JSON preflight surface로 둔다.
 - `bootstrap check`는 새 머신 readiness diagnostic을 제공한다.
 - `app list`, `app show <app>`, `app add <app>`를 app catalog command
   surface로 둔다.
+- `snapshot list/show/prune`과 `undo`로 forced-restore history 확인, rollback
+  dry-run, 보수적인 cleanup을 지원한다.
+- `discover`로 config mutation 없이 보수적인 local service 후보를 제안한다.
 - status, plan, backup, diff, restore flow의 `--only`, `--exclude` path selector.
 - JSON, selector, app-catalog, bootstrap contract를 고정하는 CLI smoke와
   product-surface harness coverage.
@@ -88,7 +91,7 @@ automation-friendly surface를 추가한다.
 | `v0.3.x` | Safe Personal Backup | 개인 dotfiles를 안전하게 backup/restore. | full safety harness, platform CI, install smoke, v0.3.3 tag smoke 통과. |
 | `v0.4.x` | Automation-Friendly CLI | script와 agent가 human stdout parsing 없이 Lattice를 호출. | generic init, JSON output, selector, `plan`, `bootstrap check`, `app` command, product-surface harness coverage가 문서화되고 테스트됨. |
 | `v0.5.x` | New Machine Bootstrap | 새 머신에서 developer home baseline을 몇 분 안에 restore. | first-run guidance, disconnected repo/tool diagnostic, 신뢰할 수 있는 restore summary로 새 VM/Mac restore flow가 명확함. |
-| `v0.6.x` | App Catalog And Diagnostics Polish | generic core를 바꾸지 않고 선택적 app catalog와 deterministic diagnostic을 개선. | 앱은 shortcut으로 문서화되고, diagnostic은 기본적으로 tool-agnostic이며, 어떤 앱도 제품을 정의하지 않음. |
+| `v0.6.x` | Recovery And Discovery Polish | generic core를 바꾸지 않고 recovery history와 보수적 local discovery를 개선. | 앱은 shortcut으로 문서화되고, diagnostic은 기본적으로 tool-agnostic이며, snapshot/undo/discover는 문서화·테스트되고, service group은 뒤로 미룸. |
 | `v0.7.x` | Service Groups | 여러 service 작업을 안전하게 plan/run. | group status와 dry-run plan이 명확하고 보수적이며 machine-readable. |
 | `v1.0` | Public Stable CLI | 외부 사용자에게 추천 가능한 안정 CLI. | install, changelog, release, migration, change policy, issue workflow 안정화. |
 

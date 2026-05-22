@@ -70,10 +70,24 @@ lattice restore zsh
 
 If you intentionally want to overwrite local files, use `--force`. Forced
 restores snapshot overwritten files under XDG state before writing repo
-contents.
+contents. Use `snapshot` and `undo` to inspect or dry-run rollback from those
+safety snapshots.
 
 ```bash
 lattice restore --force zsh
+lattice snapshot list
+lattice snapshot show <snapshot-id>
+lattice undo --dry-run <snapshot-id>
+lattice undo --yes <snapshot-id>
+lattice snapshot prune --dry-run --keep 20
+```
+
+Use conservative local discovery to find possible service configs without
+mutating your Lattice config:
+
+```bash
+lattice discover
+lattice discover --json
 ```
 
 ## Add More Services
@@ -106,6 +120,9 @@ lattice app add <app> --root <path>
 | Validate config files | `lattice validate` |
 | See one service | `lattice status zsh` |
 | Inspect backup/restore preflight | `lattice plan zsh` |
+| Discover conservative service candidates | `lattice discover` |
+| List forced-restore snapshots | `lattice snapshot list` |
+| Dry-run snapshot rollback | `lattice undo --dry-run <snapshot-id>` |
 | Preview backup | `lattice backup --dry-run zsh` |
 | Backup now | `lattice backup zsh` |
 | Preview restore | `lattice restore --dry-run zsh` |
@@ -122,6 +139,11 @@ of human text:
 lattice bootstrap check --json
 lattice status --json zsh
 lattice plan --json zsh
+lattice discover --json
+lattice snapshot list --json
+lattice snapshot show --json <snapshot-id>
+lattice undo --dry-run --json <snapshot-id>
+lattice snapshot prune --dry-run --json --keep 20
 lattice backup --dry-run --json zsh
 lattice diff --json zsh
 lattice restore --dry-run --json zsh
@@ -163,7 +185,10 @@ repo at it with normal `git remote` commands.
 - Secret commands store metadata only. They do not read, print, or back up
   secret values.
 - Restore refuses conflicting local files unless `--force` is passed.
-- Forced restore creates a snapshot before overwriting files.
+- Forced restore creates a snapshot before overwriting files. Use `snapshot list`,
+  `snapshot show`, and `undo --dry-run` to inspect rollback before restoring from
+  a snapshot. Use `snapshot prune --dry-run --keep <n>` before deleting old
+  snapshots.
 - Restore paths, manifest entries, and permission rules must stay inside the
   service root.
 - Service roots and service repos must not overlap.

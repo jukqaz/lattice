@@ -62,7 +62,7 @@ filesystem safety check를 포함한다.
 
 ## v0.3.3 이후 main branch
 
-현재 main branch는 v0.4 후보 라인이다. 안전한 개인 backup 기준선 위에
+현재 tagged release는 v0.4.0이다. 안전한 개인 backup 기준선 위에
 automation-friendly surface를 추가한다.
 
 - `lattice init`은 tool-specific service를 기본 생성하지 않고 범용 Lattice config와

@@ -74,19 +74,24 @@ surfaces on top of the safe personal backup baseline:
   root paths, repo paths, and action summaries.
 - Best-effort TUI dashboard behavior: one service with an unavailable root or
   repo no longer prevents other services from being listed.
-- Machine-readable JSON output for `status`, `backup --dry-run`, `diff`, and
-  `restore --dry-run`.
-- `--only` and `--exclude` path selectors for status, backup, diff, and restore
-  flows.
-- CLI smoke coverage for the JSON and selector contract.
+- Machine-readable JSON output for `status`, `plan`, `backup --dry-run`,
+  `diff`, `restore --dry-run`, and `bootstrap check`.
+- `plan` as the single human/JSON preflight surface before backup or restore.
+- `bootstrap check` for new-machine readiness diagnostics.
+- `app list`, `app show <app>`, and `app add <app>` as the app catalog command
+  surface.
+- `--only` and `--exclude` path selectors for status, plan, backup, diff, and
+  restore flows.
+- CLI smoke and product-surface harness coverage for the JSON, selector,
+  app-catalog, and bootstrap contracts.
 
 ## Roadmap
 
 | Line | Name | Goal | Acceptance |
 | --- | --- | --- | --- |
 | `v0.3.x` | Safe Personal Backup | Safely back up and restore personal dotfiles. | Full safety harness, platform CI, install smoke, and v0.3.3 tag smoke pass. |
-| `v0.4.x` | Automation-Friendly CLI | Let scripts and agents call Lattice without parsing human stdout. | Generic init, JSON output, and selectors are documented, tested, and stable enough for CI/Hermes use. |
-| `v0.5.x` | New Machine Bootstrap | Restore a developer home baseline on a new machine in minutes. | A new VM or Mac can run install, init, service add, repo pull, dry-run restore, and restore with clear diagnostics. |
+| `v0.4.x` | Automation-Friendly CLI | Let scripts and agents call Lattice without parsing human stdout. | Generic init, JSON output, selectors, `plan`, `bootstrap check`, `app` commands, and product-surface harness coverage are documented and tested. |
+| `v0.5.x` | New Machine Bootstrap | Restore a developer home baseline on a new machine in minutes. | First-run guidance, disconnected-repo/tool diagnostics, and trustworthy restore summaries make a new VM or Mac restore flow clear. |
 | `v0.6.x` | App Catalog And Diagnostics Polish | Improve optional app catalog entries and deterministic diagnostics without changing the generic core. | Apps are documented as shortcuts, diagnostics remain tool-agnostic by default, and no app becomes product-defining. |
 | `v0.7.x` | Service Groups | Plan and run safe multi-service operations. | Group status and dry-run plans are clear, conservative, and machine-readable. |
 | `v1.0` | Public Stable CLI | Make Lattice recommendable to external users. | Install, changelog, release, migration, change policy, and issue workflows are stable. |

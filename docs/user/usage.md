@@ -28,16 +28,19 @@ manager. It keeps the dotfile sync layer small and explicit.
 Terminology: an **app** is a common managed target, such as `git`, `ssh`,
 `zsh`, `starship`, `mise`, or `codex`. An app catalog entry is only a shortcut
 for creating ordinary service config. No app is product-defining, and Codex is
-only one example app. The CLI should use `lattice app ...` directly rather than
-preserving older preset terminology.
+only one example app. The CLI uses `lattice app ...` directly for this catalog surface.
 
 ## 1. Install
 
-Install the latest tagged release:
+Install the current v0.4 candidate command surface documented in this guide:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.3 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --branch main --locked
 ```
+
+The latest tagged stable baseline is still `v0.3.3`; use the current branch or
+a local checkout when testing `app`, `plan`, and `bootstrap check` before the
+v0.4.0 tag is cut.
 
 Install from a local checkout while developing Lattice:
 
@@ -64,6 +67,7 @@ Check the environment:
 ```bash
 lattice doctor
 lattice validate
+lattice bootstrap check
 lattice service list
 ```
 
@@ -80,15 +84,15 @@ When a service omits `repo`, Lattice stores its backup copy here:
 ~/.local/share/lattice/repos/<service-name>
 ```
 
-## 3. Add A First Service
+## 3. Add A First App-Backed Service
 
-Create a service for one app config directory. Replace the example name, root,
-and include pattern with the dotfiles you want to manage:
+Create a service for one app config directory when the catalog already knows the common include/exclude shape. Replace the example app and root with the dotfiles you want to manage:
 
 ```bash
-lattice service add shell --root ~/.config/shell --include config.toml
-lattice service show shell
-lattice status shell
+lattice app list
+lattice app show zsh
+lattice app add zsh --root ~/.config/zsh
+lattice plan zsh
 ```
 
 Add or remove tracked paths later:
@@ -116,10 +120,11 @@ lattice adopt shell scripts/sync
 
 ## 4. Create The First Backup
 
-Always run a dry-run first:
+Always inspect the single preflight plan first:
 
 ```bash
-lattice backup --dry-run shell
+lattice plan zsh
+lattice backup --dry-run zsh
 ```
 
 The output lists files that would be copied and empty directories that would be
@@ -128,36 +133,37 @@ tracked. Review this list before writing to the service repo.
 Create the backup:
 
 ```bash
-lattice backup shell
+lattice backup zsh
 ```
 
 Check for drift between the live service root and the repo copy:
 
 ```bash
-lattice diff shell
+lattice diff zsh
 ```
 
 No output means there is no file-content drift for the tracked files.
 
 ## 5. Restore Safely
 
-Preview restore work first:
+Preview restore work through the plan surface first:
 
 ```bash
-lattice restore --dry-run shell
+lattice plan zsh
+lattice restore --dry-run zsh
 ```
 
 Restore without overwriting conflicts:
 
 ```bash
-lattice restore shell
+lattice restore zsh
 ```
 
 If local files conflict and you intentionally want the repo copy to win, use
 `--force`:
 
 ```bash
-lattice restore --force shell
+lattice restore --force zsh
 ```
 
 Forced restore snapshots overwritten files under XDG state before writing:
@@ -284,6 +290,7 @@ output:
 
 ```bash
 lattice status --json shell
+lattice plan --json shell
 lattice backup --dry-run --json shell
 lattice diff --json shell
 lattice restore --dry-run --json shell
@@ -293,7 +300,7 @@ For write flows, prefer the dry-run JSON command first. Parse the plan and stop
 if unexpected files, directories, entries, or conflicts appear:
 
 ```bash
-plan="$(lattice restore --dry-run --json shell)"
+plan="$(lattice plan --json shell)"
 printf '%s\n' "$plan" | jq '.conflicts'
 ```
 
@@ -343,8 +350,9 @@ deciding whether `--allow-secret-looking-files` is appropriate.
 If restore reports conflicts, run:
 
 ```bash
-lattice restore --dry-run shell
-lattice diff shell
+lattice plan zsh
+lattice restore --dry-run zsh
+lattice diff zsh
 ```
 
 Use `restore --force` only when you have confirmed the repo copy should replace

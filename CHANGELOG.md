@@ -4,12 +4,31 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
 ## Unreleased
 
+### Added
+
+- `lattice app list/show/add` as the public app-catalog surface over ordinary
+  service config.
+- `lattice bootstrap check` with human and JSON output for new-machine readiness
+  checks.
+- `lattice plan` with human and JSON output as the preferred preflight surface
+  before backup or restore.
+- Product-surface verification in `cargo run -p xtask -- verify` so CLI help and
+  maintained docs keep app/service terminology and do not drift back to the old
+  catalog wording.
+
 ### Changed
 
 - `lattice init` now creates generic Lattice config and storage directories
   without creating a tool-specific service by default.
-- README and user docs now start from an explicit `service add` flow so Lattice
-  is presented as a generic dotfile manager.
+- README and user docs now start from app/service examples while keeping app
+  entries as optional shortcuts, not the product center.
+- Workspace package version is now `0.4.0` for the v0.4 candidate command
+  surface.
+
+### Removed
+
+- Removed the old public catalog command/flag wording in favor of `app` and
+  generic service config.
 
 ## v0.3.3
 

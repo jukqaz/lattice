@@ -33,8 +33,6 @@ pub struct ServiceConfig {
     pub root: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub repo: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub preset: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub include: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -185,7 +183,6 @@ server = "https://vault.example.test"
 name = "codex"
 root = "~/.codex"
 repo = "~/.local/share/lattice/repos/codex"
-preset = "codex"
 include = ["config.toml", "agents/**"]
 exclude = ["auth.json", "sessions/**"]
 
@@ -212,7 +209,6 @@ mode = "0700"
             config.repo.as_deref(),
             Some("~/.local/share/lattice/repos/codex")
         );
-        assert_eq!(config.preset.as_deref(), Some("codex"));
         assert_eq!(config.include, vec!["config.toml", "agents/**"]);
         assert_eq!(config.exclude, vec!["auth.json", "sessions/**"]);
         assert_eq!(config.restore.create_dirs[0].path, "shell_snapshots");

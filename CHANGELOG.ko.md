@@ -4,12 +4,28 @@
 
 ## Unreleased
 
+### 추가
+
+- 일반 service config 위의 public app-catalog surface로 `lattice app list/show/add`.
+- 새 머신 readiness check를 위한 human/JSON `lattice bootstrap check`.
+- backup/restore 전 권장 preflight surface인 human/JSON `lattice plan`.
+- CLI help와 유지 관리 중인 문서가 app/service terminology를 유지하고 예전 catalog
+  wording으로 되돌아가지 않도록 `cargo run -p xtask -- verify`에
+  product-surface verification 추가.
+
 ### 변경
 
 - `lattice init`은 이제 tool-specific service를 기본 생성하지 않고 범용 Lattice
   config와 storage directory만 만든다.
-- README와 사용자 문서는 명시적 `service add` 흐름에서 시작해 Lattice를 범용
-  dotfile manager로 설명한다.
+- README와 사용자 문서는 app/service 예시에서 시작하되 app entry를 제품 중심이
+  아니라 선택적 shortcut으로 유지한다.
+- v0.4 후보 command surface에 맞춰 workspace package version을 `0.4.0`으로
+  올렸다.
+
+### 제거
+
+- old public catalog command/flag wording을 제거하고 `app`과 generic service
+  config로 대체했다.
 
 ## v0.3.3
 

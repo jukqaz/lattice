@@ -7,6 +7,7 @@ use std::process::{Command, Stdio};
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use inquire::Select;
+use lattice_core::app_catalog::{app_names, find_app};
 use lattice_core::config::{
     ConditionsConfig, GlobalConfig, HooksConfig, PermissionRule, RestoreConfig, SecretRef,
     ServiceConfig,
@@ -19,7 +20,6 @@ use lattice_core::ops::{
     restore_plan_with_selection, restore_service_with_options,
 };
 use lattice_core::paths::LatticePaths;
-use lattice_core::preset::{find_preset, preset_names};
 use lattice_core::scanner::{scan_empty_dirs, scan_service};
 use lattice_core::secrets::find_secret_like_patterns;
 use similar::{ChangeTag, TextDiff};
@@ -57,9 +57,13 @@ enum Commands {
         #[command(subcommand)]
         command: PermissionCommands,
     },
-    Preset {
+    App {
         #[command(subcommand)]
-        command: PresetCommands,
+        command: AppCommands,
+    },
+    Bootstrap {
+        #[command(subcommand)]
+        command: BootstrapCommands,
     },
     Repo {
         #[command(subcommand)]
@@ -95,6 +99,15 @@ enum Commands {
     Tui {
         #[arg(long)]
         dry_run: bool,
+    },
+    Plan {
+        #[arg(long)]
+        json: bool,
+        #[arg(long, action = clap::ArgAction::Append)]
+        only: Vec<String>,
+        #[arg(long, action = clap::ArgAction::Append)]
+        exclude: Vec<String>,
+        service: String,
     },
     Status {
         #[arg(long)]
@@ -151,8 +164,6 @@ enum ServiceCommands {
         root: String,
         #[arg(long)]
         repo: Option<String>,
-        #[arg(long)]
-        preset: Option<String>,
         #[arg(long, action = clap::ArgAction::Append)]
         include: Vec<String>,
         #[arg(long, action = clap::ArgAction::Append)]
@@ -203,9 +214,36 @@ enum PermissionCommands {
 }
 
 #[derive(Debug, Subcommand)]
-enum PresetCommands {
+enum AppCommands {
     List,
-    Show { preset: String },
+    Show {
+        app: String,
+    },
+    Add {
+        app: String,
+        #[arg(long)]
+        root: String,
+        #[arg(long)]
+        repo: Option<String>,
+        #[arg(long)]
+        template: bool,
+        #[arg(long)]
+        symlink: bool,
+        #[arg(long)]
+        os: Option<String>,
+        #[arg(long)]
+        hostname: Option<String>,
+        #[arg(long)]
+        force: bool,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum BootstrapCommands {
+    Check {
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -281,7 +319,6 @@ fn run() -> Result<()> {
                     service,
                     root,
                     repo,
-                    preset,
                     include,
                     exclude,
                     template,
@@ -296,7 +333,6 @@ fn run() -> Result<()> {
                 service,
                 root,
                 repo,
-                preset,
                 include,
                 exclude,
                 template,
@@ -312,7 +348,8 @@ fn run() -> Result<()> {
         Commands::Include { command } => update_patterns(&paths, command, PatternTarget::Include),
         Commands::Exclude { command } => update_patterns(&paths, command, PatternTarget::Exclude),
         Commands::Permission { command } => update_permissions(&paths, command),
-        Commands::Preset { command } => preset_command(command),
+        Commands::App { command } => app_command(&paths, command),
+        Commands::Bootstrap { command } => bootstrap_command(&paths, command),
         Commands::Repo { command } => repo_command(&paths, command),
         Commands::Secret { command } => secret_command(&paths, command),
         Commands::Track {
@@ -338,6 +375,12 @@ fn run() -> Result<()> {
             service,
         } => diff(&paths, &service, json, selection(only, exclude)),
         Commands::Tui { dry_run } => tui(&paths, dry_run),
+        Commands::Plan {
+            json,
+            only,
+            exclude,
+            service,
+        } => plan(&paths, &service, json, selection(only, exclude)),
         Commands::Status {
             json,
             only,
@@ -433,14 +476,109 @@ fn doctor(paths: &LatticePaths) -> Result<()> {
     Ok(())
 }
 
+fn bootstrap_check(paths: &LatticePaths, json_output: bool) -> Result<()> {
+    let config_exists = paths.config_file.exists();
+    let services_dir_exists = paths.services_dir.is_dir();
+    let git_available = which::which("git").is_ok();
+    let services = if services_dir_exists {
+        load_services(paths)?
+    } else {
+        Vec::new()
+    };
+    let mut service_reports = Vec::new();
+    let mut ready_count = 0usize;
+
+    for service in services {
+        let root = expand_path(&service.root)?;
+        let repo = resolve_repo_path(paths, &service)?;
+        let manifest = repo.join(".lattice").join("manifest.toml");
+        let active = service_is_active(&service);
+        let ready = active && root.exists() && manifest.exists();
+        if ready {
+            ready_count += 1;
+        }
+        service_reports.push(serde_json::json!({
+            "service": service.name,
+            "active": active,
+            "root": root.display().to_string(),
+            "root_exists": root.exists(),
+            "repo": repo.display().to_string(),
+            "repo_exists": repo.exists(),
+            "manifest": if manifest.exists() { "present" } else { "missing" },
+            "ready": ready
+        }));
+    }
+
+    let ok = config_exists && services_dir_exists && git_available;
+    if json_output {
+        print_json(serde_json::json!({
+            "config": paths.config_file.display().to_string(),
+            "config_exists": config_exists,
+            "services_dir": paths.services_dir.display().to_string(),
+            "services_dir_exists": services_dir_exists,
+            "git": if git_available { "available" } else { "missing" },
+            "services": service_reports,
+            "ready_services": ready_count,
+            "ok": ok
+        }))?;
+        return Ok(());
+    }
+
+    println!("bootstrap check");
+    println!(
+        "config: {} ({})",
+        paths.config_file.display(),
+        if config_exists { "present" } else { "missing" }
+    );
+    println!(
+        "services: {} ({})",
+        paths.services_dir.display(),
+        if services_dir_exists {
+            "present"
+        } else {
+            "missing"
+        }
+    );
+    println!(
+        "git: {}",
+        if git_available {
+            "available"
+        } else {
+            "missing"
+        }
+    );
+    println!("ready services: {ready_count}");
+    for report in service_reports {
+        println!(
+            "- {} active={} root={} manifest={} ready={}",
+            report["service"].as_str().unwrap_or_default(),
+            if report["active"].as_bool().unwrap_or(false) {
+                "yes"
+            } else {
+                "no"
+            },
+            if report["root_exists"].as_bool().unwrap_or(false) {
+                "present"
+            } else {
+                "missing"
+            },
+            report["manifest"].as_str().unwrap_or_default(),
+            if report["ready"].as_bool().unwrap_or(false) {
+                "yes"
+            } else {
+                "no"
+            }
+        );
+    }
+    println!("ok: {}", if ok { "yes" } else { "no" });
+    Ok(())
+}
+
 fn validate(paths: &LatticePaths) -> Result<()> {
     let global = load_global_config(paths)?;
     let services = load_services(paths)?;
 
     for service in &services {
-        if let Some(preset) = service.preset.as_deref() {
-            validate_preset(preset, &service.name)?;
-        }
         let _ = resolve_repo_path(paths, service)?;
     }
 
@@ -469,7 +607,6 @@ struct ServiceAddInput {
     service: String,
     root: String,
     repo: Option<String>,
-    preset: Option<String>,
     include: Vec<String>,
     exclude: Vec<String>,
     template: bool,
@@ -488,10 +625,6 @@ fn service_add(paths: &LatticePaths, input: ServiceAddInput) -> Result<()> {
             path.display()
         );
     }
-    if let Some(preset) = input.preset.as_deref() {
-        validate_preset(preset, &input.service)?;
-    }
-
     let mut include = input.include;
     let mut exclude = input.exclude;
     normalize_values(&mut include);
@@ -501,7 +634,6 @@ fn service_add(paths: &LatticePaths, input: ServiceAddInput) -> Result<()> {
         name: input.service,
         root: input.root,
         repo: input.repo,
-        preset: input.preset,
         include,
         exclude,
         template: input.template,
@@ -605,28 +737,60 @@ fn update_permissions(paths: &LatticePaths, command: PermissionCommands) -> Resu
     }
 }
 
-fn preset_command(command: PresetCommands) -> Result<()> {
+fn app_command(paths: &LatticePaths, command: AppCommands) -> Result<()> {
     match command {
-        PresetCommands::List => {
-            for name in preset_names() {
+        AppCommands::List => {
+            for name in app_names() {
                 println!("{name}");
             }
             Ok(())
         }
-        PresetCommands::Show { preset } => {
-            let preset =
-                find_preset(&preset).with_context(|| format!("unknown preset {preset}"))?;
-            println!("preset: {}", preset.name);
+        AppCommands::Show { app } => {
+            let app = find_app(&app).with_context(|| format!("unknown app {app}"))?;
+            println!("app: {}", app.name);
             println!("include:");
-            for pattern in preset.include {
+            for pattern in app.include {
                 println!("  {pattern}");
             }
             println!("exclude:");
-            for pattern in preset.exclude {
+            for pattern in app.exclude {
                 println!("  {pattern}");
             }
             Ok(())
         }
+        AppCommands::Add {
+            app,
+            root,
+            repo,
+            template,
+            symlink,
+            os,
+            hostname,
+            force,
+        } => {
+            let entry = find_app(&app).with_context(|| format!("unknown app {app}"))?;
+            service_add(
+                paths,
+                ServiceAddInput {
+                    service: entry.name.to_string(),
+                    root,
+                    repo,
+                    include: entry.include,
+                    exclude: entry.exclude,
+                    template,
+                    symlink,
+                    os,
+                    hostname,
+                    force,
+                },
+            )
+        }
+    }
+}
+
+fn bootstrap_command(paths: &LatticePaths, command: BootstrapCommands) -> Result<()> {
+    match command {
+        BootstrapCommands::Check { json } => bootstrap_check(paths, json),
     }
 }
 
@@ -952,8 +1116,8 @@ fn tui(paths: &LatticePaths, dry_run: bool) -> Result<()> {
         "status <service>",
         "diff <service>",
         "backup --dry-run <service>",
-        "restore --dry-run <service>",
-        "preset list",
+        "plan <service>",
+        "app list",
     ];
     if dry_run {
         print_tui_dashboard(paths, &actions)?;
@@ -970,11 +1134,8 @@ fn tui(paths: &LatticePaths, dry_run: bool) -> Result<()> {
     match action {
         "service list" => service_list(paths),
         "validate" => validate(paths),
-        "preset list" => preset_command(PresetCommands::List),
-        "status <service>"
-        | "diff <service>"
-        | "backup --dry-run <service>"
-        | "restore --dry-run <service>" => {
+        "app list" => app_command(paths, AppCommands::List),
+        "status <service>" | "diff <service>" | "backup --dry-run <service>" | "plan <service>" => {
             let service = select_service_name(paths)?;
             match action {
                 "status <service>" => status(paths, &service, false, PathSelection::default()),
@@ -991,15 +1152,7 @@ fn tui(paths: &LatticePaths, dry_run: bool) -> Result<()> {
                         selection: PathSelection::default(),
                     },
                 ),
-                "restore --dry-run <service>" => restore(
-                    paths,
-                    &service,
-                    true,
-                    false,
-                    false,
-                    false,
-                    PathSelection::default(),
-                ),
+                "plan <service>" => plan(paths, &service, false, PathSelection::default()),
                 _ => Ok(()),
             }
         }
@@ -1099,6 +1252,83 @@ fn status(
     println!("active: {}", if active { "yes" } else { "no" });
     println!("included files: {}", files.len());
     println!("manifest: {manifest_status}");
+    Ok(())
+}
+
+fn plan(
+    paths: &LatticePaths,
+    service_name: &str,
+    json_output: bool,
+    selection: PathSelection,
+) -> Result<()> {
+    let service = load_service(paths, service_name)?;
+    let active = service_is_active(&service);
+    let (include, exclude) = effective_patterns(&service);
+    let root = expand_path(&service.root)?;
+    let repo = resolve_repo_path(paths, &service)?;
+    let files = if root.exists() {
+        filter_paths_by_selection(scan_service(&root, &include, &exclude)?, &selection)?
+    } else {
+        Vec::new()
+    };
+    let manifest = repo.join(".lattice").join("manifest.toml");
+    let manifest_status = if manifest.exists() {
+        "present"
+    } else {
+        "missing"
+    };
+
+    let (would_restore, would_create_dirs, conflicts, entries, dirs) = if manifest.exists() {
+        let plan = restore_plan_with_selection(&repo, &root, &selection)?;
+        (
+            plan.entries.len(),
+            plan.directories.len(),
+            plan.conflicts,
+            manifest_entry_strings(&plan.entries),
+            manifest_entry_strings(&plan.directories),
+        )
+    } else {
+        (0, 0, Vec::new(), Vec::new(), Vec::new())
+    };
+
+    let ready = active && root.exists() && manifest.exists() && conflicts.is_empty();
+    if json_output {
+        print_json(serde_json::json!({
+            "service": service.name,
+            "root": root.display().to_string(),
+            "repo": repo.display().to_string(),
+            "active": active,
+            "root_exists": root.exists(),
+            "manifest": manifest_status,
+            "backup_would_copy": files.len(),
+            "restore_would_restore": would_restore,
+            "restore_would_create_dirs": would_create_dirs,
+            "conflicts": path_strings(&conflicts),
+            "entries": entries,
+            "dirs": dirs,
+            "snapshot_on_conflict": !conflicts.is_empty(),
+            "ready": ready
+        }))?;
+        return Ok(());
+    }
+
+    println!("plan: {}", service.name);
+    println!("root: {}", root.display());
+    println!("repo: {}", repo.display());
+    println!("active: {}", if active { "yes" } else { "no" });
+    println!("root exists: {}", if root.exists() { "yes" } else { "no" });
+    println!("manifest: {manifest_status}");
+    println!("backup would copy: {}", files.len());
+    println!("restore would restore: {would_restore}");
+    println!("restore would create dirs: {would_create_dirs}");
+    println!("conflicts: {}", conflicts.len());
+    if !conflicts.is_empty() {
+        println!("snapshot: would create before forced restore");
+        for conflict in conflicts {
+            println!("conflict {}", conflict.display());
+        }
+    }
+    println!("ready: {}", if ready { "yes" } else { "no" });
     Ok(())
 }
 
@@ -1458,13 +1688,6 @@ fn effective_patterns(service: &ServiceConfig) -> (Vec<String>, Vec<String>) {
     let mut include = Vec::new();
     let mut exclude = Vec::new();
 
-    if let Some(name) = service.preset.as_deref()
-        && let Some(preset) = find_preset(name)
-    {
-        include.extend(preset.include);
-        exclude.extend(preset.exclude);
-    }
-
     include.extend(service.include.clone());
     exclude.extend(service.exclude.clone());
     include.sort();
@@ -1496,14 +1719,6 @@ fn default_repo_dir_name(service_name: &str) -> Result<&str> {
     Ok(service_name)
 }
 
-fn validate_preset(preset: &str, service_name: &str) -> Result<()> {
-    if find_preset(preset).is_none() {
-        bail!("unknown preset {preset} for service {service_name}");
-    }
-
-    Ok(())
-}
-
 fn validate_secret_backend(backend: &str) -> Result<()> {
     if !matches!(backend, "rbw" | "bw") {
         bail!("secret backend must be rbw or bw");
@@ -1521,13 +1736,19 @@ fn ensure_service_active(service: &ServiceConfig) -> Result<()> {
 }
 
 fn service_is_active(service: &ServiceConfig) -> bool {
-    if let Some(os) = service.conditions.os.as_deref()
-        && os != std::env::consts::OS
+    if service
+        .conditions
+        .os
+        .as_deref()
+        .is_some_and(|os| os != std::env::consts::OS)
     {
         return false;
     }
-    if let Some(hostname) = service.conditions.hostname.as_deref()
-        && hostname != current_hostname().as_deref().unwrap_or_default()
+    if service
+        .conditions
+        .hostname
+        .as_deref()
+        .is_some_and(|hostname| hostname != current_hostname().as_deref().unwrap_or_default())
     {
         return false;
     }

@@ -290,6 +290,7 @@ mode = "0700"
     )?;
     ensure(mode(&source.join("cache"))? == 0o700, "cache mode mismatch")?;
 
+    verify_product_surface_harness(&root)?;
     verify_cli_edge_harness(&root)?;
     verify_non_unix_compile_harness(&root)?;
 
@@ -313,6 +314,133 @@ Install with cargo install cargo-deny cargo-machete cargo-llvm-cov typos-cli --l
         status.success(),
         &format!("required quality tool {tool} {args:?} exited with {status}"),
     )
+}
+
+fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
+    let temp = TempTree::new("lattice-product-surface")?;
+    let xdg = XdgEnv::new(temp.path());
+
+    let top_help = run_capture(root, "cargo", ["run", "--quiet", "--", "--help"], &xdg)?;
+    ensure_contains(
+        &top_help,
+        "app",
+        "top-level help should expose app commands",
+    )?;
+    ensure_contains(
+        &top_help,
+        "bootstrap",
+        "top-level help should expose bootstrap commands",
+    )?;
+    ensure_contains(&top_help, "plan", "top-level help should expose plan")?;
+    ensure_not_contains_case_insensitive(
+        &top_help,
+        "preset",
+        "top-level help should not expose old catalog terminology",
+    )?;
+
+    let app_help = run_capture(
+        root,
+        "cargo",
+        ["run", "--quiet", "--", "app", "--help"],
+        &xdg,
+    )?;
+    ensure_contains(&app_help, "list", "app help should expose list")?;
+    ensure_contains(&app_help, "show", "app help should expose show")?;
+    ensure_contains(&app_help, "add", "app help should expose add")?;
+    ensure_not_contains_case_insensitive(
+        &app_help,
+        "preset",
+        "app help should not preserve old catalog terminology",
+    )?;
+
+    let service_add_help = run_capture(
+        root,
+        "cargo",
+        ["run", "--quiet", "--", "service", "add", "--help"],
+        &xdg,
+    )?;
+    ensure_not_contains_case_insensitive(
+        &service_add_help,
+        "preset",
+        "service add help should not expose old catalog flags",
+    )?;
+
+    for relative in [
+        "README.md",
+        "README.ko.md",
+        "TODO.md",
+        "docs/product/mvp-scope.md",
+        "docs/product/mvp-scope.ko.md",
+        "docs/user/usage.md",
+        "docs/user/usage.ko.md",
+    ] {
+        let body = read_repo_text(root, relative)?;
+        ensure_not_contains_case_insensitive(
+            &body,
+            "preset",
+            &format!("{relative} should use app/service catalog wording, not preset wording"),
+        )?;
+    }
+
+    let readme = read_repo_text(root, "README.md")?;
+    for needle in [
+        "lattice app list",
+        "lattice app show",
+        "lattice app add",
+        "lattice bootstrap check",
+        "lattice plan",
+        "Apps are not product centers",
+    ] {
+        ensure_contains(&readme, needle, &format!("README.md missing {needle}"))?;
+    }
+
+    let user_guide = read_repo_text(root, "docs/user/usage.md")?;
+    for needle in [
+        "lattice app list",
+        "lattice app show",
+        "lattice app add",
+        "lattice bootstrap check",
+        "lattice plan --json",
+        "Codex is\nonly one example app",
+    ] {
+        ensure_contains(
+            &user_guide,
+            needle,
+            &format!("docs/user/usage.md missing {needle}"),
+        )?;
+    }
+
+    let product_scope = read_repo_text(root, "docs/product/mvp-scope.md")?;
+    for needle in [
+        "Codex is one example app",
+        "`plan` as the single human/JSON preflight surface",
+        "`bootstrap check` for new-machine readiness diagnostics",
+        "`app list`, `app show <app>`, and `app add <app>`",
+        "product-surface harness coverage",
+    ] {
+        ensure_contains(
+            &product_scope,
+            needle,
+            &format!("docs/product/mvp-scope.md missing {needle}"),
+        )?;
+    }
+
+    let korean_scope = read_repo_text(root, "docs/product/mvp-scope.ko.md")?;
+    for needle in [
+        "Codex는 제품의 중심이 아니라 예시 앱 중 하나",
+        "`plan`",
+        "`bootstrap check`",
+        "`app list`, `app show <app>`, `app add <app>`",
+        "product-surface harness",
+    ] {
+        ensure_contains(
+            &korean_scope,
+            needle,
+            &format!("docs/product/mvp-scope.ko.md missing {needle}"),
+        )?;
+    }
+
+    Ok(())
 }
 
 fn verify_cli_edge_harness(root: &Path) -> Result<(), String> {
@@ -729,6 +857,26 @@ fn mode(path: &Path) -> Result<u32, String> {
 #[cfg(not(unix))]
 fn mode(_path: &Path) -> Result<u32, String> {
     Ok(0)
+}
+
+fn read_repo_text(root: &Path, relative: &str) -> Result<String, String> {
+    let path = root.join(relative);
+    fs::read_to_string(&path).map_err(|error| format!("failed to read {}: {error}", path.display()))
+}
+
+fn ensure_contains(body: &str, needle: &str, message: &str) -> Result<(), String> {
+    ensure(body.contains(needle), message)
+}
+
+fn ensure_not_contains_case_insensitive(
+    body: &str,
+    needle: &str,
+    message: &str,
+) -> Result<(), String> {
+    ensure(
+        !body.to_lowercase().contains(&needle.to_lowercase()),
+        message,
+    )
 }
 
 fn ensure(condition: bool, message: &str) -> Result<(), String> {

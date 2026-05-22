@@ -97,7 +97,7 @@ mod tests {
 
     use tempfile::tempdir;
 
-    use crate::preset::codex_preset;
+    use crate::app_catalog::codex_app;
 
     use super::{scan_empty_dirs, scan_service};
 
@@ -121,8 +121,8 @@ mod tests {
         write_file(root, "plugins/cache/openai/plugin.json", "{}\n");
         write_file(root, "shell_snapshots/current.sh", "export SECRET=bad\n");
 
-        let preset = codex_preset();
-        let files = scan_service(root, &preset.include, &preset.exclude).expect("scan should work");
+        let app = codex_app();
+        let files = scan_service(root, &app.include, &app.exclude).expect("scan should work");
         let rels = files
             .iter()
             .map(|path| path.to_string_lossy().to_string())
@@ -141,7 +141,7 @@ mod tests {
         );
 
         let dirs =
-            scan_empty_dirs(root, &preset.include, &preset.exclude).expect("scan dirs should work");
+            scan_empty_dirs(root, &app.include, &app.exclude).expect("scan dirs should work");
         let rels = dirs
             .iter()
             .map(|path| path.to_string_lossy().to_string())

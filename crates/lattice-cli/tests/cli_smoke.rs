@@ -29,6 +29,10 @@ fn init_doctor_list_backup_and_restore_generic_service() {
     assert!(validate.contains("valid config"));
     assert!(validate.contains("services: 0"));
 
+    let bootstrap = run_ok(bin, &env, &["bootstrap", "check"]);
+    assert!(bootstrap.contains("bootstrap check"));
+    assert!(bootstrap.contains("ready services: 0"));
+
     let source = temp.path().join("shell-source");
     let repo = temp.path().join("shell-repo");
     let hook_marker = temp.path().join("after-restore-hook.txt");
@@ -88,6 +92,11 @@ confirm = true
     assert!(status.contains("included files: 2"));
     assert!(status.contains("manifest: missing"));
 
+    let plan_before_backup = run_ok(bin, &env, &["plan", "shell"]);
+    assert!(plan_before_backup.contains("plan: shell"));
+    assert!(plan_before_backup.contains("manifest: missing"));
+    assert!(plan_before_backup.contains("backup would copy: 2"));
+
     let dry_backup = run_ok(bin, &env, &["backup", "--dry-run", "shell"]);
     assert!(dry_backup.contains("would copy 2 files"));
     assert!(dry_backup.contains("would run hook before_backup: confirm required"));
@@ -102,6 +111,10 @@ confirm = true
     assert!(repo.join("bin/tool").exists());
     assert!(!repo.join("auth.json").exists());
     assert!(repo.join(".lattice/manifest.toml").exists());
+
+    let plan_after_backup = run_ok(bin, &env, &["plan", "shell"]);
+    assert!(plan_after_backup.contains("manifest: present"));
+    assert!(plan_after_backup.contains("restore would restore: 2"));
 
     fs::write(source.join("config.toml"), "local drift\n").expect("create local drift");
     let dry_restore = run_ok(bin, &env, &["restore", "--dry-run", "shell"]);
@@ -340,7 +353,7 @@ fn service_management_commands_create_update_and_remove_service_config() {
 }
 
 #[test]
-fn mvp2_commands_cover_presets_repo_secrets_track_adopt_diff_and_tui() {
+fn mvp2_commands_cover_apps_repo_secrets_track_adopt_diff_and_tui() {
     let temp = tempdir().expect("tempdir");
     let env = TestEnv::new(temp.path());
     let bin = env!("CARGO_BIN_EXE_lattice");
@@ -351,34 +364,33 @@ fn mvp2_commands_cover_presets_repo_secrets_track_adopt_diff_and_tui() {
     write_file(&source, ".zshrc", "export EDITOR=vim\n", 0o644);
     write_file(&source, ".zprofile", "path+=('/opt/homebrew/bin')\n", 0o644);
 
-    let presets = run_ok(bin, &env, &["preset", "list"]);
-    assert!(presets.contains("codex"));
-    assert!(presets.contains("zsh"));
-    assert!(presets.contains("ssh"));
+    let apps = run_ok(bin, &env, &["app", "list"]);
+    assert!(apps.contains("codex"));
+    assert!(apps.contains("zsh"));
+    assert!(apps.contains("ssh"));
 
-    let zsh_preset = run_ok(bin, &env, &["preset", "show", "zsh"]);
-    assert!(zsh_preset.contains(".zshrc"));
-    assert!(zsh_preset.contains(".zsh_history"));
+    let zsh_app = run_ok(bin, &env, &["app", "show", "zsh"]);
+    assert!(zsh_app.contains("app: zsh"));
+    assert!(zsh_app.contains(".zshrc"));
+    assert!(zsh_app.contains(".zsh_history"));
 
     run_ok(
         bin,
         &env,
         &[
-            "service",
+            "app",
             "add",
-            "shell",
+            "zsh",
             "--root",
             source.to_str().expect("source path"),
-            "--preset",
-            "zsh",
         ],
     );
 
-    let status = run_ok(bin, &env, &["status", "shell"]);
+    let status = run_ok(bin, &env, &["status", "zsh"]);
     assert!(status.contains("included files: 2"));
 
-    run_ok(bin, &env, &["track", "shell", ".config/starship.toml"]);
-    let tracked = run_ok(bin, &env, &["service", "show", "shell"]);
+    run_ok(bin, &env, &["track", "zsh", ".config/starship.toml"]);
+    let tracked = run_ok(bin, &env, &["service", "show", "zsh"]);
     assert!(tracked.contains(".config/starship.toml"));
 
     run_ok(
@@ -387,7 +399,7 @@ fn mvp2_commands_cover_presets_repo_secrets_track_adopt_diff_and_tui() {
         &[
             "secret",
             "add",
-            "shell",
+            "zsh",
             "github-token",
             "--backend",
             "rbw",
@@ -399,32 +411,32 @@ fn mvp2_commands_cover_presets_repo_secrets_track_adopt_diff_and_tui() {
             "GITHUB_TOKEN",
         ],
     );
-    let secrets = run_ok(bin, &env, &["secret", "list", "shell"]);
+    let secrets = run_ok(bin, &env, &["secret", "list", "zsh"]);
     assert!(secrets.contains("github-token backend=rbw item=GitHub token"));
     assert!(!secrets.contains("password="));
-    let secret_check = run_ok(bin, &env, &["secret", "check", "shell"]);
+    let secret_check = run_ok(bin, &env, &["secret", "check", "zsh"]);
     assert!(secret_check.contains("value=not-read"));
 
-    let repo = env.data.join("lattice/repos/shell");
-    run_ok(bin, &env, &["backup", "shell"]);
+    let repo = env.data.join("lattice/repos/zsh");
+    run_ok(bin, &env, &["backup", "zsh"]);
     run_git(&repo, &["init"]);
     run_git(&repo, &["config", "user.email", "lattice@example.test"]);
     run_git(&repo, &["config", "user.name", "Lattice Test"]);
 
-    let repo_status = run_ok(bin, &env, &["repo", "status", "shell"]);
+    let repo_status = run_ok(bin, &env, &["repo", "status", "zsh"]);
     assert!(repo_status.contains("##"));
     run_ok(
         bin,
         &env,
-        &["repo", "commit", "shell", "--message", "initial backup"],
+        &["repo", "commit", "zsh", "--message", "initial backup"],
     );
 
     fs::write(source.join(".zshrc"), "export EDITOR=nvim\n").expect("modify zshrc");
-    let diff = run_ok(bin, &env, &["diff", "shell"]);
+    let diff = run_ok(bin, &env, &["diff", "zsh"]);
     assert!(diff.contains("diff .zshrc"));
     assert!(diff.contains("+export EDITOR=nvim"));
 
-    let adopt = run_ok(bin, &env, &["adopt", "shell", ".zprofile"]);
+    let adopt = run_ok(bin, &env, &["adopt", "zsh", ".zprofile"]);
     assert!(adopt.contains("copied"));
 
     fs::write(
@@ -443,13 +455,13 @@ include = [".zshrc"]
     let tui = run_ok(bin, &env, &["tui", "--dry-run"]);
     assert!(tui.contains("lattice tui dashboard"));
     assert!(tui.contains("services:"));
-    assert!(tui.contains("- shell active=yes"));
+    assert!(tui.contains("- zsh active=yes"));
     assert!(tui.contains("repo=unavailable(service name"));
     assert!(tui.contains("files=2"));
     assert!(tui.contains("repo="));
     assert!(tui.contains("actions:"));
     assert!(tui.contains("backup --dry-run <service>"));
-    assert!(tui.contains("restore --dry-run <service>"));
+    assert!(tui.contains("plan <service>"));
     assert!(tui.contains("diff <service>"));
 }
 
@@ -613,20 +625,18 @@ fn cli_failure_harness_covers_invalid_inputs_permissions_and_noninteractive_tui(
     );
     assert!(bad_service_name.contains("cannot be used as a default repo directory"));
 
-    let unknown_preset = run_fail(
+    let unknown_app = run_fail(
         bin,
         &env,
         &[
-            "service",
+            "app",
             "add",
-            "badpreset",
+            "__missing__",
             "--root",
             source.to_str().expect("source path"),
-            "--preset",
-            "__missing__",
         ],
     );
-    assert!(unknown_preset.contains("unknown preset"));
+    assert!(unknown_app.contains("unknown app"));
 
     run_ok(
         bin,

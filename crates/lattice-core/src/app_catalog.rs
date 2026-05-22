@@ -1,19 +1,19 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ServicePreset {
+pub struct AppCatalogEntry {
     pub name: &'static str,
     pub include: Vec<String>,
     pub exclude: Vec<String>,
 }
 
-pub fn preset_names() -> Vec<&'static str> {
+pub fn app_names() -> Vec<&'static str> {
     vec!["codex", "git", "mise", "ssh", "zsh"]
 }
 
-pub fn find_preset(name: &str) -> Option<ServicePreset> {
+pub fn find_app(name: &str) -> Option<AppCatalogEntry> {
     match name {
-        "codex" => Some(codex_preset()),
-        "git" => Some(glob_preset("git", &[".gitconfig", ".config/git/**"], &[])),
-        "mise" => Some(glob_preset(
+        "codex" => Some(codex_app()),
+        "git" => Some(glob_app("git", &[".gitconfig", ".config/git/**"], &[])),
+        "mise" => Some(glob_app(
             "mise",
             &[
                 ".config/mise/config.toml",
@@ -22,7 +22,7 @@ pub fn find_preset(name: &str) -> Option<ServicePreset> {
             ],
             &[".local/share/mise/**", ".cache/mise/**"],
         )),
-        "ssh" => Some(glob_preset(
+        "ssh" => Some(glob_app(
             "ssh",
             &[".ssh/config", ".ssh/allowed_signers", ".ssh/known_hosts"],
             &[
@@ -33,7 +33,7 @@ pub fn find_preset(name: &str) -> Option<ServicePreset> {
                 ".ssh/agent.env",
             ],
         )),
-        "zsh" => Some(glob_preset(
+        "zsh" => Some(glob_app(
             "zsh",
             &[".zshrc", ".zprofile", ".zshenv", ".config/zsh/**"],
             &[".zcompdump*", ".zsh_history", ".cache/**"],
@@ -42,8 +42,8 @@ pub fn find_preset(name: &str) -> Option<ServicePreset> {
     }
 }
 
-pub fn codex_preset() -> ServicePreset {
-    glob_preset(
+pub fn codex_app() -> AppCatalogEntry {
+    glob_app(
         "codex",
         &[
             "config.toml",
@@ -86,8 +86,8 @@ pub fn codex_preset() -> ServicePreset {
     )
 }
 
-fn glob_preset(name: &'static str, include: &[&str], exclude: &[&str]) -> ServicePreset {
-    ServicePreset {
+fn glob_app(name: &'static str, include: &[&str], exclude: &[&str]) -> AppCatalogEntry {
+    AppCatalogEntry {
         name,
         include: include.iter().copied().map(String::from).collect(),
         exclude: exclude.iter().copied().map(String::from).collect(),
@@ -96,38 +96,38 @@ fn glob_preset(name: &'static str, include: &[&str], exclude: &[&str]) -> Servic
 
 #[cfg(test)]
 mod tests {
-    use super::{codex_preset, find_preset, preset_names};
+    use super::{app_names, codex_app, find_app};
 
     #[test]
-    fn codex_preset_contains_expected_config_assets_and_runtime_excludes() {
-        let preset = codex_preset();
+    fn codex_app_contains_expected_config_assets_and_runtime_excludes() {
+        let app = codex_app();
 
-        assert!(preset.include.contains(&"config.toml".to_string()));
-        assert!(preset.include.contains(&"AGENTS.md".to_string()));
-        assert!(preset.include.contains(&"agents/**".to_string()));
-        assert!(preset.include.contains(&"bin/**".to_string()));
-        assert!(preset.include.contains(&"skills/**".to_string()));
+        assert!(app.include.contains(&"config.toml".to_string()));
+        assert!(app.include.contains(&"AGENTS.md".to_string()));
+        assert!(app.include.contains(&"agents/**".to_string()));
+        assert!(app.include.contains(&"bin/**".to_string()));
+        assert!(app.include.contains(&"skills/**".to_string()));
 
-        assert!(preset.exclude.contains(&"auth.json".to_string()));
-        assert!(preset.exclude.contains(&"sessions/**".to_string()));
-        assert!(preset.exclude.contains(&"archived_sessions/**".to_string()));
-        assert!(preset.exclude.contains(&"*.sqlite".to_string()));
-        assert!(preset.exclude.contains(&"plugins/cache/**".to_string()));
-        assert!(preset.exclude.contains(&"skills/.system/**".to_string()));
-        assert!(preset.exclude.contains(&"shell_snapshots/**".to_string()));
+        assert!(app.exclude.contains(&"auth.json".to_string()));
+        assert!(app.exclude.contains(&"sessions/**".to_string()));
+        assert!(app.exclude.contains(&"archived_sessions/**".to_string()));
+        assert!(app.exclude.contains(&"*.sqlite".to_string()));
+        assert!(app.exclude.contains(&"plugins/cache/**".to_string()));
+        assert!(app.exclude.contains(&"skills/.system/**".to_string()));
+        assert!(app.exclude.contains(&"shell_snapshots/**".to_string()));
     }
 
     #[test]
-    fn catalog_contains_expected_dotfile_presets() {
-        assert_eq!(preset_names(), vec!["codex", "git", "mise", "ssh", "zsh"]);
+    fn catalog_contains_expected_dotfile_apps() {
+        assert_eq!(app_names(), vec!["codex", "git", "mise", "ssh", "zsh"]);
 
-        let ssh = find_preset("ssh").expect("ssh preset");
+        let ssh = find_app("ssh").expect("ssh app");
         assert!(ssh.include.contains(&".ssh/config".to_string()));
         assert!(ssh.exclude.contains(&".ssh/id_*".to_string()));
 
-        let git = find_preset("git").expect("git preset");
+        let git = find_app("git").expect("git app");
         assert!(git.include.contains(&".gitconfig".to_string()));
 
-        assert!(find_preset("unknown").is_none());
+        assert!(find_app("unknown").is_none());
     }
 }

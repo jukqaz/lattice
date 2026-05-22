@@ -11,65 +11,65 @@ Lattice는 범용 도구입니다. 특정 tool이나 service 하나가 제품의
 
 제품 용어로는 `git`, `ssh`, `zsh`, `starship`, `mise`, `codex` 같은 관리
 대상을 **앱**이라고 부릅니다. 앱은 제품의 중심이 아니라, 일반 service 설정으로
-확장되는 catalog entry입니다. CLI는 이 surface를 `app`으로 직접 이름 붙이고,
-낡은 preset 용어를 끌고 가지 않습니다.
+확장되는 catalog entry입니다. CLI는 이 surface를 `app`으로 직접 이름 붙입니다.
 
 ## 먼저 할 일
 
-최신 tagged release 설치:
+아래에 문서화된 현재 v0.4 후보 command surface 설치:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.3 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --branch main --locked
 ```
 
-로컬 설정 만들기:
+최신 tagged stable 기준선은 아직 `v0.3.3`입니다. v0.4.0 tag를 자르기 전에
+`app`, `plan`, `bootstrap check`를 테스트하려면 current branch나 local checkout을
+사용합니다.
+
+로컬 설정을 만들고 새 머신에서 복원 준비가 되었는지 확인합니다.
 
 ```bash
 lattice init
 lattice doctor
 lattice validate
+lattice bootstrap check
 ```
 
-첫 service를 명시적으로 추가합니다. `shell`, `~/.config/shell`, `config.toml`은
-관리하려는 앱이나 도구 설정에 맞게 바꿉니다.
+이미 알려진 형태라면 첫 app-backed service부터 추가합니다. `zsh`와
+`~/.config/zsh`는 관리하려는 앱 설정에 맞게 바꿉니다.
 
 ```bash
-lattice service add shell --root ~/.config/shell --include config.toml
-lattice service show shell
-lattice status shell
+lattice app list
+lattice app show zsh
+lattice app add zsh --root ~/.config/zsh
+lattice plan zsh
 ```
 
-처음에는 실제 백업 전에 계획만 확인합니다.
+계획이 맞으면 첫 백업을 만듭니다.
 
 ```bash
-lattice backup --dry-run shell
-```
-
-대상이 맞으면 백업합니다.
-
-```bash
-lattice backup shell
+lattice backup zsh
 ```
 
 ## 안전하게 복원하기
 
-복원도 먼저 dry-run으로 확인합니다.
+복원도 먼저 plan으로 확인합니다.
 
 ```bash
-lattice restore --dry-run shell
+lattice plan zsh
+lattice restore --dry-run zsh
 ```
 
 예상 밖 충돌이 없으면 복원합니다.
 
 ```bash
-lattice restore shell
+lattice restore zsh
 ```
 
 로컬 파일을 의도적으로 덮어쓰려면 `--force`를 사용합니다. Forced restore는
 쓰기 전에 XDG state 아래에 덮어쓸 파일 snapshot을 남깁니다.
 
 ```bash
-lattice restore --force shell
+lattice restore --force zsh
 ```
 
 ## 서비스 더 추가하기
@@ -98,13 +98,15 @@ lattice app add <app> --root <path>
 | 목적 | 명령 |
 | --- | --- |
 | 설치와 외부 도구 점검 | `lattice doctor` |
+| 새 머신 복원 준비 확인 | `lattice bootstrap check` |
 | 설정 파일 검증 | `lattice validate` |
-| 서비스 상태 확인 | `lattice status shell` |
-| 백업 미리보기 | `lattice backup --dry-run shell` |
-| 백업 실행 | `lattice backup shell` |
-| 복원 미리보기 | `lattice restore --dry-run shell` |
-| 복원 실행 | `lattice restore shell` |
-| 로컬 파일과 repo copy 비교 | `lattice diff shell` |
+| 서비스 상태 확인 | `lattice status zsh` |
+| 백업/복원 preflight 확인 | `lattice plan zsh` |
+| 백업 미리보기 | `lattice backup --dry-run zsh` |
+| 백업 실행 | `lattice backup zsh` |
+| 복원 미리보기 | `lattice restore --dry-run zsh` |
+| 복원 실행 | `lattice restore zsh` |
+| 로컬 파일과 repo copy 비교 | `lattice diff zsh` |
 | prompt 기반 UI 열기 | `lattice tui` |
 
 ## Automation과 JSON output
@@ -113,10 +115,12 @@ Script나 agent가 사람이 읽는 stdout을 parsing하지 않게 하려면 `--
 사용합니다.
 
 ```bash
-lattice status --json shell
-lattice backup --dry-run --json shell
-lattice diff --json shell
-lattice restore --dry-run --json shell
+lattice bootstrap check --json
+lattice status --json zsh
+lattice plan --json zsh
+lattice backup --dry-run --json zsh
+lattice diff --json zsh
+lattice restore --dry-run --json zsh
 ```
 
 특정 tracked path만 계획하려면 `--only`와 `--exclude`를 사용합니다. 이 selector는

@@ -93,23 +93,23 @@ See `docs/product/mvp-scope.md`.
 - [x] Add `--only` and `--exclude` selectors for status, backup, diff, and restore flows.
 - [x] Cover JSON and selector behavior in CLI smoke tests.
 - [x] Document automation examples in README and user docs.
-- [ ] Decide whether the current main branch should be tagged as `v0.4.0` after docs are complete.
+- [x] Treat the current main branch as the `v0.4.0` candidate once docs and verification are green.
 
 ## v0.5.x New Machine Bootstrap
 
-- [ ] Document a complete new-machine bootstrap flow:
-  `install -> init -> service add -> repo pull -> restore --dry-run -> restore`.
+- [x] Document a complete new-machine bootstrap flow:
+  `install -> init -> app add/service add -> repo pull -> plan -> restore`.
 - [ ] Improve first-run guidance after `init`.
-- [ ] Add `bootstrap check` with human and JSON output for new-machine readiness.
-- [ ] Add `plan` as the single human/JSON preflight surface before backup or restore.
+- [x] Add `bootstrap check` with human and JSON output for new-machine readiness.
+- [x] Add `plan` as the single human/JSON preflight surface before backup or restore.
 - [ ] Add diagnostics for missing tools and disconnected repos without installing anything automatically.
 - [ ] Make restore dry-run summaries easy to trust before the real restore.
 
 ## v0.6.x App Catalog And Diagnostics Polish
 
-- [ ] Replace the catalog command surface with `app` commands:
+- [x] Replace the catalog command surface with `app` commands:
   `app list`, `app show <app>`, and `app add <app>`.
-- [ ] Remove old preset-facing wording and command surface outright.
+- [x] Remove old catalog wording and command surface outright.
 - [ ] Keep app catalog entries optional and documented as shortcuts over the generic service model.
 - [ ] Treat Codex as an example app only, not a default or product-defining path.
 - [ ] Add deterministic, tool-agnostic diagnostics before adding any app-specific checks.

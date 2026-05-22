@@ -13,57 +13,59 @@ safe workflow.
 Product language uses **apps** for common managed targets such as `git`, `ssh`,
 `zsh`, `starship`, `mise`, or `codex`. Apps are not product centers; they are
 catalog entries that expand into ordinary service config. The CLI should name
-this surface directly as `app`, not carry old preset terminology forward.
+this surface directly as `app`.
 
 ## Start Here
 
-Install the latest tagged release:
+Install the current v0.4 candidate command surface documented below:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.3.3 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --branch main --locked
 ```
 
-Initialize local config:
+The latest tagged stable baseline is still `v0.3.3`; use the current branch or
+a local checkout when testing `app`, `plan`, and `bootstrap check` before the
+v0.4.0 tag is cut.
+
+Initialize local config and check whether the machine is ready for managed
+config restores:
 
 ```bash
 lattice init
 lattice doctor
 lattice validate
+lattice bootstrap check
 ```
 
-Add a first service explicitly. Replace `shell`, `~/.config/shell`, and
-`config.toml` with the app or tool config you want to manage:
+Add a first app-backed service when the common shape is already known. Replace
+`zsh` and `~/.config/zsh` with the app config you want to manage:
 
 ```bash
-lattice service add shell --root ~/.config/shell --include config.toml
-lattice service show shell
-lattice status shell
+lattice app list
+lattice app show zsh
+lattice app add zsh --root ~/.config/zsh
+lattice plan zsh
 ```
 
-Preview the first backup before writing anything:
+If the plan looks right, create the first backup:
 
 ```bash
-lattice backup --dry-run shell
-```
-
-If the plan looks right, create the backup:
-
-```bash
-lattice backup shell
+lattice backup zsh
 ```
 
 ## Restore Safely
 
-Always preview restore changes first:
+Always inspect the restore plan before writing anything:
 
 ```bash
-lattice restore --dry-run shell
+lattice plan zsh
+lattice restore --dry-run zsh
 ```
 
 Apply the restore when there are no unexpected conflicts:
 
 ```bash
-lattice restore shell
+lattice restore zsh
 ```
 
 If you intentionally want to overwrite local files, use `--force`. Forced
@@ -71,7 +73,7 @@ restores snapshot overwritten files under XDG state before writing repo
 contents.
 
 ```bash
-lattice restore --force shell
+lattice restore --force zsh
 ```
 
 ## Add More Services
@@ -100,13 +102,15 @@ lattice app add <app> --root <path>
 | Goal | Command |
 | --- | --- |
 | Check installation and configured tools | `lattice doctor` |
+| Check new-machine readiness | `lattice bootstrap check` |
 | Validate config files | `lattice validate` |
-| See one service | `lattice status shell` |
-| Preview backup | `lattice backup --dry-run shell` |
-| Backup now | `lattice backup shell` |
-| Preview restore | `lattice restore --dry-run shell` |
-| Restore now | `lattice restore shell` |
-| Compare local files with repo copy | `lattice diff shell` |
+| See one service | `lattice status zsh` |
+| Inspect backup/restore preflight | `lattice plan zsh` |
+| Preview backup | `lattice backup --dry-run zsh` |
+| Backup now | `lattice backup zsh` |
+| Preview restore | `lattice restore --dry-run zsh` |
+| Restore now | `lattice restore zsh` |
+| Compare local files with repo copy | `lattice diff zsh` |
 | Open the prompt-based UI | `lattice tui` |
 
 ## Automation And JSON Output
@@ -115,10 +119,12 @@ Use `--json` when scripts or agents need stable machine-readable output instead
 of human text:
 
 ```bash
-lattice status --json shell
-lattice backup --dry-run --json shell
-lattice diff --json shell
-lattice restore --dry-run --json shell
+lattice bootstrap check --json
+lattice status --json zsh
+lattice plan --json zsh
+lattice backup --dry-run --json zsh
+lattice diff --json zsh
+lattice restore --dry-run --json zsh
 ```
 
 Use `--only` and `--exclude` to narrow a plan to specific tracked paths. These

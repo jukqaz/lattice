@@ -75,11 +75,15 @@ surfaces on top of the safe personal backup baseline:
 - Best-effort TUI dashboard behavior: one service with an unavailable root or
   repo no longer prevents other services from being listed.
 - Machine-readable JSON output for `status`, `plan`, `backup --dry-run`,
-  `diff`, `restore --dry-run`, and `bootstrap check`.
+  `diff`, `restore --dry-run`, `bootstrap check`, `snapshot`, `undo`, and
+  `discover`.
 - `plan` as the single human/JSON preflight surface before backup or restore.
 - `bootstrap check` for new-machine readiness diagnostics.
 - `app list`, `app show <app>`, and `app add <app>` as the app catalog command
   surface.
+- `snapshot list/show/prune` and `undo` for forced-restore history inspection,
+  dry-run rollback, and conservative cleanup.
+- `discover` for conservative local service suggestions without config mutation.
 - `--only` and `--exclude` path selectors for status, plan, backup, diff, and
   restore flows.
 - CLI smoke and product-surface harness coverage for the JSON, selector,
@@ -92,7 +96,7 @@ surfaces on top of the safe personal backup baseline:
 | `v0.3.x` | Safe Personal Backup | Safely back up and restore personal dotfiles. | Full safety harness, platform CI, install smoke, and v0.3.3 tag smoke pass. |
 | `v0.4.x` | Automation-Friendly CLI | Let scripts and agents call Lattice without parsing human stdout. | Generic init, JSON output, selectors, `plan`, `bootstrap check`, `app` commands, and product-surface harness coverage are documented and tested. |
 | `v0.5.x` | New Machine Bootstrap | Restore a developer home baseline on a new machine in minutes. | First-run guidance, disconnected-repo/tool diagnostics, and trustworthy restore summaries make a new VM or Mac restore flow clear. |
-| `v0.6.x` | App Catalog And Diagnostics Polish | Improve optional app catalog entries and deterministic diagnostics without changing the generic core. | Apps are documented as shortcuts, diagnostics remain tool-agnostic by default, and no app becomes product-defining. |
+| `v0.6.x` | Recovery And Discovery Polish | Improve optional app catalog entries, deterministic diagnostics, recovery history, and conservative local discovery without changing the generic core. | Apps are documented as shortcuts, diagnostics remain tool-agnostic by default, no app becomes product-defining, snapshot/undo/discover are documented and tested, and service groups remain deferred. |
 | `v0.7.x` | Service Groups | Plan and run safe multi-service operations. | Group status and dry-run plans are clear, conservative, and machine-readable. |
 | `v1.0` | Public Stable CLI | Make Lattice recommendable to external users. | Install, changelog, release, migration, change policy, and issue workflows are stable. |
 

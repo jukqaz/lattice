@@ -66,10 +66,24 @@ lattice restore zsh
 ```
 
 로컬 파일을 의도적으로 덮어쓰려면 `--force`를 사용합니다. Forced restore는
-쓰기 전에 XDG state 아래에 덮어쓸 파일 snapshot을 남깁니다.
+쓰기 전에 XDG state 아래에 덮어쓸 파일 snapshot을 남깁니다. `snapshot`과
+`undo`로 snapshot을 확인하고 rollback을 dry-run할 수 있습니다.
 
 ```bash
 lattice restore --force zsh
+lattice snapshot list
+lattice snapshot show <snapshot-id>
+lattice undo --dry-run <snapshot-id>
+lattice undo --yes <snapshot-id>
+lattice snapshot prune --dry-run --keep 20
+```
+
+로컬 설정 후보를 보수적으로 찾되 Lattice config는 바꾸지 않으려면 discovery를
+사용합니다.
+
+```bash
+lattice discover
+lattice discover --json
 ```
 
 ## 서비스 더 추가하기
@@ -102,6 +116,9 @@ lattice app add <app> --root <path>
 | 설정 파일 검증 | `lattice validate` |
 | 서비스 상태 확인 | `lattice status zsh` |
 | 백업/복원 preflight 확인 | `lattice plan zsh` |
+| 보수적인 service 후보 찾기 | `lattice discover` |
+| forced-restore snapshot 목록 | `lattice snapshot list` |
+| snapshot rollback dry-run | `lattice undo --dry-run <snapshot-id>` |
 | 백업 미리보기 | `lattice backup --dry-run zsh` |
 | 백업 실행 | `lattice backup zsh` |
 | 복원 미리보기 | `lattice restore --dry-run zsh` |
@@ -118,6 +135,11 @@ Script나 agent가 사람이 읽는 stdout을 parsing하지 않게 하려면 `--
 lattice bootstrap check --json
 lattice status --json zsh
 lattice plan --json zsh
+lattice discover --json
+lattice snapshot list --json
+lattice snapshot show --json <snapshot-id>
+lattice undo --dry-run --json <snapshot-id>
+lattice snapshot prune --dry-run --json --keep 20
 lattice backup --dry-run --json zsh
 lattice diff --json zsh
 lattice restore --dry-run --json zsh
@@ -159,7 +181,9 @@ private GitHub repo를 쓸 때는 remote repository를 직접 만든 뒤 일반
 - secret command는 metadata만 저장합니다. secret 값을 읽거나 출력하거나
   백업하지 않습니다.
 - restore는 `--force` 없이는 충돌하는 local file을 덮어쓰지 않습니다.
-- forced restore는 덮어쓰기 전에 snapshot을 만듭니다.
+- forced restore는 덮어쓰기 전에 snapshot을 만듭니다. `snapshot list`,
+  `snapshot show`, `undo --dry-run`으로 rollback을 검토한 뒤 snapshot에서 복원합니다.
+  오래된 snapshot 삭제도 먼저 `snapshot prune --dry-run --keep <n>`으로 확인합니다.
 - restore path, manifest entry, permission rule은 service root 내부에 있어야
   합니다.
 - service root와 service repo는 서로 겹치면 안 됩니다.

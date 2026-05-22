@@ -99,38 +99,40 @@ See `docs/product/mvp-scope.md`.
 
 - [x] Document a complete new-machine bootstrap flow:
   `install -> init -> app add/service add -> repo pull -> plan -> restore`.
-- [ ] Improve first-run guidance after `init`.
+- [x] Improve first-run guidance after `init`.
 - [x] Add `bootstrap check` with human and JSON output for new-machine readiness.
 - [x] Add `plan` as the single human/JSON preflight surface before backup or restore.
-- [ ] Add diagnostics for missing tools and disconnected repos without installing anything automatically.
-- [ ] Make restore dry-run summaries easy to trust before the real restore.
+- [x] Add diagnostics for missing tools and disconnected repos without installing anything automatically.
+- [x] Make restore dry-run summaries easy to trust before the real restore.
 
-## v0.6.x App Catalog And Diagnostics Polish
+## v0.6.x Recovery And Discovery Polish
 
 - [x] Replace the catalog command surface with `app` commands:
   `app list`, `app show <app>`, and `app add <app>`.
 - [x] Remove old catalog wording and command surface outright.
-- [ ] Keep app catalog entries optional and documented as shortcuts over the generic service model.
-- [ ] Treat Codex as an example app only, not a default or product-defining path.
-- [ ] Add deterministic, tool-agnostic diagnostics before adding any app-specific checks.
-- [ ] Ensure no app or example becomes product-defining.
+- [x] Keep app catalog entries optional and documented as shortcuts over the generic service model.
+- [x] Treat Codex as an example app only, not a default or product-defining path.
+- [x] Add deterministic, tool-agnostic diagnostics before adding any app-specific checks.
+- [x] Ensure no app or example becomes product-defining.
 
 ## v0.6.x+ Safety And Recovery Polish
 
-- [ ] Expose snapshot/history commands for forced restore backups.
-- [ ] Add `undo` or snapshot restore dry-run before any destructive rollback.
-- [ ] Add safe snapshot pruning with `--dry-run` and conservative defaults.
+- [x] Expose snapshot/history commands for forced restore backups.
+- [x] Add `undo` or snapshot restore dry-run before any destructive rollback.
+- [x] Add safe snapshot pruning with `--dry-run` and conservative defaults.
 
 ## v0.6.x+ Discovery Polish
 
-- [ ] Add `discover` to suggest service/app candidates from the local home directory.
-- [ ] Keep discovery generic and conservative: exclude secrets, sessions, caches, databases, auth, and large files by default.
-- [ ] Make discovery output machine-readable with `--json`.
+- [x] Add `discover` to suggest service/app candidates from the local home directory.
+- [x] Keep discovery generic and conservative: exclude secrets, sessions, caches, databases, auth, and large files by default.
+- [x] Make discovery output machine-readable with `--json`.
+- [x] Keep bootstrap diagnostics non-blocking for local, non-Git service repos while still surfacing repo warnings.
+- [x] Verify v0.6 recovery/discovery changes with `cargo fmt`, focused CLI smoke tests, clippy, `xtask verify`, path install, and isolated new-machine dogfood smoke.
 
 ## v0.7.x Service Groups
 
-- [ ] Design a conservative service-group model before implementation.
-- [ ] Add group status and group dry-run planning before any batch restore behavior.
+- [ ] Design a conservative service-group model before implementation; group remains intentionally deferred until v0.7.
+- [ ] Add group status and group dry-run planning before any batch backup/restore behavior.
 - [ ] Keep group output machine-readable from the start.
 
 ## v1.0 Public Stable CLI

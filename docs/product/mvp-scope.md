@@ -94,10 +94,8 @@ top of the safe personal backup baseline:
 | Line | Name | Goal | Acceptance |
 | --- | --- | --- | --- |
 | `v0.3.x` | Safe Personal Backup | Safely back up and restore personal dotfiles. | Full safety harness, platform CI, install smoke, and v0.3.3 tag smoke pass. |
-| `v0.4.x` | Automation-Friendly CLI | Let scripts and agents call Lattice without parsing human stdout. | Generic init, JSON output, selectors, `plan`, `bootstrap check`, `app` commands, and product-surface harness coverage are documented and tested. |
-| `v0.5.x` | New Machine Bootstrap | Restore a developer home baseline on a new machine in minutes. | First-run guidance, disconnected-repo/tool diagnostics, and trustworthy restore summaries make a new VM or Mac restore flow clear. |
-| `v0.6.x` | Recovery And Discovery Polish | Improve optional app catalog entries, deterministic diagnostics, recovery history, and conservative local discovery without changing the generic core. | Apps are documented as shortcuts, diagnostics remain tool-agnostic by default, no app becomes product-defining, snapshot/undo/discover are documented and tested, and service groups remain deferred. |
-| `v0.7.x` | Service Groups | Plan and run safe multi-service operations. | Group status and dry-run plans are clear, conservative, and machine-readable. |
+| `v0.4.x` | Automation, Bootstrap, Recovery, And Discovery | Let scripts and agents call Lattice without parsing human stdout, then make new-machine restore, recovery history, and conservative discovery first-class. | Generic init, JSON output, selectors, `plan`, `bootstrap check`, `app` commands, snapshot/undo, `discover`, and product-surface harness coverage are documented and tested in the v0.4.0 release line. |
+| `v0.5.x` | Service Groups | Plan and run safe multi-service operations. | Group status and dry-run plans are clear, conservative, and machine-readable before any batch backup/restore behavior. |
 | `v1.0` | Public Stable CLI | Make Lattice recommendable to external users. | Install, changelog, release, migration, change policy, and issue workflows are stable. |
 
 ## Deliberate Non-Goals

@@ -315,6 +315,8 @@ output:
 ```bash
 lattice status --json shell
 lattice plan --json shell
+lattice group status --json dev-shell
+lattice group plan --json dev-shell
 lattice discover --json
 lattice snapshot list --json
 lattice snapshot show --json <snapshot-id>
@@ -333,21 +335,49 @@ plan="$(lattice plan --json shell)"
 printf '%s\n' "$plan" | jq '.conflicts'
 ```
 
-Use `--only` and `--exclude` to narrow status, backup, diff, and restore work to
-specific tracked paths. Quote glob selectors so the shell does not expand them:
+Use `--only` and `--exclude` to narrow status, backup, diff, restore, and
+read-only group status/plan work to specific tracked paths. Quote glob selectors
+so the shell does not expand them:
 
 ```bash
 lattice status --json --only config.toml shell
+lattice group plan --json --only config.toml dev-shell
 lattice backup --dry-run --json --only config.toml shell
 lattice diff --json --exclude 'cache/**' shell
 lattice restore --dry-run --json --only config.toml shell
 ```
 
-The selectors are intentionally path-scoped, not service-group orchestration.
-Use them for small, reviewable operations such as backing up one changed config
-file or excluding noisy generated state from a diff.
+Selectors stay path-scoped even when used through a group command. `group status`
+and `group plan` apply the same path selector to each member service; they do not
+introduce batch backup or restore orchestration.
 
-## 12. Prompt UI
+## 12. Service Groups
+
+Use groups when several existing services form one reviewable bundle. Groups live
+in the global config file, not in per-service TOML:
+
+```toml
+[[groups]]
+name = "dev-shell"
+description = "Shell and CLI development environment"
+services = ["zsh", "git", "mise", "ssh"]
+```
+
+Inspect the group before touching any files:
+
+```bash
+lattice group list
+lattice group show dev-shell
+lattice group status dev-shell
+lattice group plan dev-shell
+lattice group plan --json --exclude 'cache/**' dev-shell
+```
+
+In v0.5, service groups are intentionally read-only. There is no `group backup`
+or `group restore`; run individual service commands after the grouped plan looks
+safe.
+
+## 13. Prompt UI
 
 Open the prompt-based UI:
 

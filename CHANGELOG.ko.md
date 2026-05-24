@@ -2,6 +2,29 @@
 
 [English](CHANGELOG.md) | 한국어 | [문서 인덱스](docs/README.ko.md)
 
+## v0.5.0 - Unreleased
+
+### 추가
+
+- Global config의 service group. Group은 기존 service를 묶는 보수적인 named
+  bundle로 유지한다.
+- 읽기 전용 multi-service 점검과 planning을 위한 human output
+  `lattice group list/show/status/plan`.
+- Aggregate status와 plan summary를 포함한 모든 group command의 machine-readable
+  JSON output.
+- Batch mutation 없이 service별 status/plan view를 좁힐 수 있도록
+  `group status`와 `group plan`에 path selector 추가.
+
+### 변경
+
+- Service-groups release line에 맞춰 workspace package version을 `0.5.0`으로
+  올렸다.
+
+### 포함하지 않음
+
+- Group backup, group restore, 기타 batch mutation flow는 읽기 전용 group
+  status/plan surface의 안전성이 검증될 때까지 scope 밖으로 둔다.
+
 ## v0.4.0 - 2026-05-22
 
 ### 추가

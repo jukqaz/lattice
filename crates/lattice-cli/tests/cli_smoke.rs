@@ -18,16 +18,130 @@ fn cli_help_surfaces_actionable_descriptions() {
     assert!(help.contains("Summarize backup and restore risk before changing files"));
     assert!(help.contains("Inspect and prune restore safety snapshots"));
     assert!(help.contains("Suggest local service candidates without mutating state"));
+    assert!(help.contains("Inspect service groups without mutating state"));
 
     let app_help = run_ok(bin, &env, &["app", "--help"]);
     assert!(app_help.contains("List built-in app catalog entries"));
     assert!(app_help.contains("Show the suggested config for an app"));
     assert!(app_help.contains("Create a service config from an app catalog entry"));
 
+    let group_help = run_ok(bin, &env, &["group", "--help"]);
+    assert!(group_help.contains("List configured service groups"));
+    assert!(group_help.contains("Show one service group"));
+    assert!(group_help.contains("Show grouped service status"));
+    assert!(group_help.contains("Summarize grouped service plans"));
+
     let snapshot_help = run_ok(bin, &env, &["snapshot", "--help"]);
     assert!(snapshot_help.contains("List recorded restore safety snapshots"));
     assert!(snapshot_help.contains("Show files captured in one safety snapshot"));
     assert!(snapshot_help.contains("Delete old safety snapshots after keeping recent entries"));
+}
+
+#[test]
+fn service_group_commands_are_read_only_and_aggregate_status_plan() {
+    let temp = tempdir().expect("tempdir");
+    let env = TestEnv::new(temp.path());
+    let bin = env!("CARGO_BIN_EXE_lattice");
+
+    run_ok(bin, &env, &["init", "--force"]);
+
+    let shell_source = temp.path().join("shell-source");
+    let git_source = temp.path().join("git-source");
+    write_file(
+        &shell_source,
+        "config.toml",
+        "prompt = \"compact\"\n",
+        0o600,
+    );
+    write_file(&git_source, "config", "name = \"Lattice Test\"\n", 0o600);
+
+    fs::write(
+        env.config.join("lattice/lattice.toml"),
+        r#"version = 1
+profile = "main"
+
+[[groups]]
+name = "dev-shell"
+description = "Shell and Git configuration"
+services = ["shell", "git"]
+"#,
+    )
+    .expect("write global config with group");
+    fs::write(
+        env.config.join("lattice/services/shell.toml"),
+        format!(
+            r#"name = "shell"
+root = "{}"
+include = ["config.toml"]
+"#,
+            shell_source.display()
+        ),
+    )
+    .expect("write shell service");
+    fs::write(
+        env.config.join("lattice/services/git.toml"),
+        format!(
+            r#"name = "git"
+root = "{}"
+include = ["config"]
+"#,
+            git_source.display()
+        ),
+    )
+    .expect("write git service");
+
+    let list = run_ok(bin, &env, &["group", "list"]);
+    assert!(list.contains("dev-shell services=2"));
+    let list_json = run_json(bin, &env, &["group", "list", "--json"]);
+    assert_eq!(list_json["groups"].as_array().unwrap().len(), 1);
+    assert_eq!(list_json["groups"][0]["name"], "dev-shell");
+
+    let show = run_ok(bin, &env, &["group", "show", "dev-shell"]);
+    assert!(show.contains("group: dev-shell"));
+    assert!(show.contains("description: Shell and Git configuration"));
+    assert!(show.contains("- shell"));
+    assert!(show.contains("- git"));
+    let show_json = run_json(bin, &env, &["group", "show", "--json", "dev-shell"]);
+    assert_eq!(show_json["description"], "Shell and Git configuration");
+    assert_eq!(show_json["services"].as_array().unwrap().len(), 2);
+
+    let status = run_ok(bin, &env, &["group", "status", "dev-shell"]);
+    assert!(status.contains("group: dev-shell"));
+    assert!(status.contains("services: 2"));
+    assert!(status.contains("included files: 2"));
+    assert!(status.contains("- shell active=yes included_files=1 manifest=missing"));
+    assert!(status.contains("- git active=yes included_files=1 manifest=missing"));
+
+    let status_json = run_json(bin, &env, &["group", "status", "--json", "dev-shell"]);
+    assert_eq!(status_json["group"], "dev-shell");
+    assert_eq!(status_json["included_files"], 2);
+    assert_eq!(status_json["services"].as_array().unwrap().len(), 2);
+    assert_eq!(status_json["services"][0]["service"], "shell");
+
+    run_ok(bin, &env, &["backup", "shell"]);
+    let plan_json = run_json(bin, &env, &["group", "plan", "--json", "dev-shell"]);
+    assert_eq!(plan_json["group"], "dev-shell");
+    assert_eq!(plan_json["backup_would_copy"], 2);
+    assert_eq!(plan_json["restore_would_restore"], 1);
+    assert_eq!(plan_json["ready"], false);
+    assert_eq!(plan_json["services"].as_array().unwrap().len(), 2);
+
+    let excluded = run_json(
+        bin,
+        &env,
+        &[
+            "group",
+            "status",
+            "--json",
+            "--exclude",
+            "config.toml",
+            "dev-shell",
+        ],
+    );
+    assert_eq!(excluded["included_files"], 1);
+
+    let unknown = run_fail(bin, &env, &["group", "show", "missing"]);
+    assert!(unknown.contains("unknown group missing"));
 }
 
 #[test]

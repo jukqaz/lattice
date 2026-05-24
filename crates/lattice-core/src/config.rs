@@ -8,6 +8,17 @@ pub struct GlobalConfig {
     pub profile: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secrets: Option<SecretsConfig>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub groups: Vec<ServiceGroupConfig>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct ServiceGroupConfig {
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub services: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -143,7 +154,7 @@ fn is_false(value: &bool) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{GlobalConfig, PermissionRule, ServiceConfig};
+    use super::{GlobalConfig, PermissionRule, ServiceConfig, ServiceGroupConfig};
 
     #[test]
     fn parses_global_config_with_secret_backends() {
@@ -175,6 +186,36 @@ server = "https://vault.example.test"
             secrets.backends["bw"].server.as_deref(),
             Some("https://vault.example.test")
         );
+    }
+
+    #[test]
+    fn parses_global_config_with_service_groups() {
+        let input = r#"
+version = 1
+profile = "main"
+
+[[groups]]
+name = "dev-shell"
+description = "Shell and CLI development environment"
+services = ["git", "zsh", "ssh"]
+
+[[groups]]
+name = "editors"
+services = ["nvim"]
+"#;
+
+        let config: GlobalConfig = toml::from_str(input).expect("global config should parse");
+
+        assert_eq!(config.groups.len(), 2);
+        assert_eq!(
+            config.groups[0],
+            ServiceGroupConfig {
+                name: "dev-shell".to_string(),
+                description: Some("Shell and CLI development environment".to_string()),
+                services: vec!["git".to_string(), "zsh".to_string(), "ssh".to_string()]
+            }
+        );
+        assert_eq!(config.groups[1].description, None);
     }
 
     #[test]

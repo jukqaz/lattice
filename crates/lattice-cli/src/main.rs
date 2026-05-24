@@ -10,7 +10,7 @@ use inquire::Select;
 use lattice_core::app_catalog::{app_names, find_app};
 use lattice_core::config::{
     ConditionsConfig, GlobalConfig, HooksConfig, PermissionRule, RestoreConfig, SecretRef,
-    ServiceConfig,
+    ServiceConfig, ServiceGroupConfig,
 };
 use lattice_core::hooks::{HookOutcome, HookPhase, HookStatus, run_hooks};
 use lattice_core::manifest::ManifestEntry;
@@ -68,6 +68,11 @@ enum Commands {
     App {
         #[command(subcommand)]
         command: AppCommands,
+    },
+    #[command(about = "Inspect service groups without mutating state")]
+    Group {
+        #[command(subcommand)]
+        command: GroupCommands,
     },
     #[command(about = "Check new-machine readiness without mutating state")]
     Bootstrap {
@@ -310,6 +315,41 @@ enum AppCommands {
 }
 
 #[derive(Debug, Subcommand)]
+enum GroupCommands {
+    #[command(about = "List configured service groups")]
+    List {
+        #[arg(long)]
+        json: bool,
+    },
+    #[command(about = "Show one service group")]
+    Show {
+        #[arg(long)]
+        json: bool,
+        group: String,
+    },
+    #[command(about = "Show grouped service status")]
+    Status {
+        #[arg(long)]
+        json: bool,
+        #[arg(long, action = clap::ArgAction::Append)]
+        only: Vec<String>,
+        #[arg(long, action = clap::ArgAction::Append)]
+        exclude: Vec<String>,
+        group: String,
+    },
+    #[command(about = "Summarize grouped service plans")]
+    Plan {
+        #[arg(long)]
+        json: bool,
+        #[arg(long, action = clap::ArgAction::Append)]
+        only: Vec<String>,
+        #[arg(long, action = clap::ArgAction::Append)]
+        exclude: Vec<String>,
+        group: String,
+    },
+}
+
+#[derive(Debug, Subcommand)]
 enum BootstrapCommands {
     #[command(about = "Report readiness and recommended next actions")]
     Check {
@@ -416,6 +456,7 @@ fn run() -> Result<()> {
         Commands::Exclude { command } => update_patterns(&paths, command, PatternTarget::Exclude),
         Commands::Permission { command } => update_permissions(&paths, command),
         Commands::App { command } => app_command(&paths, command),
+        Commands::Group { command } => group_command(&paths, command),
         Commands::Bootstrap { command } => bootstrap_command(&paths, command),
         Commands::Repo { command } => repo_command(&paths, command),
         Commands::Secret { command } => secret_command(&paths, command),
@@ -953,6 +994,341 @@ fn app_command(paths: &LatticePaths, command: AppCommands) -> Result<()> {
             )
         }
     }
+}
+
+fn group_command(paths: &LatticePaths, command: GroupCommands) -> Result<()> {
+    match command {
+        GroupCommands::List { json } => group_list(paths, json),
+        GroupCommands::Show { json, group } => group_show(paths, &group, json),
+        GroupCommands::Status {
+            json,
+            only,
+            exclude,
+            group,
+        } => group_status(paths, &group, json, selection(only, exclude)),
+        GroupCommands::Plan {
+            json,
+            only,
+            exclude,
+            group,
+        } => group_plan(paths, &group, json, selection(only, exclude)),
+    }
+}
+
+fn group_list(paths: &LatticePaths, json_output: bool) -> Result<()> {
+    let groups = load_groups(paths)?;
+    if json_output {
+        print_json(serde_json::json!({
+            "groups": groups.iter().map(group_json).collect::<Vec<_>>()
+        }))?;
+        return Ok(());
+    }
+
+    for group in groups {
+        println!("{} services={}", group.name, group.services.len());
+    }
+    Ok(())
+}
+
+fn group_show(paths: &LatticePaths, group_name: &str, json_output: bool) -> Result<()> {
+    let group = load_group(paths, group_name)?;
+    if json_output {
+        print_json(group_json(&group))?;
+        return Ok(());
+    }
+
+    println!("group: {}", group.name);
+    if let Some(description) = &group.description {
+        println!("description: {description}");
+    }
+    println!("services:");
+    for service in &group.services {
+        println!("- {service}");
+    }
+    Ok(())
+}
+
+fn group_status(
+    paths: &LatticePaths,
+    group_name: &str,
+    json_output: bool,
+    selection: PathSelection,
+) -> Result<()> {
+    let group = load_group(paths, group_name)?;
+    let summaries = group
+        .services
+        .iter()
+        .map(|service_name| service_status_summary(paths, service_name, &selection))
+        .collect::<Result<Vec<_>>>()?;
+    let included_files: usize = summaries
+        .iter()
+        .map(|summary| summary.included_files.len())
+        .sum();
+    let active_services = summaries.iter().filter(|summary| summary.active).count();
+
+    if json_output {
+        print_json(serde_json::json!({
+            "group": group.name,
+            "description": group.description,
+            "service_count": summaries.len(),
+            "active_services": active_services,
+            "included_files": included_files,
+            "services": summaries.iter().map(GroupServiceStatus::json).collect::<Vec<_>>()
+        }))?;
+        return Ok(());
+    }
+
+    println!("group: {}", group.name);
+    println!("services: {}", summaries.len());
+    println!("active services: {active_services}");
+    println!("included files: {included_files}");
+    for summary in summaries {
+        println!(
+            "- {} active={} included_files={} manifest={}",
+            summary.service,
+            if summary.active { "yes" } else { "no" },
+            summary.included_files.len(),
+            summary.manifest_status
+        );
+    }
+    Ok(())
+}
+
+fn group_plan(
+    paths: &LatticePaths,
+    group_name: &str,
+    json_output: bool,
+    selection: PathSelection,
+) -> Result<()> {
+    let group = load_group(paths, group_name)?;
+    let summaries = group
+        .services
+        .iter()
+        .map(|service_name| service_plan_summary(paths, service_name, &selection))
+        .collect::<Result<Vec<_>>>()?;
+    let backup_would_copy: usize = summaries
+        .iter()
+        .map(|summary| summary.backup_would_copy)
+        .sum();
+    let restore_would_restore: usize = summaries
+        .iter()
+        .map(|summary| summary.restore_would_restore)
+        .sum();
+    let restore_would_create_dirs: usize = summaries
+        .iter()
+        .map(|summary| summary.restore_would_create_dirs)
+        .sum();
+    let conflicts: usize = summaries
+        .iter()
+        .map(|summary| summary.conflicts.len())
+        .sum();
+    let ready = summaries.iter().all(|summary| summary.ready);
+
+    if json_output {
+        print_json(serde_json::json!({
+            "group": group.name,
+            "description": group.description,
+            "service_count": summaries.len(),
+            "backup_would_copy": backup_would_copy,
+            "restore_would_restore": restore_would_restore,
+            "restore_would_create_dirs": restore_would_create_dirs,
+            "conflicts": conflicts,
+            "ready": ready,
+            "services": summaries.iter().map(GroupServicePlan::json).collect::<Vec<_>>()
+        }))?;
+        return Ok(());
+    }
+
+    println!("group plan: {}", group.name);
+    println!("services: {}", summaries.len());
+    println!("backup would copy: {backup_would_copy}");
+    println!("restore would restore: {restore_would_restore}");
+    println!("restore would create dirs: {restore_would_create_dirs}");
+    println!("conflicts: {conflicts}");
+    println!("ready: {}", if ready { "yes" } else { "no" });
+    for summary in summaries {
+        println!(
+            "- {} active={} manifest={} backup_would_copy={} restore_would_restore={} ready={}",
+            summary.service,
+            if summary.active { "yes" } else { "no" },
+            summary.manifest_status,
+            summary.backup_would_copy,
+            summary.restore_would_restore,
+            if summary.ready { "yes" } else { "no" }
+        );
+    }
+    Ok(())
+}
+
+#[derive(Debug)]
+struct GroupServiceStatus {
+    service: String,
+    root: PathBuf,
+    repo: PathBuf,
+    active: bool,
+    included_files: Vec<PathBuf>,
+    manifest_status: String,
+}
+
+impl GroupServiceStatus {
+    fn json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "service": self.service,
+            "root": self.root.display().to_string(),
+            "repo": self.repo.display().to_string(),
+            "active": self.active,
+            "included_files": self.included_files.len(),
+            "files": path_strings(&self.included_files),
+            "manifest": self.manifest_status
+        })
+    }
+}
+
+#[derive(Debug)]
+struct GroupServicePlan {
+    service: String,
+    root: PathBuf,
+    repo: PathBuf,
+    active: bool,
+    root_exists: bool,
+    manifest_status: String,
+    backup_would_copy: usize,
+    restore_would_restore: usize,
+    restore_would_create_dirs: usize,
+    conflicts: Vec<PathBuf>,
+    entries: Vec<String>,
+    dirs: Vec<String>,
+    ready: bool,
+}
+
+impl GroupServicePlan {
+    fn json(&self) -> serde_json::Value {
+        let requires_force = !self.conflicts.is_empty();
+        serde_json::json!({
+            "service": self.service,
+            "root": self.root.display().to_string(),
+            "repo": self.repo.display().to_string(),
+            "active": self.active,
+            "root_exists": self.root_exists,
+            "manifest": self.manifest_status,
+            "backup_would_copy": self.backup_would_copy,
+            "restore_would_restore": self.restore_would_restore,
+            "restore_would_create_dirs": self.restore_would_create_dirs,
+            "conflicts": path_strings(&self.conflicts),
+            "entries": self.entries,
+            "dirs": self.dirs,
+            "safe_to_restore_without_force": !requires_force,
+            "requires_force": requires_force,
+            "snapshot_policy": snapshot_policy(requires_force),
+            "snapshot_on_conflict": requires_force,
+            "ready": self.ready
+        })
+    }
+}
+
+fn service_status_summary(
+    paths: &LatticePaths,
+    service_name: &str,
+    selection: &PathSelection,
+) -> Result<GroupServiceStatus> {
+    let service = load_service(paths, service_name)?;
+    let (include, exclude) = effective_patterns(&service);
+    let root = expand_path(&service.root)?;
+    let repo = resolve_repo_path(paths, &service)?;
+    let included_files =
+        filter_paths_by_selection(scan_service(&root, &include, &exclude)?, selection)?;
+    let manifest = repo.join(".lattice").join("manifest.toml");
+    let manifest_status = if manifest.exists() {
+        "present"
+    } else {
+        "missing"
+    }
+    .to_string();
+    let active = service_is_active(&service);
+    Ok(GroupServiceStatus {
+        service: service.name,
+        root,
+        repo,
+        active,
+        included_files,
+        manifest_status,
+    })
+}
+
+fn service_plan_summary(
+    paths: &LatticePaths,
+    service_name: &str,
+    selection: &PathSelection,
+) -> Result<GroupServicePlan> {
+    let service = load_service(paths, service_name)?;
+    let active = service_is_active(&service);
+    let (include, exclude) = effective_patterns(&service);
+    let root = expand_path(&service.root)?;
+    let repo = resolve_repo_path(paths, &service)?;
+    let root_exists = root.exists();
+    let files = if root_exists {
+        filter_paths_by_selection(scan_service(&root, &include, &exclude)?, selection)?
+    } else {
+        Vec::new()
+    };
+    let manifest = repo.join(".lattice").join("manifest.toml");
+    let manifest_exists = manifest.exists();
+    let manifest_status = if manifest_exists {
+        "present"
+    } else {
+        "missing"
+    }
+    .to_string();
+    let (restore_would_restore, restore_would_create_dirs, conflicts, entries, dirs) =
+        if manifest_exists {
+            let plan = restore_plan_with_selection(&repo, &root, selection)?;
+            (
+                plan.entries.len(),
+                plan.directories.len(),
+                plan.conflicts,
+                manifest_entry_strings(&plan.entries),
+                manifest_entry_strings(&plan.directories),
+            )
+        } else {
+            (0, 0, Vec::new(), Vec::new(), Vec::new())
+        };
+    let ready = active && root_exists && manifest_exists && conflicts.is_empty();
+    Ok(GroupServicePlan {
+        service: service.name,
+        root,
+        repo,
+        active,
+        root_exists,
+        manifest_status,
+        backup_would_copy: files.len(),
+        restore_would_restore,
+        restore_would_create_dirs,
+        conflicts,
+        entries,
+        dirs,
+        ready,
+    })
+}
+
+fn group_json(group: &ServiceGroupConfig) -> serde_json::Value {
+    serde_json::json!({
+        "name": group.name,
+        "description": group.description,
+        "services": group.services
+    })
+}
+
+fn load_groups(paths: &LatticePaths) -> Result<Vec<ServiceGroupConfig>> {
+    let mut groups = load_global_config(paths)?.groups;
+    groups.sort_by(|left, right| left.name.cmp(&right.name));
+    Ok(groups)
+}
+
+fn load_group(paths: &LatticePaths, group_name: &str) -> Result<ServiceGroupConfig> {
+    load_groups(paths)?
+        .into_iter()
+        .find(|group| group.name == group_name)
+        .with_context(|| format!("unknown group {group_name}"))
 }
 
 fn bootstrap_command(paths: &LatticePaths, command: BootstrapCommands) -> Result<()> {

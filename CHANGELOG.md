@@ -2,6 +2,28 @@
 
 English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
+## v0.5.0 - Unreleased
+
+### Added
+
+- Service groups in global config, keeping groups as conservative named bundles
+  of existing services.
+- `lattice group list/show/status/plan` with human-readable output for read-only
+  multi-service inspection and planning.
+- Machine-readable JSON output for all group commands, including aggregate status
+  and plan summaries.
+- Path selectors on `group status` and `group plan` so automation can narrow the
+  per-service status/plan view without introducing batch mutation.
+
+### Changed
+
+- Workspace package version is now `0.5.0` for the service-groups release line.
+
+### Not Included
+
+- Group backup, group restore, and other batch mutation flows remain out of
+  scope until the read-only group status/plan surface is proven safe.
+
 ## v0.4.0 - 2026-05-22
 
 ### Added

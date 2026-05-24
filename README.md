@@ -119,6 +119,8 @@ lattice app add <app> --root <path>
 | Validate config files | `lattice validate` |
 | See one service | `lattice status zsh` |
 | Inspect backup/restore preflight | `lattice plan zsh` |
+| See a service group | `lattice group status dev-shell` |
+| Inspect grouped preflight | `lattice group plan dev-shell` |
 | Discover conservative service candidates | `lattice discover` |
 | List forced-restore snapshots | `lattice snapshot list` |
 | Dry-run snapshot rollback | `lattice undo --dry-run <snapshot-id>` |
@@ -138,6 +140,8 @@ of human text:
 lattice bootstrap check --json
 lattice status --json zsh
 lattice plan --json zsh
+lattice group status --json dev-shell
+lattice group plan --json dev-shell
 lattice discover --json
 lattice snapshot list --json
 lattice snapshot show --json <snapshot-id>
@@ -149,10 +153,12 @@ lattice restore --dry-run --json zsh
 ```
 
 Use `--only` and `--exclude` to narrow a plan to specific tracked paths. These
-selectors are available on `status`, `backup`, `diff`, and `restore` flows:
+selectors are available on `status`, `backup`, `diff`, `restore`, and read-only
+group `status`/`plan` flows:
 
 ```bash
 lattice status --json --only config.toml shell
+lattice group plan --json --only config.toml dev-shell
 lattice backup --dry-run --json --only config.toml shell
 lattice diff --json --exclude 'cache/**' shell
 lattice restore --dry-run --json --only config.toml shell
@@ -161,6 +167,33 @@ lattice restore --dry-run --json --only config.toml shell
 For automation, prefer the dry-run JSON commands before any write. Inspect the
 planned `files`, `dirs`, `entries`, and `conflicts` fields, then run the
 non-dry-run command only after the plan is acceptable.
+
+## Service Groups
+
+Define groups in `~/.config/lattice/lattice.toml` when you want to inspect a
+small bundle of related services together:
+
+```toml
+[[groups]]
+name = "dev-shell"
+description = "Shell and CLI development environment"
+services = ["zsh", "git", "mise", "ssh"]
+```
+
+Group commands are intentionally read-only in v0.5. Use them to list, inspect,
+status-check, and plan across existing services before deciding whether to run
+individual service backup or restore commands:
+
+```bash
+lattice group list
+lattice group show dev-shell
+lattice group status dev-shell
+lattice group plan dev-shell
+lattice group plan --json --exclude 'cache/**' dev-shell
+```
+
+There is no `group backup` or `group restore` yet. Batch mutation remains out of
+scope until the read-only planning surface is proven safe.
 
 ## Sync With Git
 

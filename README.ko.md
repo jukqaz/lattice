@@ -115,6 +115,8 @@ lattice app add <app> --root <path>
 | 설정 파일 검증 | `lattice validate` |
 | 서비스 상태 확인 | `lattice status zsh` |
 | 백업/복원 preflight 확인 | `lattice plan zsh` |
+| 서비스 그룹 상태 확인 | `lattice group status dev-shell` |
+| 그룹 preflight 확인 | `lattice group plan dev-shell` |
 | 보수적인 service 후보 찾기 | `lattice discover` |
 | forced-restore snapshot 목록 | `lattice snapshot list` |
 | snapshot rollback dry-run | `lattice undo --dry-run <snapshot-id>` |
@@ -134,6 +136,8 @@ Script나 agent가 사람이 읽는 stdout을 parsing하지 않게 하려면 `--
 lattice bootstrap check --json
 lattice status --json zsh
 lattice plan --json zsh
+lattice group status --json dev-shell
+lattice group plan --json dev-shell
 lattice discover --json
 lattice snapshot list --json
 lattice snapshot show --json <snapshot-id>
@@ -145,10 +149,12 @@ lattice restore --dry-run --json zsh
 ```
 
 특정 tracked path만 계획하려면 `--only`와 `--exclude`를 사용합니다. 이 selector는
-`status`, `backup`, `diff`, `restore` flow에서 사용할 수 있습니다.
+`status`, `backup`, `diff`, `restore`, 읽기 전용 group `status`/`plan` flow에서
+사용할 수 있습니다.
 
 ```bash
 lattice status --json --only config.toml shell
+lattice group plan --json --only config.toml dev-shell
 lattice backup --dry-run --json --only config.toml shell
 lattice diff --json --exclude 'cache/**' shell
 lattice restore --dry-run --json --only config.toml shell
@@ -157,6 +163,33 @@ lattice restore --dry-run --json --only config.toml shell
 Automation에서는 쓰기 작업 전에 dry-run JSON 명령을 먼저 사용합니다. 계획의
 `files`, `dirs`, `entries`, `conflicts` field를 확인한 뒤 괜찮을 때만 non-dry-run
 명령을 실행합니다.
+
+## Service Groups
+
+관련 service 묶음을 함께 점검하려면 `~/.config/lattice/lattice.toml`에 group을
+정의합니다.
+
+```toml
+[[groups]]
+name = "dev-shell"
+description = "Shell and CLI development environment"
+services = ["zsh", "git", "mise", "ssh"]
+```
+
+v0.5의 group command는 의도적으로 읽기 전용입니다. 기존 service를 묶어서 list,
+show, status, plan을 확인한 뒤 실제 backup/restore는 개별 service 명령으로
+실행합니다.
+
+```bash
+lattice group list
+lattice group show dev-shell
+lattice group status dev-shell
+lattice group plan dev-shell
+lattice group plan --json --exclude 'cache/**' dev-shell
+```
+
+아직 `group backup`이나 `group restore`는 없습니다. Batch mutation은 읽기 전용
+planning surface의 안전성이 검증될 때까지 scope 밖입니다.
 
 ## Git으로 동기화하기
 

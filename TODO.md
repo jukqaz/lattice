@@ -122,9 +122,11 @@ See `docs/product/mvp-scope.md`.
 
 ## v0.5.x Service Groups
 
-- [ ] Design a conservative service-group model before implementation; group remains intentionally deferred until v0.5.
-- [ ] Add group status and group dry-run planning before any batch backup/restore behavior.
-- [ ] Keep group output machine-readable from the start.
+- [x] Design a conservative service-group model before implementation; groups are named bundles of existing services.
+- [x] Add group status and group dry-run planning before any batch backup/restore behavior.
+- [x] Keep group output machine-readable from the start.
+- [x] Add `group list`, `group show`, `group status`, and `group plan` with JSON output.
+- [x] Keep group backup/restore and other batch mutation flows out of v0.5.
 
 ## v1.0 Public Stable CLI
 

@@ -1166,6 +1166,7 @@ struct GroupServiceStatus {
     root: PathBuf,
     repo: PathBuf,
     active: bool,
+    root_exists: bool,
     included_files: Vec<PathBuf>,
     manifest_status: String,
 }
@@ -1177,6 +1178,7 @@ impl GroupServiceStatus {
             "root": self.root.display().to_string(),
             "repo": self.repo.display().to_string(),
             "active": self.active,
+            "root_exists": self.root_exists,
             "included_files": self.included_files.len(),
             "files": path_strings(&self.included_files),
             "manifest": self.manifest_status
@@ -1235,8 +1237,12 @@ fn service_status_summary(
     let (include, exclude) = effective_patterns(&service);
     let root = expand_path(&service.root)?;
     let repo = resolve_repo_path(paths, &service)?;
-    let included_files =
-        filter_paths_by_selection(scan_service(&root, &include, &exclude)?, selection)?;
+    let root_exists = service_root_exists(&root)?;
+    let included_files = if root_exists {
+        filter_paths_by_selection(scan_service(&root, &include, &exclude)?, selection)?
+    } else {
+        Vec::new()
+    };
     let manifest = repo.join(".lattice").join("manifest.toml");
     let manifest_status = if manifest.exists() {
         "present"
@@ -1250,6 +1256,7 @@ fn service_status_summary(
         root,
         repo,
         active,
+        root_exists,
         included_files,
         manifest_status,
     })
@@ -1265,7 +1272,7 @@ fn service_plan_summary(
     let (include, exclude) = effective_patterns(&service);
     let root = expand_path(&service.root)?;
     let repo = resolve_repo_path(paths, &service)?;
-    let root_exists = root.exists();
+    let root_exists = service_root_exists(&root)?;
     let files = if root_exists {
         filter_paths_by_selection(scan_service(&root, &include, &exclude)?, selection)?
     } else {
@@ -1322,6 +1329,11 @@ fn load_groups(paths: &LatticePaths) -> Result<Vec<ServiceGroupConfig>> {
     let mut groups = load_global_config(paths)?.groups;
     groups.sort_by(|left, right| left.name.cmp(&right.name));
     Ok(groups)
+}
+
+fn service_root_exists(root: &Path) -> Result<bool> {
+    root.try_exists()
+        .with_context(|| format!("failed to inspect service root {}", root.display()))
 }
 
 fn load_group(paths: &LatticePaths, group_name: &str) -> Result<ServiceGroupConfig> {

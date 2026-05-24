@@ -55,6 +55,7 @@ fn service_group_commands_are_read_only_and_aggregate_status_plan() {
     );
     write_file(&git_source, "config", "name = \"Lattice Test\"\n", 0o600);
 
+    let missing_root = temp.path().join("missing-root");
     fs::write(
         env.config.join("lattice/lattice.toml"),
         r#"version = 1
@@ -63,10 +64,10 @@ profile = "main"
 [[groups]]
 name = "dev-shell"
 description = "Shell and Git configuration"
-services = ["shell", "git"]
+services = ["shell", "git", "missing"]
 "#,
     )
-    .expect("write global config with group");
+    .expect("write global config with group and missing service");
     fs::write(
         env.config.join("lattice/services/shell.toml"),
         format!(
@@ -89,9 +90,20 @@ include = ["config"]
         ),
     )
     .expect("write git service");
+    fs::write(
+        env.config.join("lattice/services/missing.toml"),
+        format!(
+            r#"name = "missing"
+root = "{}"
+include = ["config.toml"]
+"#,
+            missing_root.display()
+        ),
+    )
+    .expect("write missing service");
 
     let list = run_ok(bin, &env, &["group", "list"]);
-    assert!(list.contains("dev-shell services=2"));
+    assert!(list.contains("dev-shell services=3"));
     let list_json = run_json(bin, &env, &["group", "list", "--json"]);
     assert_eq!(list_json["groups"].as_array().unwrap().len(), 1);
     assert_eq!(list_json["groups"][0]["name"], "dev-shell");
@@ -101,22 +113,27 @@ include = ["config"]
     assert!(show.contains("description: Shell and Git configuration"));
     assert!(show.contains("- shell"));
     assert!(show.contains("- git"));
+    assert!(show.contains("- missing"));
     let show_json = run_json(bin, &env, &["group", "show", "--json", "dev-shell"]);
     assert_eq!(show_json["description"], "Shell and Git configuration");
-    assert_eq!(show_json["services"].as_array().unwrap().len(), 2);
+    assert_eq!(show_json["services"].as_array().unwrap().len(), 3);
 
     let status = run_ok(bin, &env, &["group", "status", "dev-shell"]);
     assert!(status.contains("group: dev-shell"));
-    assert!(status.contains("services: 2"));
+    assert!(status.contains("services: 3"));
     assert!(status.contains("included files: 2"));
     assert!(status.contains("- shell active=yes included_files=1 manifest=missing"));
     assert!(status.contains("- git active=yes included_files=1 manifest=missing"));
+    assert!(status.contains("- missing active=yes included_files=0 manifest=missing"));
 
     let status_json = run_json(bin, &env, &["group", "status", "--json", "dev-shell"]);
     assert_eq!(status_json["group"], "dev-shell");
     assert_eq!(status_json["included_files"], 2);
-    assert_eq!(status_json["services"].as_array().unwrap().len(), 2);
+    assert_eq!(status_json["services"].as_array().unwrap().len(), 3);
     assert_eq!(status_json["services"][0]["service"], "shell");
+    assert_eq!(status_json["services"][2]["service"], "missing");
+    assert_eq!(status_json["services"][2]["root_exists"], false);
+    assert_eq!(status_json["services"][2]["included_files"], 0);
 
     run_ok(bin, &env, &["backup", "shell"]);
     let plan_json = run_json(bin, &env, &["group", "plan", "--json", "dev-shell"]);
@@ -124,7 +141,7 @@ include = ["config"]
     assert_eq!(plan_json["backup_would_copy"], 2);
     assert_eq!(plan_json["restore_would_restore"], 1);
     assert_eq!(plan_json["ready"], false);
-    assert_eq!(plan_json["services"].as_array().unwrap().len(), 2);
+    assert_eq!(plan_json["services"].as_array().unwrap().len(), 3);
 
     let excluded = run_json(
         bin,
@@ -142,6 +159,63 @@ include = ["config"]
 
     let unknown = run_fail(bin, &env, &["group", "show", "missing"]);
     assert!(unknown.contains("unknown group missing"));
+}
+
+#[test]
+fn group_status_preserves_io_errors_for_unreadable_roots() {
+    let temp = tempdir().expect("tempdir");
+    let env = TestEnv::new(temp.path());
+    let bin = env!("CARGO_BIN_EXE_lattice");
+
+    run_ok(bin, &env, &["init", "--force"]);
+
+    let locked_parent = temp.path().join("locked-parent");
+    fs::create_dir_all(&locked_parent).expect("create locked parent");
+    let locked_root = locked_parent.join("blocked-root");
+    fs::write(
+        env.config.join("lattice/lattice.toml"),
+        r#"version = 1
+profile = "main"
+
+[[groups]]
+name = "blocked"
+services = ["blocked"]
+"#,
+    )
+    .expect("write blocked group config");
+    fs::write(
+        env.config.join("lattice/services/blocked.toml"),
+        format!(
+            r#"name = "blocked"
+root = "{}"
+include = ["config.toml"]
+"#,
+            locked_root.display()
+        ),
+    )
+    .expect("write blocked service");
+
+    fs::set_permissions(&locked_parent, fs::Permissions::from_mode(0o000))
+        .expect("lock parent directory");
+    let output = Command::new(bin)
+        .args(["group", "status", "blocked"])
+        .env("HOME", &env.home)
+        .env("XDG_CONFIG_HOME", &env.config)
+        .env("XDG_DATA_HOME", &env.data)
+        .env("XDG_STATE_HOME", &env.state)
+        .env("XDG_CACHE_HOME", &env.cache)
+        .output()
+        .expect("run command");
+    fs::set_permissions(&locked_parent, fs::Permissions::from_mode(0o700))
+        .expect("unlock parent directory");
+
+    assert!(
+        !output.status.success(),
+        "group status unexpectedly passed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(String::from_utf8_lossy(&output.stderr).contains("failed to inspect service root"));
 }
 
 #[test]

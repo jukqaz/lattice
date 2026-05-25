@@ -176,9 +176,10 @@ description = "Shell and CLI development environment"
 services = ["zsh", "git", "mise", "ssh"]
 ```
 
-v0.5의 group command는 의도적으로 읽기 전용입니다. 기존 service를 묶어서 list,
-show, status, plan을 확인한 뒤 실제 backup/restore는 개별 service 명령으로
-실행합니다.
+v0.5의 group command는 의도적으로 읽기 전용입니다. Group name은 unique해야 하고,
+각 group은 하나 이상의 기존 service를 포함해야 하며, 중복 service member는
+`lattice validate`에서 거부됩니다. 기존 service를 묶어서 list, show, status,
+plan을 확인한 뒤 실제 backup/restore는 개별 service 명령으로 실행합니다.
 
 ```bash
 lattice group list
@@ -187,6 +188,12 @@ lattice group status dev-shell
 lattice group plan dev-shell
 lattice group plan --json --exclude 'cache/**' dev-shell
 ```
+
+`group status`와 `group plan`의 aggregate 값은 active service만 합산합니다. Inactive
+member는 per-service JSON row에 `active=false`와 skipped root inspection으로 계속
+표시됩니다. Group plan JSON은 aggregate 숫자에는 `conflict_count`를 쓰고,
+`conflicts`는 service별 구조화 배열로 유지해 single-service plan의 “conflicts는
+구조화 데이터” 관례와 맞춥니다.
 
 아직 `group backup`이나 `group restore`는 없습니다. Batch mutation은 읽기 전용
 planning surface의 안전성이 검증될 때까지 scope 밖입니다.

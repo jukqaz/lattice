@@ -360,6 +360,9 @@ services = ["zsh", "git", "mise", "ssh"]
 
 파일을 건드리기 전에 group을 먼저 점검합니다.
 
+Group name은 unique해야 하고, group은 하나 이상의 기존 service를 포함해야 하며,
+중복 service member는 `lattice validate`에서 거부됩니다.
+
 ```bash
 lattice group list
 lattice group show dev-shell
@@ -368,7 +371,14 @@ lattice group plan dev-shell
 lattice group plan --json --exclude 'cache/**' dev-shell
 ```
 
-v0.5에서 service group은 의도적으로 읽기 전용입니다. `group backup`이나
+v0.5에서 service group은 의도적으로 읽기 전용입니다. `group status`와
+`group plan`의 aggregate 값은 active service만 합산합니다. Inactive member는
+per-service JSON row에 `active=false`와 skipped root inspection으로 계속 표시됩니다.
+Human `group status` output에는 `root_exists`가 포함되어 missing root와 empty matched
+file set이 구분됩니다. Group plan JSON은 aggregate conflict를 `conflict_count`와
+service-keyed `conflicts` array로 보고합니다.
+
+`group backup`이나
 `group restore`는 없습니다. Grouped plan이 안전해 보일 때 개별 service 명령을
 실행합니다.
 

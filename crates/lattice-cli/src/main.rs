@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::fmt::Write as _;
 use std::fs;
 use std::io::IsTerminal;
@@ -629,7 +630,7 @@ fn bootstrap_check(paths: &LatticePaths, json_output: bool) -> Result<()> {
         let repo = resolve_repo_path(paths, &service)?;
         let manifest = repo.join(".lattice").join("manifest.toml");
         let active = service_is_active(&service);
-        let root_exists = root.exists();
+        let root_exists = service_root_exists(&root)?;
         let repo_exists = repo.exists();
         let git_repo = repo.join(".git").exists();
         let remote = git_remote_status(&repo);
@@ -785,6 +786,7 @@ fn bootstrap_check(paths: &LatticePaths, json_output: bool) -> Result<()> {
 fn validate(paths: &LatticePaths) -> Result<()> {
     let global = load_global_config(paths)?;
     let services = load_services(paths)?;
+    validate_groups(&global.groups, &services)?;
 
     for service in &services {
         let _ = resolve_repo_path(paths, service)?;
@@ -1062,6 +1064,7 @@ fn group_status(
         .collect::<Result<Vec<_>>>()?;
     let included_files: usize = summaries
         .iter()
+        .filter(|summary| summary.active)
         .map(|summary| summary.included_files.len())
         .sum();
     let active_services = summaries.iter().filter(|summary| summary.active).count();
@@ -1084,9 +1087,10 @@ fn group_status(
     println!("included files: {included_files}");
     for summary in summaries {
         println!(
-            "- {} active={} included_files={} manifest={}",
+            "- {} active={} root_exists={} included_files={} manifest={}",
             summary.service,
             if summary.active { "yes" } else { "no" },
+            root_exists_label(summary.root_exists),
             summary.included_files.len(),
             summary.manifest_status
         );
@@ -1108,31 +1112,38 @@ fn group_plan(
         .collect::<Result<Vec<_>>>()?;
     let backup_would_copy: usize = summaries
         .iter()
+        .filter(|summary| summary.active)
         .map(|summary| summary.backup_would_copy)
         .sum();
     let restore_would_restore: usize = summaries
         .iter()
+        .filter(|summary| summary.active)
         .map(|summary| summary.restore_would_restore)
         .sum();
     let restore_would_create_dirs: usize = summaries
         .iter()
+        .filter(|summary| summary.active)
         .map(|summary| summary.restore_would_create_dirs)
         .sum();
-    let conflicts: usize = summaries
+    let conflict_count: usize = summaries
         .iter()
+        .filter(|summary| summary.active)
         .map(|summary| summary.conflicts.len())
         .sum();
-    let ready = summaries.iter().all(|summary| summary.ready);
+    let active_services = summaries.iter().filter(|summary| summary.active).count();
+    let ready = !summaries.is_empty() && summaries.iter().all(|summary| summary.ready);
 
     if json_output {
         print_json(serde_json::json!({
             "group": group.name,
             "description": group.description,
             "service_count": summaries.len(),
+            "active_services": active_services,
             "backup_would_copy": backup_would_copy,
             "restore_would_restore": restore_would_restore,
             "restore_would_create_dirs": restore_would_create_dirs,
-            "conflicts": conflicts,
+            "conflict_count": conflict_count,
+            "conflicts": group_conflicts_json(&summaries),
             "ready": ready,
             "services": summaries.iter().map(GroupServicePlan::json).collect::<Vec<_>>()
         }))?;
@@ -1144,7 +1155,7 @@ fn group_plan(
     println!("backup would copy: {backup_would_copy}");
     println!("restore would restore: {restore_would_restore}");
     println!("restore would create dirs: {restore_would_create_dirs}");
-    println!("conflicts: {conflicts}");
+    println!("conflicts: {conflict_count}");
     println!("ready: {}", if ready { "yes" } else { "no" });
     for summary in summaries {
         println!(
@@ -1166,7 +1177,7 @@ struct GroupServiceStatus {
     root: PathBuf,
     repo: PathBuf,
     active: bool,
-    root_exists: bool,
+    root_exists: Option<bool>,
     included_files: Vec<PathBuf>,
     manifest_status: String,
 }
@@ -1192,7 +1203,7 @@ struct GroupServicePlan {
     root: PathBuf,
     repo: PathBuf,
     active: bool,
-    root_exists: bool,
+    root_exists: Option<bool>,
     manifest_status: String,
     backup_would_copy: usize,
     restore_would_restore: usize,
@@ -1234,11 +1245,16 @@ fn service_status_summary(
     selection: &PathSelection,
 ) -> Result<GroupServiceStatus> {
     let service = load_service(paths, service_name)?;
+    let active = service_is_active(&service);
     let (include, exclude) = effective_patterns(&service);
     let root = expand_path(&service.root)?;
     let repo = resolve_repo_path(paths, &service)?;
-    let root_exists = service_root_exists(&root)?;
-    let included_files = if root_exists {
+    let root_exists = if active {
+        Some(service_root_exists(&root)?)
+    } else {
+        None
+    };
+    let included_files = if root_exists == Some(true) {
         filter_paths_by_selection(scan_service(&root, &include, &exclude)?, selection)?
     } else {
         Vec::new()
@@ -1250,7 +1266,6 @@ fn service_status_summary(
         "missing"
     }
     .to_string();
-    let active = service_is_active(&service);
     Ok(GroupServiceStatus {
         service: service.name,
         root,
@@ -1272,8 +1287,12 @@ fn service_plan_summary(
     let (include, exclude) = effective_patterns(&service);
     let root = expand_path(&service.root)?;
     let repo = resolve_repo_path(paths, &service)?;
-    let root_exists = service_root_exists(&root)?;
-    let files = if root_exists {
+    let root_exists = if active {
+        Some(service_root_exists(&root)?)
+    } else {
+        None
+    };
+    let files = if root_exists == Some(true) {
         filter_paths_by_selection(scan_service(&root, &include, &exclude)?, selection)?
     } else {
         Vec::new()
@@ -1287,7 +1306,7 @@ fn service_plan_summary(
     }
     .to_string();
     let (restore_would_restore, restore_would_create_dirs, conflicts, entries, dirs) =
-        if manifest_exists {
+        if active && manifest_exists {
             let plan = restore_plan_with_selection(&repo, &root, selection)?;
             (
                 plan.entries.len(),
@@ -1299,7 +1318,7 @@ fn service_plan_summary(
         } else {
             (0, 0, Vec::new(), Vec::new(), Vec::new())
         };
-    let ready = active && root_exists && manifest_exists && conflicts.is_empty();
+    let ready = active && root_exists == Some(true) && manifest_exists && conflicts.is_empty();
     Ok(GroupServicePlan {
         service: service.name,
         root,
@@ -1326,14 +1345,81 @@ fn group_json(group: &ServiceGroupConfig) -> serde_json::Value {
 }
 
 fn load_groups(paths: &LatticePaths) -> Result<Vec<ServiceGroupConfig>> {
-    let mut groups = load_global_config(paths)?.groups;
+    let global = load_global_config(paths)?;
+    let services = load_services(paths)?;
+    validate_groups(&global.groups, &services)?;
+    let mut groups = global.groups;
     groups.sort_by(|left, right| left.name.cmp(&right.name));
     Ok(groups)
+}
+
+fn validate_groups(groups: &[ServiceGroupConfig], services: &[ServiceConfig]) -> Result<()> {
+    let service_names = services
+        .iter()
+        .map(|service| service.name.as_str())
+        .collect::<BTreeSet<_>>();
+    let mut group_names = BTreeSet::new();
+
+    for group in groups {
+        if group.name.trim().is_empty() {
+            bail!("group name must not be empty");
+        }
+        if !group_names.insert(group.name.as_str()) {
+            bail!("duplicate group {}", group.name);
+        }
+        if group.services.is_empty() {
+            bail!("group {} must include at least one service", group.name);
+        }
+
+        let mut member_names = BTreeSet::new();
+        for service_name in &group.services {
+            if service_name.trim().is_empty() {
+                bail!("group {} includes an empty service name", group.name);
+            }
+            if !member_names.insert(service_name.as_str()) {
+                bail!(
+                    "group {} lists service {} more than once",
+                    group.name,
+                    service_name
+                );
+            }
+            if !service_names.contains(service_name.as_str()) {
+                bail!(
+                    "group {} references unknown service {}",
+                    group.name,
+                    service_name
+                );
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn service_root_exists(root: &Path) -> Result<bool> {
     root.try_exists()
         .with_context(|| format!("failed to inspect service root {}", root.display()))
+}
+
+fn root_exists_label(root_exists: Option<bool>) -> &'static str {
+    match root_exists {
+        Some(true) => "yes",
+        Some(false) => "no",
+        None => "skipped",
+    }
+}
+
+fn group_conflicts_json(summaries: &[GroupServicePlan]) -> Vec<serde_json::Value> {
+    summaries
+        .iter()
+        .filter(|summary| summary.active && !summary.conflicts.is_empty())
+        .map(|summary| {
+            serde_json::json!({
+                "service": summary.service,
+                "paths": path_strings(&summary.conflicts)
+            })
+        })
+        .collect()
 }
 
 fn load_group(paths: &LatticePaths, group_name: &str) -> Result<ServiceGroupConfig> {

@@ -18,6 +18,21 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 ### Changed
 
 - Workspace package version is now `0.5.0` for the service-groups release line.
+- `lattice validate` now rejects ambiguous or broken group config: duplicate
+  group names, empty groups, unknown service references, and duplicate service
+  members.
+- Group aggregate status and plan totals now count active services only while
+  retaining inactive members as skipped per-service rows in JSON.
+- Group plan JSON now reports `conflict_count` plus service-keyed `conflicts`
+  objects instead of overloading `conflicts` as a scalar.
+- Human `group status` output now shows `root_exists` so missing roots are
+  distinguishable from empty included file sets.
+
+### Fixed
+
+- `bootstrap check` now preserves service-root inspection I/O errors with
+  `Path::try_exists()` instead of reporting every inaccessible path as a missing
+  root.
 
 ### Not Included
 

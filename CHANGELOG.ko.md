@@ -19,6 +19,19 @@
 
 - Service-groups release line에 맞춰 workspace package version을 `0.5.0`으로
   올렸다.
+- `lattice validate`는 이제 duplicate group name, empty group, unknown service
+  reference, duplicate service member 같은 모호하거나 깨진 group config를 거부한다.
+- Group aggregate status/plan total은 active service만 합산하고, inactive member는
+  JSON의 skipped per-service row로 유지한다.
+- Group plan JSON은 `conflicts`를 scalar로 overload하지 않고 `conflict_count`와
+  service-keyed `conflicts` object를 보고한다.
+- Human `group status` output은 `root_exists`를 표시해 missing root와 empty included
+  file set을 구분한다.
+
+### 수정
+
+- `bootstrap check`는 이제 `Path::try_exists()`로 service-root inspection I/O error를
+  보존하고, 접근 불가 path를 단순 missing root로 보고하지 않는다.
 
 ### 포함하지 않음
 

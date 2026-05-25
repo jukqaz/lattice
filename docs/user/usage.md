@@ -365,6 +365,9 @@ services = ["zsh", "git", "mise", "ssh"]
 
 Inspect the group before touching any files:
 
+Group names must be unique, groups must contain at least one existing service,
+and duplicate service members are rejected by `lattice validate`.
+
 ```bash
 lattice group list
 lattice group show dev-shell
@@ -373,7 +376,14 @@ lattice group plan dev-shell
 lattice group plan --json --exclude 'cache/**' dev-shell
 ```
 
-In v0.5, service groups are intentionally read-only. There is no `group backup`
+In v0.5, service groups are intentionally read-only. `group status` and
+`group plan` aggregate active services only; inactive members remain visible in
+per-service JSON rows with `active=false` and skipped root inspection. The
+human `group status` output includes `root_exists` so a missing root is not
+confused with an empty matched file set. Group plan JSON reports aggregate
+conflicts as `conflict_count` plus a service-keyed `conflicts` array.
+
+There is no `group backup`
 or `group restore`; run individual service commands after the grouped plan looks
 safe.
 

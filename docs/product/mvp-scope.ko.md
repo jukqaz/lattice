@@ -90,7 +90,7 @@ automation-friendly surface를 추가한다.
 | --- | --- | --- | --- |
 | `v0.3.x` | Safe Personal Backup | 개인 dotfiles를 안전하게 backup/restore. | full safety harness, platform CI, install smoke, v0.3.3 tag smoke 통과. |
 | `v0.4.x` | Automation, Bootstrap, Recovery, And Discovery | script와 agent가 human stdout parsing 없이 Lattice를 호출하고, 새 머신 restore, recovery history, 보수적 discovery를 first-class로 만든다. | generic init, JSON output, selector, `plan`, `bootstrap check`, `app` command, snapshot/undo, `discover`, product-surface harness coverage가 v0.4.0 release line에 문서화되고 테스트됨. |
-| `v0.5.x` | Service Groups | Batch mutation 없이 관련 service를 함께 inspect/plan. | `group list/show/status/plan`, JSON output, selector를 group backup/restore 동작보다 먼저 문서화하고 테스트. |
+| `v0.5.x` | Service Groups | Batch mutation 없이 관련 service를 함께 inspect/plan. | `group list/show/status/plan`, JSON output, selector, group invariant validation, active-only aggregate, missing-root visibility를 group backup/restore 동작보다 먼저 문서화하고 테스트. |
 | `v1.0` | Public Stable CLI | 외부 사용자에게 추천 가능한 안정 CLI. | install, changelog, release, migration, change policy, issue workflow 안정화. |
 
 ## 의도적으로 하지 않는 것

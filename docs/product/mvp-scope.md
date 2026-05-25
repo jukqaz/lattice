@@ -95,7 +95,7 @@ top of the safe personal backup baseline:
 | --- | --- | --- | --- |
 | `v0.3.x` | Safe Personal Backup | Safely back up and restore personal dotfiles. | Full safety harness, platform CI, install smoke, and v0.3.3 tag smoke pass. |
 | `v0.4.x` | Automation, Bootstrap, Recovery, And Discovery | Let scripts and agents call Lattice without parsing human stdout, then make new-machine restore, recovery history, and conservative discovery first-class. | Generic init, JSON output, selectors, `plan`, `bootstrap check`, `app` commands, snapshot/undo, `discover`, and product-surface harness coverage are documented and tested in the v0.4.0 release line. |
-| `v0.5.x` | Service Groups | Inspect and plan related services together without introducing batch mutation. | `group list/show/status/plan`, JSON output, and selectors are documented and tested before any group backup/restore behavior. |
+| `v0.5.x` | Service Groups | Inspect and plan related services together without introducing batch mutation. | `group list/show/status/plan`, JSON output, selectors, group invariant validation, active-only aggregates, and missing-root visibility are documented and tested before any group backup/restore behavior. |
 | `v1.0` | Public Stable CLI | Make Lattice recommendable to external users. | Install, changelog, release, migration, change policy, and issue workflows are stable. |
 
 ## Deliberate Non-Goals

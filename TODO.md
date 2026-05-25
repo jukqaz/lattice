@@ -127,6 +127,8 @@ See `docs/product/mvp-scope.md`.
 - [x] Keep group output machine-readable from the start.
 - [x] Add `group list`, `group show`, `group status`, and `group plan` with JSON output.
 - [x] Keep group backup/restore and other batch mutation flows out of v0.5.
+- [x] Validate group invariants: unique group names, non-empty groups, known service references, and no duplicate service members.
+- [x] Keep group aggregates actionable by counting active services only while preserving skipped inactive members in JSON.
 
 ## v1.0 Public Stable CLI
 

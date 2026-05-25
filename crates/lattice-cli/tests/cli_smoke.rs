@@ -122,9 +122,13 @@ include = ["config.toml"]
     assert!(status.contains("group: dev-shell"));
     assert!(status.contains("services: 3"));
     assert!(status.contains("included files: 2"));
-    assert!(status.contains("- shell active=yes included_files=1 manifest=missing"));
-    assert!(status.contains("- git active=yes included_files=1 manifest=missing"));
-    assert!(status.contains("- missing active=yes included_files=0 manifest=missing"));
+    assert!(
+        status.contains("- shell active=yes root_exists=yes included_files=1 manifest=missing")
+    );
+    assert!(status.contains("- git active=yes root_exists=yes included_files=1 manifest=missing"));
+    assert!(
+        status.contains("- missing active=yes root_exists=no included_files=0 manifest=missing")
+    );
 
     let status_json = run_json(bin, &env, &["group", "status", "--json", "dev-shell"]);
     assert_eq!(status_json["group"], "dev-shell");
@@ -136,10 +140,19 @@ include = ["config.toml"]
     assert_eq!(status_json["services"][2]["included_files"], 0);
 
     run_ok(bin, &env, &["backup", "shell"]);
+    write_file(
+        &shell_source,
+        "config.toml",
+        "prompt = \"expanded\"\n",
+        0o600,
+    );
     let plan_json = run_json(bin, &env, &["group", "plan", "--json", "dev-shell"]);
     assert_eq!(plan_json["group"], "dev-shell");
     assert_eq!(plan_json["backup_would_copy"], 2);
     assert_eq!(plan_json["restore_would_restore"], 1);
+    assert_eq!(plan_json["conflict_count"], 1);
+    assert_eq!(plan_json["conflicts"].as_array().unwrap().len(), 1);
+    assert_eq!(plan_json["conflicts"][0]["service"], "shell");
     assert_eq!(plan_json["ready"], false);
     assert_eq!(plan_json["services"].as_array().unwrap().len(), 3);
 
@@ -162,6 +175,154 @@ include = ["config.toml"]
 }
 
 #[test]
+fn group_config_validation_rejects_ambiguous_or_broken_groups() {
+    let bin = env!("CARGO_BIN_EXE_lattice");
+    let cases = [
+        (
+            r#"version = 1
+profile = "main"
+
+[[groups]]
+name = "dupe"
+services = ["alpha"]
+
+[[groups]]
+name = "dupe"
+services = ["alpha"]
+"#,
+            "duplicate group dupe",
+        ),
+        (
+            r#"version = 1
+profile = "main"
+
+[[groups]]
+name = "empty"
+"#,
+            "group empty must include at least one service",
+        ),
+        (
+            r#"version = 1
+profile = "main"
+
+[[groups]]
+name = "broken"
+services = ["ghost"]
+"#,
+            "group broken references unknown service ghost",
+        ),
+        (
+            r#"version = 1
+profile = "main"
+
+[[groups]]
+name = "repeat"
+services = ["alpha", "alpha"]
+"#,
+            "group repeat lists service alpha more than once",
+        ),
+    ];
+
+    for (global_config, expected_error) in cases {
+        let temp = tempdir().expect("tempdir");
+        let env = TestEnv::new(temp.path());
+        run_ok(bin, &env, &["init", "--force"]);
+        let root = temp.path().join("alpha-root");
+        write_file(&root, "config.toml", "alpha = true\n", 0o600);
+        fs::write(
+            env.config.join("lattice/services/alpha.toml"),
+            format!(
+                r#"name = "alpha"
+root = "{}"
+include = ["config.toml"]
+"#,
+                root.display()
+            ),
+        )
+        .expect("write alpha service");
+        fs::write(env.config.join("lattice/lattice.toml"), global_config)
+            .expect("write invalid group config");
+
+        let validate = run_fail(bin, &env, &["validate"]);
+        assert!(
+            validate.contains(expected_error),
+            "expected {expected_error:?}, got:\n{validate}"
+        );
+        let group_list = run_fail(bin, &env, &["group", "list"]);
+        assert!(
+            group_list.contains(expected_error),
+            "expected {expected_error:?}, got:\n{group_list}"
+        );
+    }
+}
+
+#[test]
+fn group_plan_aggregates_only_active_services() {
+    let temp = tempdir().expect("tempdir");
+    let env = TestEnv::new(temp.path());
+    let bin = env!("CARGO_BIN_EXE_lattice");
+
+    run_ok(bin, &env, &["init", "--force"]);
+    let active_root = temp.path().join("active-root");
+    let inactive_root = temp.path().join("inactive-root");
+    write_file(&active_root, "active.toml", "enabled = true\n", 0o600);
+    write_file(&inactive_root, "inactive.toml", "enabled = false\n", 0o600);
+    fs::write(
+        env.config.join("lattice/lattice.toml"),
+        r#"version = 1
+profile = "main"
+
+[[groups]]
+name = "mixed"
+services = ["active", "inactive"]
+"#,
+    )
+    .expect("write mixed group config");
+    fs::write(
+        env.config.join("lattice/services/active.toml"),
+        format!(
+            r#"name = "active"
+root = "{}"
+include = ["*.toml"]
+"#,
+            active_root.display()
+        ),
+    )
+    .expect("write active service");
+    fs::write(
+        env.config.join("lattice/services/inactive.toml"),
+        format!(
+            r#"name = "inactive"
+root = "{}"
+include = ["*.toml"]
+[conditions]
+os = "not-this-os"
+"#,
+            inactive_root.display()
+        ),
+    )
+    .expect("write inactive service");
+
+    let status = run_json(bin, &env, &["group", "status", "--json", "mixed"]);
+    assert_eq!(status["service_count"], 2);
+    assert_eq!(status["active_services"], 1);
+    assert_eq!(status["included_files"], 1);
+    assert_eq!(status["services"][1]["active"], false);
+    assert_eq!(
+        status["services"][1]["root_exists"],
+        serde_json::Value::Null
+    );
+    assert_eq!(status["services"][1]["included_files"], 0);
+
+    let plan = run_json(bin, &env, &["group", "plan", "--json", "mixed"]);
+    assert_eq!(plan["service_count"], 2);
+    assert_eq!(plan["active_services"], 1);
+    assert_eq!(plan["backup_would_copy"], 1);
+    assert_eq!(plan["services"][1]["backup_would_copy"], 0);
+    assert_eq!(plan["services"][1]["root_exists"], serde_json::Value::Null);
+}
+
+#[test]
 fn group_status_preserves_io_errors_for_unreadable_roots() {
     let temp = tempdir().expect("tempdir");
     let env = TestEnv::new(temp.path());
@@ -169,9 +330,8 @@ fn group_status_preserves_io_errors_for_unreadable_roots() {
 
     run_ok(bin, &env, &["init", "--force"]);
 
-    let locked_parent = temp.path().join("locked-parent");
-    fs::create_dir_all(&locked_parent).expect("create locked parent");
-    let locked_root = locked_parent.join("blocked-root");
+    let locked_root = temp.path().join("blocked-root");
+    symlink(&locked_root, &locked_root).expect("create self-referential root symlink");
     fs::write(
         env.config.join("lattice/lattice.toml"),
         r#"version = 1
@@ -195,8 +355,6 @@ include = ["config.toml"]
     )
     .expect("write blocked service");
 
-    fs::set_permissions(&locked_parent, fs::Permissions::from_mode(0o000))
-        .expect("lock parent directory");
     let output = Command::new(bin)
         .args(["group", "status", "blocked"])
         .env("HOME", &env.home)
@@ -206,12 +364,50 @@ include = ["config.toml"]
         .env("XDG_CACHE_HOME", &env.cache)
         .output()
         .expect("run command");
-    fs::set_permissions(&locked_parent, fs::Permissions::from_mode(0o700))
-        .expect("unlock parent directory");
 
     assert!(
         !output.status.success(),
         "group status unexpectedly passed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(String::from_utf8_lossy(&output.stderr).contains("failed to inspect service root"));
+}
+
+#[test]
+fn bootstrap_check_preserves_io_errors_for_unreadable_roots() {
+    let temp = tempdir().expect("tempdir");
+    let env = TestEnv::new(temp.path());
+    let bin = env!("CARGO_BIN_EXE_lattice");
+
+    run_ok(bin, &env, &["init", "--force"]);
+    let locked_root = temp.path().join("blocked-bootstrap-root");
+    symlink(&locked_root, &locked_root).expect("create self-referential bootstrap root symlink");
+    fs::write(
+        env.config.join("lattice/services/blocked-bootstrap.toml"),
+        format!(
+            r#"name = "blocked-bootstrap"
+root = "{}"
+include = ["config.toml"]
+"#,
+            locked_root.display()
+        ),
+    )
+    .expect("write blocked bootstrap service");
+
+    let output = Command::new(bin)
+        .args(["bootstrap", "check"])
+        .env("HOME", &env.home)
+        .env("XDG_CONFIG_HOME", &env.config)
+        .env("XDG_DATA_HOME", &env.data)
+        .env("XDG_STATE_HOME", &env.state)
+        .env("XDG_CACHE_HOME", &env.cache)
+        .output()
+        .expect("run command");
+
+    assert!(
+        !output.status.success(),
+        "bootstrap check unexpectedly passed\nstdout:\n{}\nstderr:\n{}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );

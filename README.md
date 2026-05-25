@@ -180,9 +180,11 @@ description = "Shell and CLI development environment"
 services = ["zsh", "git", "mise", "ssh"]
 ```
 
-Group commands are intentionally read-only in v0.5. Use them to list, inspect,
-status-check, and plan across existing services before deciding whether to run
-individual service backup or restore commands:
+Group commands are intentionally read-only in v0.5. Group names must be unique,
+each group must list at least one existing service, and duplicate service members
+are rejected by `lattice validate`. Use groups to list, inspect, status-check,
+and plan across existing services before deciding whether to run individual
+service backup or restore commands:
 
 ```bash
 lattice group list
@@ -191,6 +193,12 @@ lattice group status dev-shell
 lattice group plan dev-shell
 lattice group plan --json --exclude 'cache/**' dev-shell
 ```
+
+`group status` and `group plan` aggregate active services only; inactive members
+remain visible in per-service JSON rows with `active=false` and skipped root
+inspection. Group plan JSON uses `conflict_count` for the aggregate number and a
+`conflicts` array grouped by service, matching the single-service convention that
+`conflicts` is structured data rather than an overloaded scalar.
 
 There is no `group backup` or `group restore` yet. Batch mutation remains out of
 scope until the read-only planning surface is proven safe.

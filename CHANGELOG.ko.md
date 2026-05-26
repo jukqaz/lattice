@@ -2,7 +2,7 @@
 
 [English](CHANGELOG.md) | 한국어 | [문서 인덱스](docs/README.ko.md)
 
-## v0.5.0 - Unreleased
+## v0.5.0 - 2026-05-26
 
 ### 추가
 

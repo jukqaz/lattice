@@ -17,14 +17,14 @@ this surface directly as `app`.
 
 ## Start Here
 
-Install the current v0.4 release command surface documented below:
+Install the current v0.5 release command surface documented below:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.4.0 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.5.0 --locked
 ```
 
 Use the `main` branch or a local checkout only when testing unreleased changes
-after the v0.4.0 tag.
+after the v0.5.0 tag.
 
 Initialize local config and check whether the machine is ready for managed
 config restores:
@@ -140,6 +140,8 @@ of human text:
 lattice bootstrap check --json
 lattice status --json zsh
 lattice plan --json zsh
+lattice group list --json
+lattice group show --json dev-shell
 lattice group status --json dev-shell
 lattice group plan --json dev-shell
 lattice discover --json
@@ -188,7 +190,9 @@ service backup or restore commands:
 
 ```bash
 lattice group list
+lattice group list --json
 lattice group show dev-shell
+lattice group show --json dev-shell
 lattice group status dev-shell
 lattice group plan dev-shell
 lattice group plan --json --exclude 'cache/**' dev-shell

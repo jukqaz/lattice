@@ -12,9 +12,11 @@ people evaluating or using Lattice.
    backup, restore safely, and sync service repos with Git.
 2. [Product Scope](product/mvp-scope.md): understand what Lattice intentionally
    does, what it avoids, and what belongs in the current release.
-3. [Changelog](../CHANGELOG.md): review release-by-release behavior changes and
+3. [JSON Output Reference](reference/json-output.md): inspect the machine
+   contracts used by scripts and agents.
+4. [Changelog](../CHANGELOG.md): review release-by-release behavior changes and
    migration notes.
-4. [Repository README](../README.md): use the root README as the quick command
+5. [Repository README](../README.md): use the root README as the quick command
    reference.
 
 ## Public Docs
@@ -23,10 +25,14 @@ people evaluating or using Lattice.
 | --- | --- | --- |
 | 1 | [User Guide](user/usage.md) | Day-one setup and common operations |
 | 2 | [Product Scope](product/mvp-scope.md) | Product boundaries and release scope |
-| 3 | [Changelog](../CHANGELOG.md) | Upgrade and release history |
-| 4 | [Korean User Guide](user/usage.ko.md) | Korean day-one setup |
-| 5 | [Korean Product Scope](product/mvp-scope.ko.md) | Korean product boundaries |
-| 6 | [Korean Changelog](../CHANGELOG.ko.md) | Korean release history |
+| 3 | [JSON Output Reference](reference/json-output.md) | Machine-readable output contracts |
+| 4 | [Quality Gates](dev/quality.md) | Local verification and release quality tools |
+| 5 | [Changelog](../CHANGELOG.md) | Upgrade and release history |
+| 6 | [Korean User Guide](user/usage.ko.md) | Korean day-one setup |
+| 7 | [Korean Product Scope](product/mvp-scope.ko.md) | Korean product boundaries |
+| 8 | [Korean JSON Output Reference](reference/json-output.ko.md) | Korean machine-readable output contracts |
+| 9 | [Korean Quality Gates](dev/quality.ko.md) | Korean local verification and quality tools |
+| 10 | [Korean Changelog](../CHANGELOG.ko.md) | Korean release history |
 
 ## LLM Docs
 

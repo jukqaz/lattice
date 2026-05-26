@@ -2,7 +2,7 @@
 
 English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
-## v0.5.0 - Unreleased
+## v0.5.0 - 2026-05-26
 
 ### Added
 

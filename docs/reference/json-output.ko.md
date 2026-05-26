@@ -116,13 +116,13 @@ Notes:
   "active_services": 3,
   "backup_would_copy": 7,
   "restore_would_restore": 2,
-  "create_dirs": 1,
+  "restore_would_create_dirs": 1,
   "conflict_count": 1,
   "ready": false,
   "conflicts": [
     {
       "service": "zsh",
-      "path": "config.toml"
+      "paths": ["config.toml"]
     }
   ],
   "services": [
@@ -140,7 +140,7 @@ Notes:
 
 Notes:
 
-- `backup_would_copy`, `restore_would_restore`, `create_dirs`, `conflict_count`는
+- `backup_would_copy`, `restore_would_restore`, `restore_would_create_dirs`, `conflict_count`는
   active-service aggregate입니다.
 - `conflict_count`는 numeric aggregate입니다.
 - `conflicts`는 service별 structured data입니다. Scalar count로 다루지 않습니다.

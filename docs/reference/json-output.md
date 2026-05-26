@@ -117,13 +117,13 @@ Important fields:
   "active_services": 3,
   "backup_would_copy": 7,
   "restore_would_restore": 2,
-  "create_dirs": 1,
+  "restore_would_create_dirs": 1,
   "conflict_count": 1,
   "ready": false,
   "conflicts": [
     {
       "service": "zsh",
-      "path": "config.toml"
+      "paths": ["config.toml"]
     }
   ],
   "services": [
@@ -141,7 +141,7 @@ Important fields:
 
 Notes:
 
-- `backup_would_copy`, `restore_would_restore`, `create_dirs`, and
+- `backup_would_copy`, `restore_would_restore`, `restore_would_create_dirs`, and
   `conflict_count` are active-service aggregates.
 - `conflict_count` is the numeric aggregate.
 - `conflicts` remains structured data grouped by service. Do not treat it as a

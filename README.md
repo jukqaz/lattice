@@ -140,6 +140,8 @@ of human text:
 lattice bootstrap check --json
 lattice status --json zsh
 lattice plan --json zsh
+lattice group list --json
+lattice group show --json dev-shell
 lattice group status --json dev-shell
 lattice group plan --json dev-shell
 lattice discover --json
@@ -188,7 +190,9 @@ service backup or restore commands:
 
 ```bash
 lattice group list
+lattice group list --json
 lattice group show dev-shell
+lattice group show --json dev-shell
 lattice group status dev-shell
 lattice group plan dev-shell
 lattice group plan --json --exclude 'cache/**' dev-shell

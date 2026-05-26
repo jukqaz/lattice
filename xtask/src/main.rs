@@ -332,11 +332,59 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "top-level help should expose bootstrap commands",
     )?;
     ensure_contains(&top_help, "plan", "top-level help should expose plan")?;
+    ensure_contains(&top_help, "group", "top-level help should expose groups")?;
+    ensure_contains(
+        &top_help,
+        "Inspect service groups without mutating state",
+        "top-level help should describe groups as read-only inspection",
+    )?;
     ensure_not_contains_case_insensitive(
         &top_help,
         "preset",
         "top-level help should not expose old catalog terminology",
     )?;
+
+    let group_help = run_capture(
+        root,
+        "cargo",
+        ["run", "--quiet", "--", "group", "--help"],
+        &xdg,
+    )?;
+    for needle in [
+        "list",
+        "show",
+        "status",
+        "plan",
+        "List configured service groups",
+        "Show one service group",
+        "Show grouped service status",
+        "Summarize grouped service plans",
+    ] {
+        ensure_contains(&group_help, needle, &format!("group help missing {needle}"))?;
+    }
+    ensure_not_contains_case_insensitive(
+        &group_help,
+        "backup",
+        "group help should not expose batch backup mutation",
+    )?;
+    ensure_not_contains_case_insensitive(
+        &group_help,
+        "restore",
+        "group help should not expose batch restore mutation",
+    )?;
+    for mutation in ["backup", "restore"] {
+        let error = run_capture_fail(
+            root,
+            "cargo",
+            ["run", "--quiet", "--", "group", mutation, "dev-shell"],
+            &xdg,
+        )?;
+        ensure_contains(
+            &error,
+            "unrecognized subcommand",
+            &format!("group {mutation} should be rejected as unsupported batch mutation"),
+        )?;
+    }
 
     let app_help = run_capture(
         root,
@@ -390,8 +438,34 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "lattice bootstrap check",
         "lattice plan",
         "Apps are not product centers",
+        "lattice group list --json",
+        "lattice group show --json",
+        "lattice group status --json",
+        "lattice group plan --json",
+        "Service Groups",
+        "Group commands are intentionally read-only in v0.5",
+        "There is no `group backup` or `group restore` yet",
+        "conflict_count",
+        "active=false",
     ] {
         ensure_contains(&readme, needle, &format!("README.md missing {needle}"))?;
+    }
+
+    let korean_readme = read_repo_text(root, "README.ko.md")?;
+    for needle in [
+        "lattice group list --json",
+        "lattice group show --json",
+        "lattice group status --json",
+        "lattice group plan --json",
+        "Service Groups",
+        "conflict_count",
+        "active=false",
+    ] {
+        ensure_contains(
+            &korean_readme,
+            needle,
+            &format!("README.ko.md missing {needle}"),
+        )?;
     }
 
     let user_guide = read_repo_text(root, "docs/user/usage.md")?;
@@ -402,11 +476,34 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "lattice bootstrap check",
         "lattice plan --json",
         "Codex is\nonly one example app",
+        "lattice group list --json",
+        "lattice group show --json",
+        "lattice group status --json",
+        "lattice group plan --json",
+        "Selector",
     ] {
         ensure_contains(
             &user_guide,
             needle,
             &format!("docs/user/usage.md missing {needle}"),
+        )?;
+    }
+
+    let korean_user_guide = read_repo_text(root, "docs/user/usage.ko.md")?;
+    for needle in [
+        "lattice group list --json",
+        "lattice group show --json",
+        "lattice group status --json",
+        "lattice group plan --json",
+        "Selector",
+        "batch backup",
+        "conflict_count",
+        "active=false",
+    ] {
+        ensure_contains(
+            &korean_user_guide,
+            needle,
+            &format!("docs/user/usage.ko.md missing {needle}"),
         )?;
     }
 
@@ -417,6 +514,12 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "`bootstrap check` for new-machine readiness diagnostics",
         "`app list`, `app show <app>`, and `app add <app>`",
         "product-surface harness coverage",
+        "Service Groups",
+        "`group list/show/status/plan`",
+        "JSON output",
+        "group invariant validation",
+        "active-only aggregates",
+        "missing-root visibility",
     ] {
         ensure_contains(
             &product_scope,
@@ -432,6 +535,12 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "`bootstrap check`",
         "`app list`, `app show <app>`, `app add <app>`",
         "product-surface harness",
+        "Service Groups",
+        "`group list/show/status/plan`",
+        "JSON output",
+        "group invariant validation",
+        "active-only aggregate",
+        "missing-root visibility",
     ] {
         ensure_contains(
             &korean_scope,

@@ -315,6 +315,8 @@ output:
 ```bash
 lattice status --json shell
 lattice plan --json shell
+lattice group list --json
+lattice group show --json dev-shell
 lattice group status --json dev-shell
 lattice group plan --json dev-shell
 lattice discover --json
@@ -370,7 +372,9 @@ and duplicate service members are rejected by `lattice validate`.
 
 ```bash
 lattice group list
+lattice group list --json
 lattice group show dev-shell
+lattice group show --json dev-shell
 lattice group status dev-shell
 lattice group plan dev-shell
 lattice group plan --json --exclude 'cache/**' dev-shell

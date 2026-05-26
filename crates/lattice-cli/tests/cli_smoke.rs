@@ -1206,6 +1206,129 @@ fn filesystem_edge_harness_rejects_overlap_names_and_metadata_loss() {
 }
 
 #[test]
+fn tampered_manifest_and_destination_symlinks_do_not_escape_sandbox() {
+    let temp = tempdir().expect("tempdir");
+    let env = TestEnv::new(temp.path());
+    let bin = env!("CARGO_BIN_EXE_lattice");
+
+    run_ok(bin, &env, &["init", "--force"]);
+
+    let tampered_root = temp.path().join("tampered-root");
+    let tampered_repo = temp.path().join("tampered-repo");
+    fs::create_dir_all(&tampered_root).expect("create tampered root");
+    fs::create_dir_all(tampered_repo.join(".lattice")).expect("create tampered manifest dir");
+    fs::write(
+        env.config.join("lattice/services/tampered.toml"),
+        format!(
+            r#"
+name = "tampered"
+root = "{}"
+repo = "{}"
+include = ["config.toml"]
+"#,
+            tampered_root.display(),
+            tampered_repo.display()
+        ),
+    )
+    .expect("write tampered service config");
+
+    fs::write(
+        tampered_repo.join(".lattice/manifest.toml"),
+        r#"version = 1
+entries = [
+  { path = "../escaped.txt", mode = "0600" },
+]
+"#,
+    )
+    .expect("write traversal manifest");
+    let traversal = run_fail(bin, &env, &["restore", "--dry-run", "tampered"]);
+    assert!(traversal.contains("unsafe relative path"));
+    assert!(!temp.path().join("escaped.txt").exists());
+
+    fs::write(
+        tampered_repo.join(".lattice/manifest.toml"),
+        format!(
+            r#"version = 1
+entries = [
+  {{ path = "{}", mode = "0600" }},
+]
+"#,
+            temp.path().join("absolute-escape.txt").display()
+        ),
+    )
+    .expect("write absolute path manifest");
+    let absolute = run_fail(bin, &env, &["restore", "--force", "tampered"]);
+    assert!(absolute.contains("unsafe relative path"));
+    assert!(!temp.path().join("absolute-escape.txt").exists());
+
+    let destlink_source = temp.path().join("destlink-source");
+    let destlink_repo = temp.path().join("destlink-repo");
+    let outside_target = temp.path().join("outside-target.txt");
+    write_file(&destlink_source, "config.toml", "source version\n", 0o600);
+    fs::create_dir_all(&destlink_repo).expect("create destlink repo");
+    fs::write(&outside_target, "outside stays put\n").expect("write outside target");
+    symlink(&outside_target, destlink_repo.join("config.toml"))
+        .expect("create repo destination symlink");
+    run_ok(
+        bin,
+        &env,
+        &[
+            "service",
+            "add",
+            "destlink",
+            "--root",
+            destlink_source.to_str().expect("destlink root"),
+            "--repo",
+            destlink_repo.to_str().expect("destlink repo"),
+            "--include",
+            "config.toml",
+        ],
+    );
+    let destlink = run_fail(bin, &env, &["backup", "destlink"]);
+    assert!(destlink.contains("backup destination is a symlink"));
+    assert_eq!(
+        fs::read_to_string(&outside_target).unwrap(),
+        "outside stays put\n"
+    );
+    assert!(!destlink_repo.join(".lattice/manifest.toml").exists());
+
+    let createdirs_root = temp.path().join("createdirs-root");
+    let createdirs_repo = temp.path().join("createdirs-repo");
+    let outside_dir = temp.path().join("outside-dir");
+    fs::create_dir_all(&createdirs_root).expect("create createdirs root");
+    fs::create_dir_all(createdirs_repo.join(".lattice")).expect("create createdirs manifest dir");
+    fs::create_dir_all(&outside_dir).expect("create outside dir");
+    symlink(&outside_dir, createdirs_root.join("cache")).expect("create restore dir symlink");
+    fs::write(
+        createdirs_repo.join(".lattice/manifest.toml"),
+        "version = 1\nentries = []\n",
+    )
+    .expect("write empty manifest");
+    fs::write(
+        env.config.join("lattice/services/createdirs.toml"),
+        format!(
+            r#"
+name = "createdirs"
+root = "{}"
+repo = "{}"
+include = ["config.toml"]
+
+[restore]
+create_dirs = [
+  {{ path = "cache/nested", mode = "0700" }},
+]
+"#,
+            createdirs_root.display(),
+            createdirs_repo.display()
+        ),
+    )
+    .expect("write createdirs service config");
+    let createdirs = run_fail(bin, &env, &["restore", "createdirs"]);
+    assert!(createdirs.contains("destination parent is a symlink"));
+    assert!(!outside_dir.join("nested").exists());
+}
+
+#[test]
 fn adopt_failure_does_not_persist_tracking_or_copy_secret_like_files() {
     let temp = tempdir().expect("tempdir");
     let env = TestEnv::new(temp.path());

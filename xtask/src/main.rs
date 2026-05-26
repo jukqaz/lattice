@@ -421,6 +421,10 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "docs/product/mvp-scope.ko.md",
         "docs/user/usage.md",
         "docs/user/usage.ko.md",
+        "docs/reference/json-output.md",
+        "docs/reference/json-output.ko.md",
+        "docs/dev/quality.md",
+        "docs/dev/quality.ko.md",
     ] {
         let body = read_repo_text(root, relative)?;
         ensure_not_contains_case_insensitive(
@@ -546,6 +550,51 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
             &korean_scope,
             needle,
             &format!("docs/product/mvp-scope.ko.md missing {needle}"),
+        )?;
+    }
+
+    let docs_index = read_repo_text(root, "docs/README.md")?;
+    for needle in [
+        "reference/json-output.md",
+        "dev/quality.md",
+        "reference/json-output.ko.md",
+        "dev/quality.ko.md",
+    ] {
+        ensure_contains(
+            &docs_index,
+            needle,
+            &format!("docs/README.md missing {needle}"),
+        )?;
+    }
+
+    let json_reference = read_repo_text(root, "docs/reference/json-output.md")?;
+    for needle in [
+        "lattice group list --json",
+        "lattice group status --json",
+        "root_exists=null",
+        "conflict_count",
+        "There is no `group backup` or `group restore` in v0.5",
+    ] {
+        ensure_contains(
+            &json_reference,
+            needle,
+            &format!("docs/reference/json-output.md missing {needle}"),
+        )?;
+    }
+
+    let quality_doc = read_repo_text(root, "docs/dev/quality.md")?;
+    for needle in [
+        "cargo run -p xtask -- verify",
+        "cargo install cargo-deny --locked",
+        "cargo install cargo-machete --locked",
+        "cargo install cargo-llvm-cov --locked",
+        "cargo install typos-cli --locked",
+        "cargo run -p xtask -- quality",
+    ] {
+        ensure_contains(
+            &quality_doc,
+            needle,
+            &format!("docs/dev/quality.md missing {needle}"),
         )?;
     }
 

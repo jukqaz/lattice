@@ -21,7 +21,7 @@ language calls common managed targets **apps**. App knowledge belongs in an
 optional app catalog only when it improves the generic dotfile-management
 workflow. Codex is one example app, not the product center.
 
-## Current Baseline: v0.3.3
+## Released Baseline: v0.3.3
 
 v0.3.3 is the first release line intended for regular personal use. It includes
 the v0.2 safety layer, the first CLI-first management layer, empty directory
@@ -63,10 +63,10 @@ Released v0.3.3 scope:
 - GitHub Actions for Linux x86_64, Linux ARM64, macOS Apple Silicon, and
   dependency/coverage/typo quality checks.
 
-## Main Branch After v0.3.3
+## Released Automation Line: v0.4.0
 
-The current tagged release is v0.4.0. It adds automation-friendly surfaces on
-top of the safe personal backup baseline:
+v0.4.0 adds automation-friendly surfaces on top of the safe personal backup
+baseline:
 
 - `lattice init` creates generic Lattice config and storage directories without
   creating a tool-specific service by default.
@@ -88,6 +88,33 @@ top of the safe personal backup baseline:
   restore flows.
 - CLI smoke and product-surface harness coverage for the JSON, selector,
   app-catalog, and bootstrap contracts.
+
+## Current Release Candidate: v0.5.0
+
+v0.5.0 adds conservative service groups for related services. Groups are named
+bundles of existing services, not a second service type and not an app-catalog
+redesign.
+
+Release-candidate v0.5.0 scope:
+
+- Service groups in global config as ordered named bundles of existing services.
+- `group list`, `group show`, `group status`, and `group plan` for read-only
+  multi-service inspection and dry-run planning.
+- Machine-readable JSON output for every group command.
+- Path selectors on `group status` and `group plan`, reusing the same selector
+  semantics as single-service flows.
+- Group invariant validation: unique group names, non-empty groups, known service
+  references, and no duplicate service members.
+- Active-only aggregates for actionable current-host totals, with inactive
+  members retained as skipped per-service rows in JSON.
+- Group plan JSON with numeric `conflict_count` and structured service-keyed
+  `conflicts` data.
+- Human `group status` missing-root visibility through `root_exists` output.
+- Product-surface harness coverage for group help, docs, JSON examples,
+  read-only command exposure, and unsupported `group backup` / `group restore`.
+
+Group backup, group restore, and other batch mutation flows remain intentionally
+out of scope until the read-only group status/plan surface is proven safe.
 
 ## Roadmap
 

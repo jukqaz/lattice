@@ -129,6 +129,18 @@ See `docs/product/mvp-scope.md`.
 - [x] Keep group backup/restore and other batch mutation flows out of v0.5.
 - [x] Validate group invariants: unique group names, non-empty groups, known service references, and no duplicate service members.
 - [x] Keep group aggregates actionable by counting active services only while preserving skipped inactive members in JSON.
+- [x] Document v0.5.0 service-group scope in README, user docs, product scope, and changelog.
+- [x] Add a minimal service-group JSON output reference for automation users.
+- [x] Document local quality-tool bootstrap for reproducing the CI quality gate.
+
+## v0.6.x Automation Contract Hardening
+
+- [ ] Expand JSON output reference beyond service groups to all `--json` commands.
+- [ ] Add golden or fixture-based JSON contract tests for the stable automation surfaces.
+- [ ] Improve local quality-tool diagnostics or add an explicit bootstrap helper.
+- [ ] Split the large CLI command implementation into focused command modules without behavior changes.
+- [ ] Add release-check automation for version, changelog, path install, and tag smoke steps.
+- [ ] Design a read-only `audit`/`guidance` surface before any MCP prototype.
 
 ## v1.0 Public Stable CLI
 

@@ -18,7 +18,7 @@ Lattice는 full system configuration manager, package manager, secret manager가
 대상을 **앱**이라고 부른다. 앱 지식은 범용 dotfile-management workflow를 개선할
 때만 선택적 app catalog에 둔다. Codex는 제품의 중심이 아니라 예시 앱 중 하나다.
 
-## 현재 기준선: v0.3.3
+## 릴리스된 기준선: v0.3.3
 
 v0.3.3은 일반적인 개인 dotfiles 관리에 사용할 수 있는 첫 릴리스 라인이다.
 v0.2의 safety layer, 첫 CLI-first 관리 계층, 빈 디렉터리 보존, portable
@@ -60,10 +60,9 @@ filesystem safety check를 포함한다.
 - Linux x86_64, Linux ARM64, macOS Apple Silicon, dependency/coverage/typo
   quality check를 도는 GitHub Actions.
 
-## v0.3.3 이후 main branch
+## 릴리스된 automation 라인: v0.4.0
 
-현재 tagged release는 v0.4.0이다. 안전한 개인 backup 기준선 위에
-automation-friendly surface를 추가한다.
+v0.4.0은 안전한 개인 backup 기준선 위에 automation-friendly surface를 추가한다.
 
 - `lattice init`은 tool-specific service를 기본 생성하지 않고 범용 Lattice config와
   storage directory만 만든다.
@@ -83,6 +82,34 @@ automation-friendly surface를 추가한다.
 - status, plan, backup, diff, restore flow의 `--only`, `--exclude` path selector.
 - JSON, selector, app-catalog, bootstrap contract를 고정하는 CLI smoke와
   product-surface harness coverage.
+
+## 현재 릴리스 후보: v0.5.0
+
+v0.5.0은 관련 service를 함께 다루기 위한 보수적인 Service Groups를 추가한다.
+Group은 기존 service의 named bundle이며, 두 번째 service type이나 app catalog
+redesign이 아니다.
+
+릴리스 후보 v0.5.0 범위:
+
+- Global config 안의 service group. Group은 기존 service를 순서 있는 named bundle로
+  묶는다.
+- 읽기 전용 multi-service 점검과 dry-run planning을 위한 `group list`,
+  `group show`, `group status`, `group plan`.
+- 모든 group command의 machine-readable JSON output.
+- Single-service flow와 같은 selector semantics를 재사용하는 `group status`,
+  `group plan` path selector.
+- Group invariant validation: unique group name, non-empty group, known service
+  reference, duplicate service member 금지.
+- 현재 host에서 실행 가능한 total을 위해 active-only aggregate를 사용하고,
+  inactive member는 JSON의 skipped per-service row로 유지.
+- Numeric `conflict_count`와 service-keyed structured `conflicts`를 포함한 group
+  plan JSON.
+- Human `group status`의 `root_exists` output으로 missing-root visibility 제공.
+- Group help, docs, JSON example, read-only command exposure, unsupported
+  `group backup` / `group restore`를 고정하는 product-surface harness coverage.
+
+Group backup, group restore, 기타 batch mutation flow는 읽기 전용 group
+status/plan surface의 안전성이 검증될 때까지 의도적으로 scope 밖이다.
 
 ## 로드맵
 

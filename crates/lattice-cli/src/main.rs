@@ -2325,6 +2325,7 @@ fn undo_snapshot(
     let service_config = load_service(paths, &record.service)?;
     ensure_service_active(&service_config)?;
     let root = expand_path(&service_config.root)?;
+    let plan = plan_snapshot_restore_entries(&record.path, &root, &record.entries)?;
 
     if dry_run {
         if json_output {
@@ -2333,14 +2334,15 @@ fn undo_snapshot(
                 "service": record.service,
                 "dry_run": true,
                 "destination": root.display().to_string(),
-                "would_restore": record.entries.len(),
+                "preflight": "ok",
+                "would_restore": plan.len(),
                 "entries": record.entries
             }))?;
             return Ok(());
         }
         println!(
             "would restore {} files from snapshot {} to {}",
-            record.entries.len(),
+            plan.len(),
             record.id,
             root.display()
         );
@@ -2350,7 +2352,7 @@ fn undo_snapshot(
         return Ok(());
     }
 
-    let restored = restore_snapshot_entries(&record.path, &root, &record.entries)?;
+    let restored = restore_planned_snapshot_entries(&record.path, &root, &plan)?;
     if json_output {
         print_json(serde_json::json!({
             "snapshot": record.id,
@@ -2384,7 +2386,8 @@ fn discover(paths: &LatticePaths, json_output: bool) -> Result<()> {
                     "root": suggestion.root.display().to_string(),
                     "include": suggestion.include,
                     "exclude": suggestion.exclude,
-                    "reason": suggestion.reason
+                    "reason": suggestion.reason,
+                    "warnings": suggestion.warnings
                 })
             })
             .collect::<Vec<_>>();
@@ -2401,6 +2404,9 @@ fn discover(paths: &LatticePaths, json_output: bool) -> Result<()> {
         println!("  include: {}", suggestion.include.join(", "));
         if !suggestion.exclude.is_empty() {
             println!("  exclude: {}", suggestion.exclude.join(", "));
+        }
+        for warning in &suggestion.warnings {
+            println!("  warning: {warning}");
         }
     }
     println!("mutated: no");
@@ -2422,6 +2428,7 @@ struct DiscoverySuggestion {
     include: Vec<String>,
     exclude: Vec<String>,
     reason: String,
+    warnings: Vec<String>,
 }
 
 fn snapshot_root(paths: &LatticePaths) -> PathBuf {
@@ -2537,11 +2544,46 @@ fn collect_relative_files(root: &Path, dir: &Path, files: &mut Vec<String>) -> R
     Ok(())
 }
 
-fn restore_snapshot_entries(
+fn restore_planned_snapshot_entries(
+    snapshot_root: &Path,
+    destination_root: &Path,
+    plan: &[SnapshotRestoreEntry],
+) -> Result<usize> {
+    for entry in plan {
+        ensure_no_snapshot_path_symlinks(snapshot_root, &entry.relative, false)?;
+        ensure_regular_snapshot_source(&entry.source)?;
+        create_snapshot_parent_dirs(destination_root, &entry.relative)?;
+        ensure_snapshot_destination_available(destination_root, &entry.relative)?;
+        let source_permissions = fs::metadata(&entry.source)
+            .with_context(|| format!("failed to stat {}", entry.source.display()))?
+            .permissions();
+        fs::copy(&entry.source, &entry.destination).with_context(|| {
+            format!(
+                "failed to restore snapshot {} to {}",
+                entry.source.display(),
+                entry.destination.display()
+            )
+        })?;
+        fs::set_permissions(&entry.destination, source_permissions)
+            .with_context(|| format!("failed to chmod {}", entry.destination.display()))?;
+    }
+
+    Ok(plan.len())
+}
+
+struct SnapshotRestoreEntry {
+    relative: PathBuf,
+    source: PathBuf,
+    destination: PathBuf,
+}
+
+fn plan_snapshot_restore_entries(
     snapshot_root: &Path,
     destination_root: &Path,
     entries: &[String],
-) -> Result<usize> {
+) -> Result<Vec<SnapshotRestoreEntry>> {
+    let mut plan = Vec::with_capacity(entries.len());
+
     for entry in entries {
         let relative = Path::new(entry);
         validate_relative_config_path(entry)?;
@@ -2549,25 +2591,15 @@ fn restore_snapshot_entries(
         let destination = destination_root.join(relative);
         ensure_no_snapshot_path_symlinks(snapshot_root, relative, false)?;
         ensure_regular_snapshot_source(&source)?;
-        ensure_no_snapshot_path_symlinks(destination_root, relative, true)?;
-        if let Some(parent) = destination.parent() {
-            fs::create_dir_all(parent)
-                .with_context(|| format!("failed to create {}", parent.display()))?;
-        }
-        let source_permissions = fs::metadata(&source)
-            .with_context(|| format!("failed to stat {}", source.display()))?
-            .permissions();
-        fs::copy(&source, &destination).with_context(|| {
-            format!(
-                "failed to restore snapshot {} to {}",
-                source.display(),
-                destination.display()
-            )
-        })?;
-        fs::set_permissions(&destination, source_permissions)
-            .with_context(|| format!("failed to chmod {}", destination.display()))?;
+        ensure_snapshot_destination_available(destination_root, relative)?;
+        plan.push(SnapshotRestoreEntry {
+            relative: relative.to_path_buf(),
+            source,
+            destination,
+        });
     }
-    Ok(entries.len())
+
+    Ok(plan)
 }
 
 fn ensure_regular_snapshot_source(path: &Path) -> Result<()> {
@@ -2602,6 +2634,69 @@ fn ensure_no_snapshot_path_symlinks(
     Ok(())
 }
 
+fn ensure_snapshot_destination_available(root: &Path, relative: &Path) -> Result<()> {
+    let mut current = root.to_path_buf();
+    let mut components = relative.components().peekable();
+    while let Some(component) = components.next() {
+        let is_final = components.peek().is_none();
+        current.push(component.as_os_str());
+        match fs::symlink_metadata(&current) {
+            Ok(metadata) => {
+                if metadata.file_type().is_symlink() {
+                    bail!("snapshot restore path is a symlink: {}", current.display());
+                }
+                if is_final {
+                    if !metadata.is_file() {
+                        bail!(
+                            "snapshot restore destination is not a regular file: {}",
+                            current.display()
+                        );
+                    }
+                } else if !metadata.is_dir() {
+                    bail!(
+                        "snapshot restore parent is not a directory: {}",
+                        current.display()
+                    );
+                }
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => {
+                return Err(error).with_context(|| format!("failed to stat {}", current.display()));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn create_snapshot_parent_dirs(root: &Path, relative: &Path) -> Result<()> {
+    let parent = relative.parent().unwrap_or_else(|| Path::new(""));
+    let mut current = root.to_path_buf();
+    for component in parent.components() {
+        current.push(component.as_os_str());
+        match fs::symlink_metadata(&current) {
+            Ok(metadata) => {
+                if metadata.file_type().is_symlink() {
+                    bail!("snapshot restore path is a symlink: {}", current.display());
+                }
+                if !metadata.is_dir() {
+                    bail!(
+                        "snapshot restore parent is not a directory: {}",
+                        current.display()
+                    );
+                }
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                fs::create_dir(&current)
+                    .with_context(|| format!("failed to create {}", current.display()))?;
+            }
+            Err(error) => {
+                return Err(error).with_context(|| format!("failed to stat {}", current.display()));
+            }
+        }
+    }
+    Ok(())
+}
+
 fn snapshot_path_is_symlink(path: &Path) -> Result<bool> {
     match fs::symlink_metadata(path) {
         Ok(metadata) => Ok(metadata.file_type().is_symlink()),
@@ -2628,47 +2723,80 @@ fn discover_config_dirs(home: &Path) -> Result<Vec<DiscoverySuggestion>> {
         if name == "lattice" || name.starts_with('.') {
             continue;
         }
-        let (include, exclude) = conservative_patterns(&root)?;
-        if include.is_empty() {
+        let (include, exclude, warnings) = conservative_patterns(&root)?;
+        if include.is_empty() && warnings.is_empty() {
             continue;
         }
+        let reason = if include.is_empty() {
+            "local XDG config directory with only excluded warning-level files"
+        } else {
+            "local XDG config directory with non-secret-looking files"
+        };
         suggestions.push(DiscoverySuggestion {
             name,
             root,
             include,
             exclude,
-            reason: "local XDG config directory with non-secret-looking files".to_string(),
+            reason: reason.to_string(),
+            warnings,
         });
     }
     Ok(suggestions)
 }
-
 fn discover_shell(home: &Path) -> Option<DiscoverySuggestion> {
-    let mut include = [".bashrc", ".zshrc", ".profile"]
-        .into_iter()
-        .filter(|name| discovery_file_is_small(&home.join(name)).unwrap_or(false))
-        .map(str::to_string)
-        .collect::<Vec<_>>();
+    let (mut include, mut exclude, warnings) = discover_shell_patterns(home);
     include.sort();
-    if include.is_empty() {
+    exclude.extend([
+        ".cache/**".to_string(),
+        ".config/**".to_string(),
+        ".local/share/**".to_string(),
+        ".ssh/**".to_string(),
+    ]);
+    exclude.sort();
+    exclude.dedup();
+    if include.is_empty() && warnings.is_empty() {
         return None;
     }
+    let reason = if include.is_empty() {
+        "common shell startup files with only excluded warning-level files"
+    } else {
+        "common shell startup files"
+    };
     Some(DiscoverySuggestion {
         name: "shell".to_string(),
         root: home.to_path_buf(),
         include,
-        exclude: vec![
-            ".cache/**".to_string(),
-            ".local/share/**".to_string(),
-            ".ssh/**".to_string(),
-        ],
-        reason: "common shell startup files".to_string(),
+        exclude,
+        reason: reason.to_string(),
+        warnings,
     })
 }
 
-fn conservative_patterns(root: &Path) -> Result<(Vec<String>, Vec<String>)> {
+fn discover_shell_patterns(home: &Path) -> (Vec<String>, Vec<String>, Vec<String>) {
     let mut include = Vec::new();
     let mut exclude = Vec::new();
+    let mut warnings = Vec::new();
+    for name in [".bashrc", ".zshrc", ".profile"] {
+        let path = home.join(name);
+        let Ok(true) = discovery_file_is_small(&path) else {
+            continue;
+        };
+        match discovery_secret_like_patterns(&path) {
+            Ok(patterns) if patterns.is_empty() => include.push(name.to_string()),
+            Ok(patterns) => {
+                exclude.push(name.to_string());
+                warnings.push(discovery_secret_warning(name, &patterns));
+            }
+            Err(_) => {}
+        }
+    }
+    (include, exclude, warnings)
+}
+
+fn conservative_patterns(root: &Path) -> Result<(Vec<String>, Vec<String>, Vec<String>)> {
+    let mut include = Vec::new();
+    let mut exclude = Vec::new();
+    let mut warnings = Vec::new();
     for entry in fs::read_dir(root).with_context(|| format!("failed to read {}", root.display()))? {
         let entry = entry?;
         let name = entry.file_name().to_string_lossy().to_string();
@@ -2683,6 +2811,12 @@ fn conservative_patterns(root: &Path) -> Result<(Vec<String>, Vec<String>)> {
             continue;
         }
         if metadata.is_file() && discovery_file_is_small(&entry.path())? {
+            let patterns = discovery_secret_like_patterns(&entry.path())?;
+            if !patterns.is_empty() {
+                exclude.push(name.clone());
+                warnings.push(discovery_secret_warning(&name, &patterns));
+                continue;
+            }
             include.push(name);
         }
     }
@@ -2690,7 +2824,22 @@ fn conservative_patterns(root: &Path) -> Result<(Vec<String>, Vec<String>)> {
     include.dedup();
     exclude.sort();
     exclude.dedup();
-    Ok((include, exclude))
+    warnings.sort();
+    warnings.dedup();
+    Ok((include, exclude, warnings))
+}
+
+fn discovery_secret_like_patterns(path: &Path) -> Result<Vec<String>> {
+    let bytes = fs::read(path).with_context(|| format!("failed to read {}", path.display()))?;
+    let content = String::from_utf8_lossy(&bytes);
+    Ok(find_secret_like_patterns(&content))
+}
+
+fn discovery_secret_warning(path: &str, patterns: &[String]) -> String {
+    format!(
+        "excluded {path} because it contains secret-looking content ({})",
+        patterns.join(", ")
+    )
 }
 
 fn should_exclude_discovery_name(name: &str, is_dir: bool) -> bool {

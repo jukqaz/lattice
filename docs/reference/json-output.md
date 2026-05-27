@@ -3,7 +3,7 @@
 English | [한국어](json-output.ko.md) | [Documentation Index](../README.md)
 
 This reference documents the machine-readable output that scripts and agents can
-use without parsing human text. The shapes below are part of the v0.5.0
+use without parsing human text. The shapes below are part of the v0.5.1 hardened
 service-groups release line, but Lattice is still pre-v1.0: treat these fields as
 release-line contracts rather than forever-stable public API.
 
@@ -19,6 +19,42 @@ release-line contracts rather than forever-stable public API.
 - Service-group aggregate totals are current-host actionable totals: inactive
   services stay visible in per-service rows but do not contribute to active-only
   aggregate counts.
+
+## Discover JSON
+
+### `lattice discover --json`
+
+Top-level shape:
+
+```json
+{
+  "suggestions": [
+    {
+      "name": "shell",
+      "root": "/home/alice",
+      "include": [".zshrc"],
+      "exclude": [".cache/**", ".config/**", ".profile"],
+      "reason": "common shell startup files",
+      "warnings": [
+        "excluded .profile because it contains secret-looking content (github token)"
+      ]
+    }
+  ],
+  "mutated": false,
+  "services_dir": "/home/alice/.config/lattice/services"
+}
+```
+
+Notes:
+
+- `discover` never writes service files. Add reviewed suggestions explicitly with
+  `app add` or `service add`.
+- `warnings` is suggestion-local. Treat it as a stop-and-review signal, not as a
+  safe-to-back-up decision.
+- Warning-only candidates can have `include=[]` and non-empty `exclude` and
+  `warnings`; they remain visible so automation can explain why every file was
+  excluded.
+- Warning text includes pattern classes only, not matched secret values.
 
 ## Service Group JSON
 

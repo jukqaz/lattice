@@ -20,11 +20,11 @@ this surface directly as `app`.
 Install the current v0.5 release command surface documented below:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.5.0 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.5.1 --locked
 ```
 
 Use the `main` branch or a local checkout only when testing unreleased changes
-after the v0.5.0 tag.
+beyond the v0.5.1 release.
 
 Initialize local config and check whether the machine is ready for managed
 config restores:
@@ -35,6 +35,37 @@ lattice doctor
 lattice validate
 lattice bootstrap check
 ```
+
+## Safe first-adoption playbook
+
+Do not run restore first on a real HOME. Start from read-only discovery and
+planning, then make one backup before trying any restore flow:
+
+```bash
+lattice discover
+lattice discover --json
+lattice app list
+lattice app show zsh
+lattice app add zsh --root ~/.config/zsh
+lattice validate
+lattice plan zsh
+lattice backup --dry-run zsh
+```
+
+Review the discovered include/exclude patterns and any warnings before adding a
+service. Pick one low-risk app or service first, prefer the app catalog when it
+matches, and keep secrets out of tracked files. If the dry run lists only the
+expected paths, create the first backup and commit the service repo:
+
+```bash
+lattice backup zsh
+lattice repo status zsh
+lattice repo commit --message "backup zsh config" zsh
+```
+
+Only test restore after the backup is reviewed. Always run `lattice plan` and
+`lattice restore --dry-run` first, and use `--force` only when you have inspected
+conflicts and understand the snapshot/undo rollback path.
 
 Add a first app-backed service when the common shape is already known. Replace
 `zsh` and `~/.config/zsh` with the app config you want to manage:

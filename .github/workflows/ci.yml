@@ -53,6 +53,10 @@ jobs:
           cargo --version
           rustup show active-toolchain
 
+      - name: Check non-Unix core compile
+        shell: bash
+        run: cargo check -p lattice-core --target wasm32-wasip2
+
       - name: Run verification harness
         shell: bash
         run: cargo run -p xtask -- verify

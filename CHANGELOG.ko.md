@@ -2,6 +2,32 @@
 
 [English](CHANGELOG.md) | 한국어 | [문서 인덱스](docs/README.ko.md)
 
+## v0.5.1 - 2026-05-26
+
+### 수정
+
+- Restore와 snapshot safety smoke test가 tampered manifest, destination symlink
+  escape, symlinked snapshot input, partial restore prevention을 CLI level에서
+  검증한다.
+- `discover`는 이제 보수적인 include/exclude pattern이 secret/auth/session/cache/
+  database-looking material을 제외할 때 이를 숨기지 않고 suggestion-level warning으로
+  보고한다. 모든 파일이 제외된 warning-only candidate도 숨기지 않는다.
+- `undo --dry-run`은 성공을 보고하기 전에 실제 undo와 같은 snapshot restore
+  preflight를 실행한다.
+- 실제 HOME read-only health check는 더 이상 `cargo run` fallback을 사용하지 않는다.
+  Live-HOME dogfood 중 build/cache side effect를 피하려면 `LATTICE_BIN`을 지정하거나
+  먼저 `target/debug/lattice`를 build한다.
+- 첫 도입 문서는 real HOME에서 restore를 먼저 실행하지 말고 read-only discovery,
+  planning, reviewed backup부터 시작하라고 명시한다.
+- CI는 host-only test 뒤에 platform surface regression이 숨지 않도록 명시적인
+  `wasm32-wasip2` non-Unix `lattice-core` compile check를 실행한다.
+
+### 변경
+
+- Hardening patch release에 맞춰 workspace package version을 `0.5.1`로 올렸다.
+- Product-surface verification은 이제 v0.5.1 release docs, install snippet,
+  changelog, CI target-coverage contract를 고정한다.
+
 ## v0.5.0 - 2026-05-26
 
 ### 추가

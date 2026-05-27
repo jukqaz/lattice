@@ -43,6 +43,7 @@ not user onboarding material.
 | --- | --- |
 | [LLM Documentation Index](llm/README.md) | Agent-facing repository guidance |
 | [Branch And Release Policy](llm/branch-release-policy.md) | Commit, PR, CI, tag, and release rules |
+| [Kanban Workflow](llm/kanban-workflow.md) | Sequential card handling, recovery-board rules, and completion evidence |
 
 ## Language Links
 

@@ -451,6 +451,10 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "There is no `group backup` or `group restore` yet",
         "conflict_count",
         "active=false",
+        "Safe first-adoption playbook",
+        "Do not run restore first on a real HOME",
+        "--tag v0.5.1",
+        "beyond the v0.5.1 release",
     ] {
         ensure_contains(&readme, needle, &format!("README.md missing {needle}"))?;
     }
@@ -464,6 +468,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "Service Groups",
         "conflict_count",
         "active=false",
+        "--tag v0.5.1",
+        "v0.5.1 release 이후",
     ] {
         ensure_contains(
             &korean_readme,
@@ -485,6 +491,10 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "lattice group status --json",
         "lattice group plan --json",
         "Selector",
+        "Safe first-adoption playbook",
+        "Do not run restore first on a real HOME",
+        "--tag v0.5.1",
+        "beyond the v0.5.1 release",
     ] {
         ensure_contains(
             &user_guide,
@@ -503,6 +513,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "batch backup",
         "conflict_count",
         "active=false",
+        "--tag v0.5.1",
+        "v0.5.1 release 이후",
     ] {
         ensure_contains(
             &korean_user_guide,
@@ -524,6 +536,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "group invariant validation",
         "active-only aggregates",
         "missing-root visibility",
+        "v0.5.1 hardens the service-groups release line",
+        "v0.5.1 scope",
     ] {
         ensure_contains(
             &product_scope,
@@ -545,6 +559,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "group invariant validation",
         "active-only aggregate",
         "missing-root visibility",
+        "v0.5.1은 service-groups release line을 harden한다",
+        "v0.5.1 범위",
     ] {
         ensure_contains(
             &korean_scope,
@@ -559,11 +575,42 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "dev/quality.md",
         "reference/json-output.ko.md",
         "dev/quality.ko.md",
+        "llm/kanban-workflow.md",
     ] {
         ensure_contains(
             &docs_index,
             needle,
             &format!("docs/README.md missing {needle}"),
+        )?;
+    }
+
+    let llm_index = read_repo_text(root, "docs/llm/README.md")?;
+    for needle in [
+        "docs/llm/kanban-workflow.md",
+        "one active card at a time",
+        "Hermes Kanban recovery board",
+    ] {
+        ensure_contains(
+            &llm_index,
+            needle,
+            &format!("docs/llm/README.md missing {needle}"),
+        )?;
+    }
+
+    let kanban_workflow = read_repo_text(root, "docs/llm/kanban-workflow.md")?;
+    for needle in [
+        "# Lattice Kanban Workflow For LLM Agents",
+        "one active card at a time",
+        "Do not run mutating live HOME commands",
+        "complete the current card before unblocking exactly the next card",
+        "recovery board",
+        "cargo run -p xtask -- verify",
+        "git diff --check",
+    ] {
+        ensure_contains(
+            &kanban_workflow,
+            needle,
+            &format!("docs/llm/kanban-workflow.md missing {needle}"),
         )?;
     }
 
@@ -590,6 +637,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "cargo install cargo-llvm-cov --locked",
         "cargo install typos-cli --locked",
         "cargo run -p xtask -- quality",
+        "scripts/real-home-readonly-health-check.sh",
+        "read-only real HOME health check",
     ] {
         ensure_contains(
             &quality_doc,
@@ -597,6 +646,80 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
             &format!("docs/dev/quality.md missing {needle}"),
         )?;
     }
+
+    let home_check_script = read_repo_text(root, "scripts/real-home-readonly-health-check.sh")?;
+    for needle in [
+        "lattice real HOME read-only health check",
+        "READ_ONLY_COMMANDS",
+        "doctor",
+        "validate",
+        "bootstrap check",
+        "service list",
+        "discover --json",
+        "group list --json",
+        "MUTATING_COMMANDS",
+        "init",
+        "backup",
+        "restore",
+    ] {
+        ensure_contains(
+            &home_check_script,
+            needle,
+            &format!("scripts/real-home-readonly-health-check.sh missing {needle}"),
+        )?;
+    }
+
+    verify_real_home_readonly_script(root)?;
+
+    let changelog = read_repo_text(root, "CHANGELOG.md")?;
+    for needle in [
+        "## v0.5.1 - 2026-05-26",
+        "discover` now reports suggestion-level warnings",
+        "Do not run restore first on a real HOME",
+        "wasm32-wasip2",
+    ] {
+        ensure_contains(
+            &changelog,
+            needle,
+            &format!("CHANGELOG.md missing {needle}"),
+        )?;
+    }
+
+    let korean_changelog = read_repo_text(root, "CHANGELOG.ko.md")?;
+    for needle in [
+        "## v0.5.1 - 2026-05-26",
+        "suggestion-level warning",
+        "real HOME",
+        "wasm32-wasip2",
+    ] {
+        ensure_contains(
+            &korean_changelog,
+            needle,
+            &format!("CHANGELOG.ko.md missing {needle}"),
+        )?;
+    }
+
+    let ci_workflow = read_repo_text(root, ".github/workflows/ci.yml")?;
+    for needle in [
+        "--target wasm32-wasip2",
+        "name: Check non-Unix core compile",
+        "cargo check -p lattice-core --target wasm32-wasip2",
+    ] {
+        ensure_contains(
+            &ci_workflow,
+            needle,
+            &format!(".github/workflows/ci.yml missing {needle}"),
+        )?;
+    }
+    let non_unix_check_count = ci_workflow
+        .matches("cargo check -p lattice-core --target wasm32-wasip2")
+        .count();
+    ensure(
+        non_unix_check_count == 1,
+        &format!(
+            ".github/workflows/ci.yml should contain exactly one non-Unix core compile check; found {non_unix_check_count}"
+        ),
+    )?;
 
     Ok(())
 }
@@ -870,6 +993,73 @@ fn verify_non_unix_compile_harness(root: &Path) -> Result<(), String> {
     Ok(())
 }
 
+fn verify_real_home_readonly_script(root: &Path) -> Result<(), String> {
+    let path = root.join("scripts/real-home-readonly-health-check.sh");
+    let script = fs::read_to_string(&path)
+        .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
+
+    for needle in [
+        "set -euo pipefail",
+        "lattice real HOME read-only health check",
+        "READ_ONLY_COMMANDS",
+        "MUTATING_COMMANDS",
+        "lattice doctor",
+        "lattice validate",
+        "lattice bootstrap check",
+        "lattice service list",
+        "lattice status --json",
+        "lattice plan --json",
+        "lattice discover --json",
+        "lattice group list --json",
+        "lattice group status --json",
+        "lattice group plan --json",
+        "LAST_STATUS",
+        "if [[ ${status} -ne 0 ]]",
+    ] {
+        ensure_contains(
+            &script,
+            needle,
+            &format!("scripts/real-home-readonly-health-check.sh missing {needle}"),
+        )?;
+    }
+
+    for forbidden in [
+        "run_lattice init",
+        "run_lattice backup",
+        "run_lattice restore",
+        "run_lattice adopt",
+        "run_lattice undo",
+        "run_lattice snapshot prune",
+        "run_lattice service add",
+        "run_lattice service remove",
+        "run_lattice include add",
+        "run_lattice include remove",
+        "run_lattice exclude add",
+        "run_lattice exclude remove",
+        "run_lattice permission set",
+        "run_lattice permission remove",
+        "run_lattice repo commit",
+        "run_lattice repo push",
+        "run_lattice repo pull",
+        "cargo run --quiet",
+        "cargo run",
+    ] {
+        ensure_not_contains_case_insensitive(
+            &script,
+            forbidden,
+            &format!("read-only health script must not run {forbidden}"),
+        )?;
+    }
+
+    #[cfg(unix)]
+    ensure(
+        mode(&path)? & 0o111 != 0,
+        "scripts/real-home-readonly-health-check.sh must be executable",
+    )?;
+
+    Ok(())
+}
+
 fn workspace_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -1105,5 +1295,15 @@ impl Drop for TempTree {
         {
             let _ = fs::remove_dir_all(&self.path);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn real_home_readonly_health_check_script_has_static_safety_contract() {
+        verify_real_home_readonly_script(&workspace_root()).unwrap();
     }
 }

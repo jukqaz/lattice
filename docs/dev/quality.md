@@ -18,6 +18,9 @@ git diff --check
 product-surface harness checks, and a non-Unix `lattice-core` compile check when
 the `wasm32-wasip2` target is installed.
 
+For release dogfood against your real HOME, run the read-only real HOME health
+check below after the regular isolated harness is green.
+
 Install the optional compile target when you want the non-Unix check locally:
 
 ```bash
@@ -51,6 +54,31 @@ cargo-machete --with-metadata --skip-target-dir
 typos --config _typos.toml
 cargo llvm-cov --workspace --all-features --locked --lcov --output-path target/llvm-cov/lcov.info
 ```
+
+## Real HOME Read-Only Health Check
+
+Before a release tag, you can dogfood the current binary against your live
+`HOME`/XDG environment without creating config, registering services, backing up,
+restoring, pruning snapshots, or committing repos:
+
+```bash
+scripts/real-home-readonly-health-check.sh
+```
+
+Set `LATTICE_BIN=/path/to/lattice` to check an already installed binary, or run
+`cargo build -p lattice` first so `target/debug/lattice` exists. The script never
+falls back to `cargo run`, because a release dogfood health check should not
+create build/cache side effects while inspecting a live HOME. The script prints
+the exact read-only commands it runs: `doctor`, `validate`, `bootstrap check`,
+`service list`, per-service `status --json` and `plan --json`, `discover --json`,
+`group list --json`, and per-group `status --json` and `plan --json`. Non-zero
+command exits are reported as health findings and make the script exit non-zero,
+so CI or release checklists cannot accidentally treat a failing diagnostic as a
+pass.
+
+This is a read-only real HOME health check. Do not replace it with `init`,
+`backup`, `restore`, `adopt`, `track`, `snapshot prune`, `undo --yes`, or repo
+push/commit flows unless the user explicitly approves live HOME mutation.
 
 ## Workflow Lint
 

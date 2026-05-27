@@ -132,6 +132,19 @@ See `docs/product/mvp-scope.md`.
 - [x] Document v0.5.0 service-group scope in README, user docs, product scope, and changelog.
 - [x] Add a minimal service-group JSON output reference for automation users.
 - [x] Document local quality-tool bootstrap for reproducing the CI quality gate.
+- [x] Prepare the v0.5.1 hardening patch release: CLI restore/snapshot safety regressions, discover warnings, safe first-adoption docs, and explicit wasm32-wasip2 CI coverage.
+
+### v0.5.1 Hardening Candidate Checklist
+
+- [x] Keep v0.5 service groups read-only: `group list`, `group show`, `group status`, and `group plan` only.
+- [x] Pin group JSON contracts for list/show/status/plan in smoke coverage and the JSON reference.
+- [x] Surface conservative `discover` exclusions as suggestion-level warnings in human and JSON output.
+- [x] Add safe first-adoption guidance in English and Korean docs: discovery/plan first, backup as the first write, restore only after reviewed dry runs and repo diffs.
+- [x] Harden restore/snapshot/undo planning against tampered manifests, traversal, symlink escapes, non-directory parents, non-regular destinations, and portable path collisions before copying files.
+- [x] Add explicit non-Unix `lattice-core` coverage through the CI `wasm32-wasip2` compile check and local `xtask verify` hook when the target is installed.
+- [x] Align version metadata, changelogs, product scope, install snippets, and product-surface harness expectations for `v0.5.1`.
+- [ ] Before tagging, run release acceptance: `cargo run -p xtask -- verify`, `cargo run -p xtask -- linux-verify`, `cargo run -p xtask -- quality`, workflow lint, path install smoke, tag install smoke, and GitHub Actions matrix.
+- [ ] Tag `v0.5.1` only after explicit release approval.
 
 ## v0.6.x Automation Contract Hardening
 

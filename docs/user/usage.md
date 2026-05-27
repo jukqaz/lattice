@@ -35,11 +35,11 @@ only one example app. The CLI uses `lattice app ...` directly for this catalog s
 Install the current v0.5 release command surface documented in this guide:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.5.0 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.5.1 --locked
 ```
 
 Use the `main` branch or a local checkout only when testing unreleased changes
-after the v0.5.0 tag.
+beyond the v0.5.1 release.
 
 Install from a local checkout while developing Lattice:
 
@@ -82,6 +82,66 @@ When a service omits `repo`, Lattice stores its backup copy here:
 ```text
 ~/.local/share/lattice/repos/<service-name>
 ```
+
+## Safe first-adoption playbook
+
+Do not run restore first on a real HOME. First adoption should move from
+read-only inspection to one reviewed backup, then to restore testing only after
+that backup is known-good.
+
+1. Start with discovery; it does not mutate Lattice config:
+
+   ```bash
+   lattice discover
+   lattice discover --json
+   ```
+
+   Review the suggested `include` and `exclude` patterns. Treat any JSON
+   `warnings` as a stop-and-review signal; warnings mean discovery found
+   secret-looking or otherwise risky content that should not be blindly tracked.
+
+2. Choose one low-risk service. Prefer the app catalog when it already matches
+   the common layout:
+
+   ```bash
+   lattice app list
+   lattice app show zsh
+   lattice app add zsh --root ~/.config/zsh
+   ```
+
+   If no app entry fits, use explicit service config instead:
+
+   ```bash
+   lattice service add shell --root ~/.config/shell --include config.toml
+   lattice exclude add shell 'cache/**'
+   ```
+
+3. Validate and preview before writing anything:
+
+   ```bash
+   lattice validate
+   lattice status zsh
+   lattice plan zsh
+   lattice backup --dry-run zsh
+   ```
+
+   Stop if the plan includes secrets, tokens, session files, databases, caches,
+   generated state, or paths you do not recognize. Narrow includes/excludes and
+   run the dry run again.
+
+4. Make the first write a backup, not a restore:
+
+   ```bash
+   lattice backup zsh
+   lattice diff zsh
+   lattice repo status zsh
+   lattice repo commit --message "backup zsh config" zsh
+   ```
+
+5. Restore only after the backup and repo diff are reviewed. On a real HOME,
+   always run `lattice plan` and `lattice restore --dry-run` first. Use
+   `restore --force` only after reviewing conflicts and confirming that the
+   snapshot/undo path is acceptable.
 
 ## 3. Add A First App-Backed Service
 

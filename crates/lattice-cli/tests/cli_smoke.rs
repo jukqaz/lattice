@@ -105,7 +105,12 @@ include = ["config.toml"]
     let list = run_ok(bin, &env, &["group", "list"]);
     assert!(list.contains("dev-shell services=3"));
     let list_json = run_json(bin, &env, &["group", "list", "--json"]);
+    assert_json_keys(&list_json, &["groups"]);
     assert_eq!(list_json["groups"].as_array().unwrap().len(), 1);
+    assert_json_keys(
+        &list_json["groups"][0],
+        &["description", "name", "services"],
+    );
     assert_eq!(list_json["groups"][0]["name"], "dev-shell");
 
     let show = run_ok(bin, &env, &["group", "show", "dev-shell"]);
@@ -115,6 +120,7 @@ include = ["config.toml"]
     assert!(show.contains("- git"));
     assert!(show.contains("- missing"));
     let show_json = run_json(bin, &env, &["group", "show", "--json", "dev-shell"]);
+    assert_json_keys(&show_json, &["description", "name", "services"]);
     assert_eq!(show_json["description"], "Shell and Git configuration");
     assert_eq!(show_json["services"].as_array().unwrap().len(), 3);
 
@@ -131,9 +137,33 @@ include = ["config.toml"]
     );
 
     let status_json = run_json(bin, &env, &["group", "status", "--json", "dev-shell"]);
+    assert_json_keys(
+        &status_json,
+        &[
+            "active_services",
+            "description",
+            "group",
+            "included_files",
+            "service_count",
+            "services",
+        ],
+    );
     assert_eq!(status_json["group"], "dev-shell");
     assert_eq!(status_json["included_files"], 2);
     assert_eq!(status_json["services"].as_array().unwrap().len(), 3);
+    assert_json_keys(
+        &status_json["services"][0],
+        &[
+            "active",
+            "files",
+            "included_files",
+            "manifest",
+            "repo",
+            "root",
+            "root_exists",
+            "service",
+        ],
+    );
     assert_eq!(status_json["services"][0]["service"], "shell");
     assert_eq!(status_json["services"][2]["service"], "missing");
     assert_eq!(status_json["services"][2]["root_exists"], false);
@@ -147,11 +177,50 @@ include = ["config.toml"]
         0o600,
     );
     let plan_json = run_json(bin, &env, &["group", "plan", "--json", "dev-shell"]);
+    assert_json_keys(
+        &plan_json,
+        &[
+            "active_services",
+            "backup_would_copy",
+            "conflict_count",
+            "conflicts",
+            "description",
+            "group",
+            "ready",
+            "restore_would_create_dirs",
+            "restore_would_restore",
+            "service_count",
+            "services",
+        ],
+    );
     assert_eq!(plan_json["group"], "dev-shell");
     assert_eq!(plan_json["backup_would_copy"], 2);
     assert_eq!(plan_json["restore_would_restore"], 1);
     assert_eq!(plan_json["conflict_count"], 1);
     assert_eq!(plan_json["conflicts"].as_array().unwrap().len(), 1);
+    assert_json_keys(
+        &plan_json["services"][0],
+        &[
+            "active",
+            "backup_would_copy",
+            "conflicts",
+            "dirs",
+            "entries",
+            "manifest",
+            "ready",
+            "repo",
+            "requires_force",
+            "restore_would_create_dirs",
+            "restore_would_restore",
+            "root",
+            "root_exists",
+            "safe_to_restore_without_force",
+            "service",
+            "snapshot_on_conflict",
+            "snapshot_policy",
+        ],
+    );
+    assert_json_keys(&plan_json["conflicts"][0], &["paths", "service"]);
     assert_eq!(plan_json["conflicts"][0]["service"], "shell");
     assert_eq!(plan_json["ready"], false);
     assert_eq!(plan_json["services"].as_array().unwrap().len(), 3);
@@ -1261,6 +1330,66 @@ entries = [
     assert!(absolute.contains("unsafe relative path"));
     assert!(!temp.path().join("absolute-escape.txt").exists());
 
+    fs::write(
+        tampered_repo.join(".lattice/manifest.toml"),
+        r#"version = 999
+entries = [
+  { path = "config.toml", mode = "0600" },
+]
+"#,
+    )
+    .expect("write unsupported manifest version");
+    let unsupported = run_fail(bin, &env, &["restore", "--dry-run", "tampered"]);
+    assert!(unsupported.contains("unsupported manifest version: 999"));
+    assert!(!tampered_root.join("config.toml").exists());
+
+    for (manifest_body, expected_error, outside_probe) in [
+        (
+            r#"version = 1
+entries = [
+  { path = "", mode = "0600" },
+]
+"#,
+            "unsafe relative path",
+            tampered_root.join("empty-path-probe"),
+        ),
+        (
+            r#"version = 1
+entries = [
+  { path = "bad\u0007path.toml", mode = "0600" },
+]
+"#,
+            "path is not portable because it contains control characters",
+            tampered_root.join("bad\u{0007}path.toml"),
+        ),
+    ] {
+        fs::write(tampered_repo.join(".lattice/manifest.toml"), manifest_body)
+            .expect("write negative manifest fixture");
+        let rejected = run_fail(bin, &env, &["restore", "--dry-run", "tampered"]);
+        assert!(
+            rejected.contains(expected_error),
+            "expected {expected_error:?}, got:\n{rejected}"
+        );
+        assert!(!outside_probe.exists());
+    }
+
+    fs::write(tampered_repo.join("Config.toml"), "upper\n").expect("write upper config");
+    fs::write(tampered_repo.join("config.toml"), "lower\n").expect("write lower config");
+    fs::write(
+        tampered_repo.join(".lattice/manifest.toml"),
+        r#"version = 1
+entries = [
+  { path = "Config.toml", mode = "0600" },
+  { path = "config.toml", mode = "0600" },
+]
+"#,
+    )
+    .expect("write colliding manifest paths");
+    let collision = run_fail(bin, &env, &["restore", "--force", "tampered"]);
+    assert!(collision.contains("portable path collision"));
+    assert!(!tampered_root.join("Config.toml").exists());
+    assert!(!tampered_root.join("config.toml").exists());
+
     let destlink_source = temp.path().join("destlink-source");
     let destlink_repo = temp.path().join("destlink-repo");
     let outside_target = temp.path().join("outside-target.txt");
@@ -1796,6 +1925,112 @@ include = ["config.toml"]
 }
 
 #[test]
+fn snapshot_failure_paths_do_not_traverse_or_delete_symlinked_roots() {
+    let temp = tempdir().expect("tempdir");
+    let env = TestEnv::new(temp.path());
+    let bin = env!("CARGO_BIN_EXE_lattice");
+
+    run_ok(bin, &env, &["init", "--force"]);
+    let outside_snapshots = temp.path().join("outside-snapshots");
+    fs::create_dir_all(outside_snapshots.join("123/snap"))
+        .expect("create outside snapshot fixture");
+    fs::write(
+        outside_snapshots.join("123/snap/config.toml"),
+        "outside snapshot\n",
+    )
+    .expect("write outside snapshot file");
+
+    let snapshots_root = env.state.join("lattice/snapshots");
+    fs::create_dir_all(snapshots_root.parent().expect("snapshots parent"))
+        .expect("create snapshots parent");
+    symlink(&outside_snapshots, &snapshots_root).expect("symlink snapshots root");
+
+    let list_error = run_fail(bin, &env, &["snapshot", "list", "--json"]);
+    assert!(list_error.contains("snapshot root is not a directory"));
+    let prune_error = run_fail(
+        bin,
+        &env,
+        &["snapshot", "prune", "--yes", "--json", "--keep", "0"],
+    );
+    assert!(prune_error.contains("snapshot root is not a directory"));
+    assert!(outside_snapshots.join("123/snap/config.toml").exists());
+
+    let traversal = run_fail(bin, &env, &["snapshot", "show", "--json", "../outside"]);
+    assert!(traversal.contains("snapshot root is not a directory"));
+}
+
+#[test]
+fn snapshot_undo_preflights_failure_paths_without_partial_restore() {
+    let temp = tempdir().expect("tempdir");
+    let env = TestEnv::new(temp.path());
+    let bin = env!("CARGO_BIN_EXE_lattice");
+
+    run_ok(bin, &env, &["init", "--force"]);
+    let source = temp.path().join("snapshot-preflight-source");
+    let repo = temp.path().join("snapshot-preflight-repo");
+    write_file(&source, "a.toml", "repo a\n", 0o600);
+    write_file(&source, "nested/b.toml", "repo b\n", 0o600);
+    fs::write(
+        env.config.join("lattice/services/preflight.toml"),
+        format!(
+            r#"
+name = "preflight"
+root = "{}"
+repo = "{}"
+include = ["a.toml", "nested/b.toml"]
+"#,
+            source.display(),
+            repo.display()
+        ),
+    )
+    .expect("write preflight config");
+    run_ok(bin, &env, &["backup", "preflight"]);
+
+    fs::write(source.join("a.toml"), "local a\n").expect("write local a");
+    fs::write(source.join("nested/b.toml"), "local b\n").expect("write local b");
+    run_ok(bin, &env, &["restore", "--force", "preflight"]);
+
+    let snapshots = run_json(bin, &env, &["snapshot", "list", "--json"]);
+    let snapshot_id = snapshots["snapshots"][0]["id"]
+        .as_str()
+        .expect("snapshot id")
+        .to_string();
+
+    fs::remove_file(source.join("nested/b.toml")).expect("remove restored nested file");
+    fs::remove_dir(source.join("nested")).expect("remove nested directory");
+    fs::write(source.join("nested"), "blocking parent\n").expect("write parent collision");
+
+    let dry_run_error = run_fail(bin, &env, &["undo", "--dry-run", "--json", &snapshot_id]);
+    assert!(
+        dry_run_error.contains("snapshot restore parent is not a directory"),
+        "unexpected undo dry-run error:\n{dry_run_error}"
+    );
+    assert_eq!(
+        fs::read_to_string(source.join("a.toml")).expect("a untouched after dry-run"),
+        "repo a\n"
+    );
+    assert_eq!(
+        fs::read_to_string(source.join("nested"))
+            .expect("parent collision untouched after dry-run"),
+        "blocking parent\n"
+    );
+
+    let error = run_fail(bin, &env, &["undo", "--yes", "--json", &snapshot_id]);
+    assert!(
+        error.contains("snapshot restore parent is not a directory"),
+        "unexpected undo error:\n{error}"
+    );
+    assert_eq!(
+        fs::read_to_string(source.join("a.toml")).expect("a untouched"),
+        "repo a\n"
+    );
+    assert_eq!(
+        fs::read_to_string(source.join("nested")).expect("parent collision untouched"),
+        "blocking parent\n"
+    );
+}
+
+#[test]
 fn discover_suggests_conservative_generic_services_with_json() {
     let temp = tempdir().expect("tempdir");
     let env = TestEnv::new(temp.path());
@@ -1811,6 +2046,24 @@ fn discover_suggests_conservative_generic_services_with_json() {
     .expect("write settings");
     fs::write(env.home.join(".config/tool/cache/state.db"), "cache\n").expect("write cache");
     fs::write(env.home.join(".config/tool/token.json"), "token\n").expect("write token");
+    let openai_marker = ["s", "k-"].concat();
+    fs::write(
+        env.home.join(".config/tool/plain-key.toml"),
+        format!("api_key = '{openai_marker}fake_discovery_token'\n"),
+    )
+    .expect("write secret-looking config");
+    fs::create_dir_all(env.home.join(".config/onlysecret")).expect("create warning-only dir");
+    fs::write(
+        env.home.join(".config/onlysecret/config.toml"),
+        format!("openai = '{openai_marker}fake_warning_only_token'\n"),
+    )
+    .expect("write warning-only secret-looking config");
+    let github_marker = ["g", "hp_"].concat();
+    fs::write(
+        env.home.join(".profile"),
+        format!("export TOKEN={github_marker}fake_discovery_token\n"),
+    )
+    .expect("write secret-looking profile");
     symlink(
         env.home.join(".config/tool"),
         env.home.join(".config/linked-tool"),
@@ -1826,6 +2079,7 @@ fn discover_suggests_conservative_generic_services_with_json() {
     let discovery = run_json(bin, &env, &["discover", "--json"]);
     let services = discovery["suggestions"].as_array().expect("suggestions");
     assert!(services.iter().any(|item| item["name"] == "tool"));
+    assert!(services.iter().any(|item| item["name"] == "onlysecret"));
     assert!(services.iter().all(|item| item["name"] != "linked-tool"));
     assert!(services.iter().any(|item| item["name"] == "shell"));
     let tool = services
@@ -1860,7 +2114,78 @@ fn discover_suggests_conservative_generic_services_with_json() {
             .unwrap()
             .contains(&serde_json::json!("token.json"))
     );
+    assert!(
+        tool["exclude"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("plain-key.toml"))
+    );
+    assert!(
+        !tool["include"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("plain-key.toml"))
+    );
+    assert!(tool["warnings"].as_array().unwrap().iter().any(|warning| {
+        let warning = warning.as_str().unwrap();
+        warning.contains("plain-key.toml") && warning.contains("secret-looking content")
+    }));
+    let warning_only = services
+        .iter()
+        .find(|item| item["name"] == "onlysecret")
+        .expect("warning-only suggestion");
+    assert!(warning_only["include"].as_array().unwrap().is_empty());
+    assert!(
+        warning_only["exclude"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("config.toml"))
+    );
+    assert!(
+        warning_only["warnings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|warning| {
+                let warning = warning.as_str().unwrap();
+                warning.contains("config.toml") && warning.contains("secret-looking content")
+            })
+    );
+    let shell = services
+        .iter()
+        .find(|item| item["name"] == "shell")
+        .expect("shell suggestion");
+    assert!(
+        shell["include"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!(".zshrc"))
+    );
+    assert!(
+        !shell["include"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!(".profile"))
+    );
+    assert!(
+        shell["exclude"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!(".profile"))
+    );
+    assert!(shell["warnings"].as_array().unwrap().iter().any(|warning| {
+        let warning = warning.as_str().unwrap();
+        warning.contains(".profile") && warning.contains("secret-looking content")
+    }));
     assert_eq!(discovery["mutated"], false);
+
+    let discovery_text = run_ok(bin, &env, &["discover"]);
+    assert!(discovery_text.contains("warning: excluded plain-key.toml"));
+    assert!(discovery_text.contains("onlysecret root="));
+    assert!(discovery_text.contains("warning: excluded config.toml"));
+    assert!(discovery_text.contains("warning: excluded .profile"));
+    assert!(!discovery_text.contains("fake_discovery_token"));
+    assert!(!discovery_text.contains("fake_warning_only_token"));
     assert!(!env.config.join("lattice/services/tool.toml").exists());
 }
 
@@ -1937,6 +2262,22 @@ fn run_json(bin: &str, env: &TestEnv, args: &[&str]) -> serde_json::Value {
     serde_json::from_str(&output).unwrap_or_else(|error| {
         panic!("command {args:?} did not emit valid json: {error}\noutput:\n{output}")
     })
+}
+
+fn assert_json_keys(value: &serde_json::Value, expected: &[&str]) {
+    let mut actual = value
+        .as_object()
+        .expect("json object")
+        .keys()
+        .cloned()
+        .collect::<Vec<_>>();
+    actual.sort();
+    let mut expected = expected
+        .iter()
+        .map(|key| key.to_string())
+        .collect::<Vec<_>>();
+    expected.sort();
+    assert_eq!(actual, expected);
 }
 
 fn write_file(root: &Path, relative: &str, body: &str, mode: u32) {

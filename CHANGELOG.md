@@ -2,6 +2,33 @@
 
 English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
+## v0.5.1 - 2026-05-26
+
+### Fixed
+
+- Restore and snapshot safety smoke tests now cover tampered manifests,
+  destination symlink escapes, symlinked snapshot inputs, and partial-restore
+  prevention at the CLI level.
+- `discover` now reports suggestion-level warnings when conservative include and
+  exclude patterns omit secret/auth/session/cache/database-looking material,
+  including warning-only candidates where every file is excluded, instead of
+  silently hiding those exclusions.
+- `undo --dry-run` now runs the same snapshot restore preflight used by real
+  undo before reporting success.
+- The real HOME read-only health check no longer falls back to `cargo run`; use
+  `LATTICE_BIN` or build `target/debug/lattice` first to avoid build/cache side
+  effects during live-HOME dogfood.
+- First-adoption docs now explicitly say: Do not run restore first on a real HOME;
+  start from read-only discovery, planning, and one reviewed backup.
+- CI now runs an explicit `wasm32-wasip2` non-Unix `lattice-core` compile check
+  so platform-surface regressions are not hidden behind host-only tests.
+
+### Changed
+
+- Workspace package version is now `0.5.1` for the hardening patch release.
+- Product-surface verification now pins the v0.5.1 release docs, install
+  snippets, changelog, and CI target-coverage contract.
+
 ## v0.5.0 - 2026-05-26
 
 ### Added

@@ -17,7 +17,7 @@ workspace = true
 anyhow.workspace = true
 clap.workspace = true
 inquire = "0.9.4"
-lattice-core = { path = "../lattice-core", version = "0.5.0" }
+lattice-core = { path = "../lattice-core", version = "0.5.1" }
 serde_json.workspace = true
 similar = "3.1.0"
 toml.workspace = true

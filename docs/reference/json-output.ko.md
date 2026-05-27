@@ -3,7 +3,7 @@
 [English](json-output.md) | 한국어 | [문서 인덱스](../README.ko.md)
 
 이 reference는 script와 agent가 사람이 읽는 stdout을 parsing하지 않고 사용할 수
-있는 machine-readable output을 설명합니다. 아래 shape는 v0.5.0 service-groups
+있는 machine-readable output을 설명합니다. 아래 shape는 v0.5.1 hardened service-groups
 release line의 일부이지만, Lattice는 아직 pre-v1.0입니다. 따라서 이 field들은
 영구 public API가 아니라 release-line contract로 다룹니다.
 
@@ -18,6 +18,43 @@ release line의 일부이지만, Lattice는 아직 pre-v1.0입니다. 따라서 
   group status/plan flow에서 같은 tracked-path semantics를 사용합니다.
 - Service-group aggregate total은 현재 host에서 실행 가능한 값입니다. Inactive
   service는 per-service row에 남지만 active-only aggregate에는 더하지 않습니다.
+
+## Discover JSON
+
+### `lattice discover --json`
+
+Top-level shape:
+
+```json
+{
+  "suggestions": [
+    {
+      "name": "shell",
+      "root": "/home/alice",
+      "include": [".zshrc"],
+      "exclude": [".cache/**", ".config/**", ".profile"],
+      "reason": "common shell startup files",
+      "warnings": [
+        "excluded .profile because it contains secret-looking content (github token)"
+      ]
+    }
+  ],
+  "mutated": false,
+  "services_dir": "/home/alice/.config/lattice/services"
+}
+```
+
+Notes:
+
+- `discover`는 service file을 쓰지 않습니다. 검토한 제안만 `app add` 또는
+  `service add`로 명시적으로 추가합니다.
+- `warnings`는 suggestion별 stop-and-review 신호입니다. 안전하게 백업해도 된다는
+  판단으로 취급하지 않습니다.
+- Warning-only candidate는 `include=[]`이고 `exclude`/`warnings`가 non-empty일 수
+  있습니다. 이런 candidate도 남겨서 automation이 모든 file이 제외된 이유를 설명할
+  수 있게 합니다.
+- Warning text에는 pattern class만 들어가고 matching된 secret 값은 들어가지
+  않습니다.
 
 ## Service Group JSON
 

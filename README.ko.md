@@ -18,10 +18,10 @@ Lattice는 범용 도구입니다. 특정 tool이나 service 하나가 제품의
 아래에 문서화된 현재 v0.5 release command surface 설치:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.5.0 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.5.1 --locked
 ```
 
-v0.5.0 tag 이후 unreleased change를 테스트할 때만 `main` branch나 local
+v0.5.1 release 이후 unreleased change를 테스트할 때만 `main` branch나 local
 checkout을 사용합니다.
 
 로컬 설정을 만들고 새 머신에서 복원 준비가 되었는지 확인합니다.
@@ -32,6 +32,37 @@ lattice doctor
 lattice validate
 lattice bootstrap check
 ```
+
+## 안전한 첫 도입 playbook
+
+실제 HOME에서 restore부터 실행하지 마세요. 읽기 전용 discovery와 planning에서
+시작하고, 어떤 restore flow도 시도하기 전에 먼저 backup 하나를 만듭니다.
+
+```bash
+lattice discover
+lattice discover --json
+lattice app list
+lattice app show zsh
+lattice app add zsh --root ~/.config/zsh
+lattice validate
+lattice plan zsh
+lattice backup --dry-run zsh
+```
+
+Service를 추가하기 전에 발견된 include/exclude pattern과 warning을 검토하세요.
+낮은 위험의 app 또는 service 하나를 고르고, 맞는 entry가 있으면 app catalog를
+우선 사용하며, secret은 추적 파일 밖에 둡니다. Dry run에 예상한 path만 보이면
+첫 backup을 만들고 service repo에 commit합니다.
+
+```bash
+lattice backup zsh
+lattice repo status zsh
+lattice repo commit --message "backup zsh config" zsh
+```
+
+Backup을 검토한 뒤에만 restore를 테스트하세요. 항상 먼저 `lattice plan`과
+`lattice restore --dry-run`을 실행하고, conflict와 snapshot/undo rollback path를
+이해했을 때만 `--force`를 사용합니다.
 
 이미 알려진 형태라면 첫 app-backed service부터 추가합니다. `zsh`와
 `~/.config/zsh`는 관리하려는 앱 설정에 맞게 바꿉니다.

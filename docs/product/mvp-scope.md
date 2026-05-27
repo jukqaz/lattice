@@ -89,13 +89,13 @@ baseline:
 - CLI smoke and product-surface harness coverage for the JSON, selector,
   app-catalog, and bootstrap contracts.
 
-## Current Release Candidate: v0.5.0
+## Current Release: v0.5.1
 
-v0.5.0 adds conservative service groups for related services. Groups are named
+v0.5.1 hardens the service-groups release line while keeping groups as named
 bundles of existing services, not a second service type and not an app-catalog
 redesign.
 
-Release-candidate v0.5.0 scope:
+v0.5.1 scope:
 
 - Service groups in global config as ordered named bundles of existing services.
 - `group list`, `group show`, `group status`, and `group plan` for read-only
@@ -110,8 +110,21 @@ Release-candidate v0.5.0 scope:
 - Group plan JSON with numeric `conflict_count` and structured service-keyed
   `conflicts` data.
 - Human `group status` missing-root visibility through `root_exists` output.
+- CLI-level restore/manifest/snapshot safety regressions for tampered metadata,
+  symlink traversal attempts, and partial-restore prevention.
+- Conservative `discover` output that reports secret/auth/session/cache/database
+  exclusions as suggestion-level warnings in human and JSON output, including
+  warning-only candidates where every file is excluded.
+- `undo --dry-run` runs restore preflight before reporting success, so dry-run
+  failures match real snapshot undo blockers.
+- Real HOME read-only health checks require `LATTICE_BIN` or an existing
+  `target/debug/lattice` binary and do not fall back to `cargo run`.
+- A documented safe first-adoption playbook that starts from read-only discovery,
+  planning, and a reviewed backup before any restore on a real HOME.
+- CI coverage for the `wasm32-wasip2` non-Unix `lattice-core` compile check.
 - Product-surface harness coverage for group help, docs, JSON examples,
-  read-only command exposure, and unsupported `group backup` / `group restore`.
+  read-only command exposure, release docs, and unsupported `group backup` /
+  `group restore`.
 
 Group backup, group restore, and other batch mutation flows remain intentionally
 out of scope until the read-only group status/plan surface is proven safe.

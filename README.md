@@ -52,10 +52,12 @@ lattice plan zsh
 lattice backup --dry-run zsh
 ```
 
-Review the discovered include/exclude patterns and any warnings before adding a
-service. Pick one low-risk app or service first, prefer the app catalog when it
-matches, and keep secrets out of tracked files. If the dry run lists only the
-expected paths, create the first backup and commit the service repo:
+Review the discovered include/exclude patterns, `next command`, and any warnings
+before adding a service. Pick one low-risk app or service first, prefer the app
+catalog when it matches, and keep secrets out of tracked files. `discover --json`
+also emits `next_actions` so scripts and agents can keep the same safe order. If
+the dry run lists only the expected paths, create the first backup and commit the
+service repo:
 
 ```bash
 lattice backup zsh

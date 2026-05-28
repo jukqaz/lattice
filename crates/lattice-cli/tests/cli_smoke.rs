@@ -2178,12 +2178,49 @@ fn discover_suggests_conservative_generic_services_with_json() {
         warning.contains(".profile") && warning.contains("secret-looking content")
     }));
     assert_eq!(discovery["mutated"], false);
+    assert_json_keys(
+        &discovery,
+        &["mutated", "next_actions", "services_dir", "suggestions"],
+    );
+    assert!(
+        discovery["next_actions"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!(
+                "review suggestions and choose one service to add"
+            ))
+    );
+    assert!(
+        discovery["next_actions"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!(
+                "run lattice plan <service> before backup or restore"
+            ))
+    );
+    assert_eq!(
+        tool["next_command"],
+        format!(
+            "lattice service add tool --root {} --include settings.toml",
+            env.home.join(".config/tool").display()
+        )
+    );
+    assert_eq!(tool["uses_app_catalog"], false);
+    assert_eq!(
+        warning_only["next_command"],
+        "review warnings before adding a service"
+    );
 
     let discovery_text = run_ok(bin, &env, &["discover"]);
     assert!(discovery_text.contains("warning: excluded plain-key.toml"));
     assert!(discovery_text.contains("onlysecret root="));
     assert!(discovery_text.contains("warning: excluded config.toml"));
     assert!(discovery_text.contains("warning: excluded .profile"));
+    assert!(discovery_text.contains("next command: lattice service add tool --root"));
+    assert!(discovery_text.contains("next command: review warnings before adding a service"));
+    assert!(discovery_text.contains("next actions:"));
+    assert!(discovery_text.contains("- review suggestions and choose one service to add"));
+    assert!(discovery_text.contains("- run lattice plan <service> before backup or restore"));
     assert!(!discovery_text.contains("fake_discovery_token"));
     assert!(!discovery_text.contains("fake_warning_only_token"));
     assert!(!env.config.join("lattice/services/tool.toml").exists());

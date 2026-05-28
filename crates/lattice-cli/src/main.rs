@@ -2377,6 +2377,8 @@ fn discover(paths: &LatticePaths, json_output: bool) -> Result<()> {
     }
     suggestions.sort_by(|left, right| left.name.cmp(&right.name));
 
+    let next_actions = discover_next_actions();
+
     if json_output {
         let values = suggestions
             .iter()
@@ -2387,14 +2389,17 @@ fn discover(paths: &LatticePaths, json_output: bool) -> Result<()> {
                     "include": suggestion.include,
                     "exclude": suggestion.exclude,
                     "reason": suggestion.reason,
-                    "warnings": suggestion.warnings
+                    "warnings": suggestion.warnings,
+                    "uses_app_catalog": find_app(&suggestion.name).is_some(),
+                    "next_command": discover_next_command(suggestion)
                 })
             })
             .collect::<Vec<_>>();
         print_json(serde_json::json!({
             "suggestions": values,
             "mutated": false,
-            "services_dir": paths.services_dir.display().to_string()
+            "services_dir": paths.services_dir.display().to_string(),
+            "next_actions": next_actions
         }))?;
         return Ok(());
     }
@@ -2408,8 +2413,13 @@ fn discover(paths: &LatticePaths, json_output: bool) -> Result<()> {
         for warning in &suggestion.warnings {
             println!("  warning: {warning}");
         }
+        println!("  next command: {}", discover_next_command(&suggestion));
     }
     println!("mutated: no");
+    println!("next actions:");
+    for action in next_actions {
+        println!("- {action}");
+    }
     Ok(())
 }
 
@@ -2703,6 +2713,40 @@ fn snapshot_path_is_symlink(path: &Path) -> Result<bool> {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
         Err(error) => Err(error).with_context(|| format!("failed to stat {}", path.display())),
     }
+}
+
+fn discover_next_actions() -> Vec<&'static str> {
+    vec![
+        "review suggestions and choose one service to add",
+        "run lattice plan <service> before backup or restore",
+        "run lattice backup --dry-run <service> before writing repo files",
+    ]
+}
+
+fn discover_next_command(suggestion: &DiscoverySuggestion) -> String {
+    let root = shell_quote_if_needed(&suggestion.root.display().to_string());
+    if find_app(&suggestion.name).is_some() {
+        return format!("lattice app add {} --root {root}", suggestion.name);
+    }
+    match suggestion.include.first() {
+        Some(include) => format!(
+            "lattice service add {} --root {root} --include {}",
+            suggestion.name,
+            shell_quote_if_needed(include)
+        ),
+        None => "review warnings before adding a service".to_string(),
+    }
+}
+
+fn shell_quote_if_needed(value: &str) -> String {
+    if !value.is_empty()
+        && value
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '/' | '.' | '_' | '-'))
+    {
+        return value.to_string();
+    }
+    format!("'{}'", value.replace('\'', "'\\''"))
 }
 
 fn discover_config_dirs(home: &Path) -> Result<Vec<DiscoverySuggestion>> {

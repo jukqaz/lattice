@@ -36,11 +36,18 @@ Top-level shape:
       "reason": "common shell startup files",
       "warnings": [
         "excluded .profile because it contains secret-looking content (github token)"
-      ]
+      ],
+      "uses_app_catalog": false,
+      "next_command": "lattice service add shell --root /home/alice --include .zshrc"
     }
   ],
   "mutated": false,
-  "services_dir": "/home/alice/.config/lattice/services"
+  "services_dir": "/home/alice/.config/lattice/services",
+  "next_actions": [
+    "review suggestions and choose one service to add",
+    "run lattice plan <service> before backup or restore",
+    "run lattice backup --dry-run <service> before writing repo files"
+  ]
 }
 ```
 
@@ -48,6 +55,11 @@ Notes:
 
 - `discover`는 service file을 쓰지 않습니다. 검토한 제안만 `app add` 또는
   `service add`로 명시적으로 추가합니다.
+- `next_command`는 suggestion 하나에 대한 보수적인 복사 가능한 시작점입니다.
+  실행하기 전에 include/exclude set을 검토하세요. Warning-only candidate는 add
+  command 대신 review message를 사용합니다.
+- `next_actions`는 첫 도입용 stable top-level checklist입니다. Candidate 하나를
+  검토하고, `plan`을 실행한 뒤, 어떤 write보다 먼저 `backup --dry-run`을 실행합니다.
 - `warnings`는 suggestion별 stop-and-review 신호입니다. 안전하게 백업해도 된다는
   판단으로 취급하지 않습니다.
 - Warning-only candidate는 `include=[]`이고 `exclude`/`warnings`가 non-empty일 수

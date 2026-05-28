@@ -96,9 +96,11 @@ test로 넘어갑니다.
    lattice discover --json
    ```
 
-   제안된 `include`와 `exclude` pattern을 검토하세요. JSON `warnings`는 stop-and-review
-   신호입니다. Warning은 discovery가 secret-looking content 또는 맹목적으로
-   추적하면 안 되는 위험한 content를 발견했다는 뜻입니다.
+   제안된 `include`/`exclude` pattern과 human `next command` / JSON `next_command`를
+   검토하세요. JSON `warnings`는 stop-and-review 신호입니다. Warning은 discovery가
+   secret-looking content 또는 맹목적으로 추적하면 안 되는 위험한 content를 발견했다는
+   뜻입니다. JSON `next_actions`는 automation용 안전 순서입니다. Candidate 하나를
+   검토하고, `plan`을 실행한 뒤, 어떤 write보다 먼저 `backup --dry-run`을 실행합니다.
 
 2. 낮은 위험의 service 하나를 고릅니다. 흔한 layout과 맞으면 app catalog를
    우선 사용합니다.

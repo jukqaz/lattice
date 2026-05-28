@@ -96,9 +96,12 @@ that backup is known-good.
    lattice discover --json
    ```
 
-   Review the suggested `include` and `exclude` patterns. Treat any JSON
-   `warnings` as a stop-and-review signal; warnings mean discovery found
-   secret-looking or otherwise risky content that should not be blindly tracked.
+   Review the suggested `include` and `exclude` patterns plus the human
+   `next command` / JSON `next_command`. Treat any JSON `warnings` as a
+   stop-and-review signal; warnings mean discovery found secret-looking or
+   otherwise risky content that should not be blindly tracked. JSON
+   `next_actions` pins the safe order for automation: review one candidate,
+   run `plan`, then run `backup --dry-run` before any write.
 
 2. Choose one low-risk service. Prefer the app catalog when it already matches
    the common layout:

@@ -37,11 +37,18 @@ Top-level shape:
       "reason": "common shell startup files",
       "warnings": [
         "excluded .profile because it contains secret-looking content (github token)"
-      ]
+      ],
+      "uses_app_catalog": false,
+      "next_command": "lattice service add shell --root /home/alice --include .zshrc"
     }
   ],
   "mutated": false,
-  "services_dir": "/home/alice/.config/lattice/services"
+  "services_dir": "/home/alice/.config/lattice/services",
+  "next_actions": [
+    "review suggestions and choose one service to add",
+    "run lattice plan <service> before backup or restore",
+    "run lattice backup --dry-run <service> before writing repo files"
+  ]
 }
 ```
 
@@ -49,6 +56,11 @@ Notes:
 
 - `discover` never writes service files. Add reviewed suggestions explicitly with
   `app add` or `service add`.
+- `next_command` is a conservative copyable starting point for one suggestion;
+  review its include/exclude set before running it. Warning-only candidates use
+  a review message instead of an add command.
+- `next_actions` is the stable top-level checklist for first adoption: review a
+  single candidate, run `plan`, then run `backup --dry-run` before any write.
 - `warnings` is suggestion-local. Treat it as a stop-and-review signal, not as a
   safe-to-back-up decision.
 - Warning-only candidates can have `include=[]` and non-empty `exclude` and

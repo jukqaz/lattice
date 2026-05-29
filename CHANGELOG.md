@@ -2,6 +2,14 @@
 
 English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
+## Unreleased
+
+### Changed
+
+- `discover` now includes per-suggestion `next_command` hints and a top-level
+  `next_actions` checklist in JSON and human output so first-adoption flows move
+  from review to `plan` to `backup --dry-run` before any write.
+
 ## v0.5.1 - 2026-05-26
 
 ### Fixed

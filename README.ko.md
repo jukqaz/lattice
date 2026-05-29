@@ -49,10 +49,11 @@ lattice plan zsh
 lattice backup --dry-run zsh
 ```
 
-Service를 추가하기 전에 발견된 include/exclude pattern과 warning을 검토하세요.
-낮은 위험의 app 또는 service 하나를 고르고, 맞는 entry가 있으면 app catalog를
-우선 사용하며, secret은 추적 파일 밖에 둡니다. Dry run에 예상한 path만 보이면
-첫 backup을 만들고 service repo에 commit합니다.
+Service를 추가하기 전에 발견된 include/exclude pattern, `next command`, warning을
+검토하세요. 낮은 위험의 app 또는 service 하나를 고르고, 맞는 entry가 있으면 app catalog를
+우선 사용하며, secret은 추적 파일 밖에 둡니다. `discover --json`도 `next_actions`를
+내보내므로 script와 agent가 같은 안전 순서를 유지할 수 있습니다. Dry run에 예상한
+path만 보이면 첫 backup을 만들고 service repo에 commit합니다.
 
 ```bash
 lattice backup zsh

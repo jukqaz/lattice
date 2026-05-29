@@ -455,6 +455,7 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "Do not run restore first on a real HOME",
         "--tag v0.5.1",
         "beyond the v0.5.1 release",
+        "next_actions",
     ] {
         ensure_contains(&readme, needle, &format!("README.md missing {needle}"))?;
     }
@@ -495,6 +496,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "Do not run restore first on a real HOME",
         "--tag v0.5.1",
         "beyond the v0.5.1 release",
+        "next_command",
+        "next_actions",
     ] {
         ensure_contains(
             &user_guide,
@@ -620,6 +623,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "lattice group status --json",
         "root_exists=null",
         "conflict_count",
+        "next_command",
+        "next_actions",
         "There is no `group backup` or `group restore` in v0.5",
     ] {
         ensure_contains(
@@ -673,6 +678,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
 
     let changelog = read_repo_text(root, "CHANGELOG.md")?;
     for needle in [
+        "## Unreleased",
+        "discover` now includes per-suggestion `next_command` hints",
         "## v0.5.1 - 2026-05-26",
         "discover` now reports suggestion-level warnings",
         "Do not run restore first on a real HOME",
@@ -687,6 +694,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
 
     let korean_changelog = read_repo_text(root, "CHANGELOG.ko.md")?;
     for needle in [
+        "## Unreleased",
+        "top-level `next_actions`",
         "## v0.5.1 - 2026-05-26",
         "suggestion-level warning",
         "real HOME",

@@ -53,8 +53,9 @@ Top-level shape:
 
 Notes:
 
-- `discover`는 service file을 쓰지 않습니다. 검토한 제안만 `app add` 또는
-  `service add`로 명시적으로 추가합니다.
+- `discover`는 service file을 쓰지 않습니다. 검토한 제안은 명시적으로
+  `service add`로 추가하세요. `app add`는 catalog entry의 root contract가 관리하려는
+  root와 맞는지 확인한 뒤에만 사용하세요.
 - `next_command`는 suggestion 하나에 대한 보수적인 복사 가능한 시작점입니다.
   실행하기 전에 include/exclude set을 검토하세요. Warning-only candidate는 add
   command 대신 review message를 사용합니다.

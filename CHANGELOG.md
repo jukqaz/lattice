@@ -10,6 +10,13 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
   `next_actions` checklist in JSON and human output so first-adoption flows move
   from review to `plan` to `backup --dry-run` before any write.
 
+### Fixed
+
+- `discover` no longer suggests `app add` for app-named config directories or
+  warning-only candidates when the discovered root and include set do not match
+  the app catalog root contract; copyable hints stay review-first and
+  service-scoped.
+
 ## v0.5.1 - 2026-05-26
 
 ### Fixed

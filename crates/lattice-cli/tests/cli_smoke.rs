@@ -2058,6 +2058,15 @@ fn discover_suggests_conservative_generic_services_with_json() {
         format!("openai = '{openai_marker}fake_warning_only_token'\n"),
     )
     .expect("write warning-only secret-looking config");
+    fs::create_dir_all(env.home.join(".config/mise")).expect("create app-named config dir");
+    fs::write(env.home.join(".config/mise/config.toml"), "jobs = 4\n")
+        .expect("write app-named config");
+    fs::create_dir_all(env.home.join(".config/git")).expect("create warning-only app dir");
+    fs::write(
+        env.home.join(".config/git/config"),
+        format!("token = '{openai_marker}fake_app_warning_only_token'\n"),
+    )
+    .expect("write warning-only app config");
     let github_marker = ["g", "hp_"].concat();
     fs::write(
         env.home.join(".profile"),
@@ -2150,6 +2159,28 @@ fn discover_suggests_conservative_generic_services_with_json() {
                 let warning = warning.as_str().unwrap();
                 warning.contains("config.toml") && warning.contains("secret-looking content")
             })
+    );
+    let mise = services
+        .iter()
+        .find(|item| item["name"] == "mise")
+        .expect("app-named config-dir suggestion");
+    assert_eq!(mise["uses_app_catalog"], true);
+    assert_eq!(
+        mise["next_command"],
+        format!(
+            "lattice service add mise --root {} --include config.toml",
+            env.home.join(".config/mise").display()
+        )
+    );
+    let app_warning_only = services
+        .iter()
+        .find(|item| item["name"] == "git")
+        .expect("warning-only app-named config-dir suggestion");
+    assert_eq!(app_warning_only["uses_app_catalog"], true);
+    assert!(app_warning_only["include"].as_array().unwrap().is_empty());
+    assert_eq!(
+        app_warning_only["next_command"],
+        "review warnings before adding a service"
     );
     let shell = services
         .iter()

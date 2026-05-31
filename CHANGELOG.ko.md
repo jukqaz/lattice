@@ -10,6 +10,13 @@
   checklist를 JSON과 human output에 포함한다. 첫 도입 flow가 review에서 `plan`,
   그리고 어떤 write보다 먼저 `backup --dry-run`으로 이어지도록 고정한다.
 
+### 수정
+
+- `discover`는 app 이름과 같은 config directory나 warning-only candidate에 대해,
+  발견된 root/include set이 app catalog root contract와 맞지 않으면 더 이상
+  `app add`를 제안하지 않는다. 복사 가능한 hint는 review-first와 service-scoped로
+  유지한다.
+
 ## v0.5.1 - 2026-05-26
 
 ### 수정

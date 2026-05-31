@@ -55,7 +55,8 @@ Top-level shape:
 Notes:
 
 - `discover` never writes service files. Add reviewed suggestions explicitly with
-  `app add` or `service add`.
+  `service add`; use `app add` only after confirming the catalog entry's root
+  contract matches the root you intend to manage.
 - `next_command` is a conservative copyable starting point for one suggestion;
   review its include/exclude set before running it. Warning-only candidates use
   a review message instead of an add command.

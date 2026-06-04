@@ -89,45 +89,34 @@ baseline:
 - CLI smoke and product-surface harness coverage for the JSON, selector,
   app-catalog, and bootstrap contracts.
 
-## Current Release: v0.5.1
+## Current Release: v0.6.0
 
-v0.5.1 hardens the service-groups release line while keeping groups as named
-bundles of existing services, not a second service type and not an app-catalog
-redesign.
+v0.6.0 hardens the automation contract across the existing command surface. It
+expands documented JSON shapes, pins fixture-based contract coverage, and adds a
+release-check helper without adding batch mutation or remote bootstrap behavior.
 
-v0.5.1 scope:
+v0.6.0 scope:
 
-- Service groups in global config as ordered named bundles of existing services.
-- `group list`, `group show`, `group status`, and `group plan` for read-only
-  multi-service inspection and dry-run planning.
-- Machine-readable JSON output for every group command.
-- Path selectors on `group status` and `group plan`, reusing the same selector
-  semantics as single-service flows.
-- Group invariant validation: unique group names, non-empty groups, known service
-  references, and no duplicate service members.
-- Active-only aggregates for actionable current-host totals, with inactive
-  members retained as skipped per-service rows in JSON.
-- Group plan JSON with numeric `conflict_count` and structured service-keyed
-  `conflicts` data.
-- Human `group status` missing-root visibility through `root_exists` output.
-- CLI-level restore/manifest/snapshot safety regressions for tampered metadata,
-  symlink traversal attempts, and partial-restore prevention.
-- Conservative `discover` output that reports secret/auth/session/cache/database
-  exclusions as suggestion-level warnings in human and JSON output, including
-  warning-only candidates where every file is excluded.
-- `undo --dry-run` runs restore preflight before reporting success, so dry-run
-  failures match real snapshot undo blockers.
-- Real HOME read-only health checks require `LATTICE_BIN` or an existing
-  `target/debug/lattice` binary and do not fall back to `cargo run`.
-- A documented safe first-adoption playbook that starts from read-only discovery,
-  planning, and a reviewed backup before any restore on a real HOME.
-- CI coverage for the `wasm32-wasip2` non-Unix `lattice-core` compile check.
-- Product-surface harness coverage for group help, docs, JSON examples,
-  read-only command exposure, release docs, and unsupported `group backup` /
-  `group restore`.
+- The service-groups read-only model from v0.5 remains intact: `group list`,
+  `group show`, `group status`, and `group plan` only.
+- JSON output reference coverage expands beyond groups to `bootstrap check`,
+  single-service `status`/`plan`, dry-run `backup`/`restore`, `diff`, snapshot
+  list/show/prune, `undo --dry-run`, and `discover`.
+- Fixture-based CLI smoke coverage pins top-level JSON keys and important nested
+  field names for bootstrap, service, group, discovery, snapshot, and undo
+  automation surfaces.
+- `discover` exposes top-level `next_actions` and suggestion-level
+  `next_command` while keeping app-named discovery hints service-scoped unless
+  the app catalog root/include contract is explicitly reviewed.
+- `cargo run -p xtask -- release-check` verifies version metadata, changelog and
+  install snippets, locked metadata, path install, and installed binary smoke
+  before tagging.
+- README, user docs, product scope, TODO, changelog, and product-surface harness
+  expectations are aligned to the v0.6.0 release line.
 
-Group backup, group restore, and other batch mutation flows remain intentionally
-out of scope until the read-only group status/plan surface is proven safe.
+Group backup, group restore, other batch mutation flows, automatic remote repo
+creation, package installation, MCP prototypes, and crates.io publish remain
+intentionally out of scope.
 
 ## Roadmap
 
@@ -136,6 +125,7 @@ out of scope until the read-only group status/plan surface is proven safe.
 | `v0.3.x` | Safe Personal Backup | Safely back up and restore personal dotfiles. | Full safety harness, platform CI, install smoke, and v0.3.3 tag smoke pass. |
 | `v0.4.x` | Automation, Bootstrap, Recovery, And Discovery | Let scripts and agents call Lattice without parsing human stdout, then make new-machine restore, recovery history, and conservative discovery first-class. | Generic init, JSON output, selectors, `plan`, `bootstrap check`, `app` commands, snapshot/undo, `discover`, and product-surface harness coverage are documented and tested in the v0.4.0 release line. |
 | `v0.5.x` | Service Groups | Inspect and plan related services together without introducing batch mutation. | `group list/show/status/plan`, JSON output, selectors, group invariant validation, active-only aggregates, and missing-root visibility are documented and tested before any group backup/restore behavior. |
+| `v0.6.x` | Automation Contract Hardening | Make existing machine-readable surfaces trustworthy for scripts and agents. | JSON reference coverage, fixture-based contract tests, release-check automation, and release docs are aligned without adding batch mutation. |
 | `v1.0` | Public Stable CLI | Make Lattice recommendable to external users. | Install, changelog, release, migration, change policy, and issue workflows are stable. |
 
 ## Deliberate Non-Goals

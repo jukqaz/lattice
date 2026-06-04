@@ -17,14 +17,14 @@ this surface directly as `app`.
 
 ## Start Here
 
-Install the current v0.5 release command surface documented below:
+Install the current v0.6 release command surface documented below:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.5.1 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.6.0 --locked
 ```
 
 Use the `main` branch or a local checkout only when testing unreleased changes
-beyond the v0.5.1 release.
+beyond the v0.6.0 release.
 
 Initialize local config and check whether the machine is ready for managed
 config restores:
@@ -215,7 +215,7 @@ description = "Shell and CLI development environment"
 services = ["zsh", "git", "mise", "ssh"]
 ```
 
-Group commands are intentionally read-only in v0.5. Group names must be unique,
+Group commands are intentionally read-only in v0.6. Group names must be unique,
 each group must list at least one existing service, and duplicate service members
 are rejected by `lattice validate`. Use groups to list, inspect, status-check,
 and plan across existing services before deciding whether to run individual

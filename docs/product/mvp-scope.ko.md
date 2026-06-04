@@ -83,44 +83,32 @@ v0.4.0은 안전한 개인 backup 기준선 위에 automation-friendly surface�
 - JSON, selector, app-catalog, bootstrap contract를 고정하는 CLI smoke와
   product-surface harness coverage.
 
-## 현재 릴리스: v0.5.1
+## 현재 릴리스: v0.6.0
 
-v0.5.1은 service-groups release line을 harden한다. Group은 기존 service의 named
-bundle이며, 두 번째 service type이나 app catalog redesign이 아니다.
+v0.6.0은 기존 command surface 전반의 automation contract를 harden한다. Batch
+mutation이나 remote bootstrap behavior를 추가하지 않고, 문서화된 JSON shape를 확장하고
+fixture 기반 contract coverage와 release-check helper를 추가한다.
 
-v0.5.1 범위:
+v0.6.0 범위:
 
-- Global config 안의 service group. Group은 기존 service를 순서 있는 named bundle로
-  묶는다.
-- 읽기 전용 multi-service 점검과 dry-run planning을 위한 `group list`,
-  `group show`, `group status`, `group plan`.
-- 모든 group command의 machine-readable JSON output.
-- Single-service flow와 같은 selector semantics를 재사용하는 `group status`,
-  `group plan` path selector.
-- Group invariant validation: unique group name, non-empty group, known service
-  reference, duplicate service member 금지.
-- 현재 host에서 실행 가능한 total을 위해 active-only aggregate를 사용하고,
-  inactive member는 JSON의 skipped per-service row로 유지.
-- Numeric `conflict_count`와 service-keyed structured `conflicts`를 포함한 group
-  plan JSON.
-- Human `group status`의 `root_exists` output으로 missing-root visibility 제공.
-- Tampered metadata, symlink traversal attempt, partial restore prevention을 위한
-  CLI-level restore/manifest/snapshot safety regression.
-- Secret/auth/session/cache/database exclusion을 human/JSON output의
-  suggestion-level warning으로 보여주는 보수적인 `discover` output. 모든 파일이
-  제외된 warning-only candidate도 포함한다.
-- `undo --dry-run`은 성공을 보고하기 전에 restore preflight를 실행해서 실제 snapshot
-  undo blocker와 dry-run 실패가 일치하게 한다.
-- 실제 HOME read-only health check는 `LATTICE_BIN` 또는 기존 `target/debug/lattice`
-  binary를 요구하며 `cargo run` fallback을 사용하지 않는다.
-- Real HOME에서 restore하기 전에 read-only discovery, planning, reviewed backup부터
-  시작하도록 문서화한 safe first-adoption playbook.
-- `wasm32-wasip2` non-Unix `lattice-core` compile check를 위한 CI coverage.
-- Group help, docs, JSON example, read-only command exposure, release docs,
-  unsupported `group backup` / `group restore`를 고정하는 product-surface harness coverage.
+- v0.5의 service-groups 읽기 전용 모델은 그대로 유지한다: `group list`,
+  `group show`, `group status`, `group plan` only.
+- JSON output reference coverage를 group 외에도 `bootstrap check`, single-service
+  `status`/`plan`, dry-run `backup`/`restore`, `diff`, snapshot list/show/prune,
+  `undo --dry-run`, `discover`까지 확장한다.
+- Fixture 기반 CLI smoke coverage가 bootstrap, service, group, discovery,
+  snapshot, undo automation surface의 top-level JSON key와 중요한 nested field name을
+  고정한다.
+- `discover`는 top-level `next_actions`와 suggestion-level `next_command`를 노출하되,
+  app catalog root/include contract가 명시적으로 검토되지 않은 app-named discovery
+  hint는 service-scoped로 유지한다.
+- `cargo run -p xtask -- release-check`는 tag 전 version metadata, changelog/install
+  snippet, locked metadata, path install, installed binary smoke를 검증한다.
+- README, user docs, product scope, TODO, changelog, product-surface harness
+  expectation을 v0.6.0 release line에 맞춘다.
 
-Group backup, group restore, 기타 batch mutation flow는 읽기 전용 group
-status/plan surface의 안전성이 검증될 때까지 의도적으로 scope 밖이다.
+Group backup, group restore, 기타 batch mutation flow, automatic remote repo
+creation, package installation, MCP prototype, crates.io publish는 의도적으로 scope 밖이다.
 
 ## 로드맵
 
@@ -129,6 +117,7 @@ status/plan surface의 안전성이 검증될 때까지 의도적으로 scope �
 | `v0.3.x` | Safe Personal Backup | 개인 dotfiles를 안전하게 backup/restore. | full safety harness, platform CI, install smoke, v0.3.3 tag smoke 통과. |
 | `v0.4.x` | Automation, Bootstrap, Recovery, And Discovery | script와 agent가 human stdout parsing 없이 Lattice를 호출하고, 새 머신 restore, recovery history, 보수적 discovery를 first-class로 만든다. | generic init, JSON output, selector, `plan`, `bootstrap check`, `app` command, snapshot/undo, `discover`, product-surface harness coverage가 v0.4.0 release line에 문서화되고 테스트됨. |
 | `v0.5.x` | Service Groups | Batch mutation 없이 관련 service를 함께 inspect/plan. | `group list/show/status/plan`, JSON output, selector, group invariant validation, active-only aggregate, missing-root visibility를 group backup/restore 동작보다 먼저 문서화하고 테스트. |
+| `v0.6.x` | Automation Contract Hardening | 기존 machine-readable surface를 script와 agent가 신뢰할 수 있게 만든다. | JSON reference coverage, fixture-based contract test, release-check automation, release docs를 batch mutation 없이 정렬. |
 | `v1.0` | Public Stable CLI | 외부 사용자에게 추천 가능한 안정 CLI. | install, changelog, release, migration, change policy, issue workflow 안정화. |
 
 ## 의도적으로 하지 않는 것

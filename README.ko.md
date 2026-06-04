@@ -15,13 +15,13 @@ Lattice는 범용 도구입니다. 특정 tool이나 service 하나가 제품의
 
 ## 먼저 할 일
 
-아래에 문서화된 현재 v0.5 release command surface 설치:
+아래에 문서화된 현재 v0.6 release command surface 설치:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.5.1 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.6.0 --locked
 ```
 
-v0.5.1 release 이후 unreleased change를 테스트할 때만 `main` branch나 local
+v0.6.0 release 이후 unreleased change를 테스트할 때만 `main` branch나 local
 checkout을 사용합니다.
 
 로컬 설정을 만들고 새 머신에서 복원 준비가 되었는지 확인합니다.
@@ -210,7 +210,7 @@ description = "Shell and CLI development environment"
 services = ["zsh", "git", "mise", "ssh"]
 ```
 
-v0.5의 group command는 의도적으로 읽기 전용입니다. Group name은 unique해야 하고,
+v0.6의 group command는 의도적으로 읽기 전용입니다. Group name은 unique해야 하고,
 각 group은 하나 이상의 기존 service를 포함해야 하며, 중복 service member는
 `lattice validate`에서 거부됩니다. 기존 service를 묶어서 list, show, status,
 plan을 확인한 뒤 실제 backup/restore는 개별 service 명령으로 실행합니다.

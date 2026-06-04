@@ -32,14 +32,14 @@ only one example app. The CLI uses `lattice app ...` directly for this catalog s
 
 ## 1. Install
 
-Install the current v0.5 release command surface documented in this guide:
+Install the current v0.6 release command surface documented in this guide:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.5.1 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.6.0 --locked
 ```
 
 Use the `main` branch or a local checkout only when testing unreleased changes
-beyond the v0.5.1 release.
+beyond the v0.6.0 release.
 
 Install from a local checkout while developing Lattice:
 
@@ -443,7 +443,7 @@ lattice group plan dev-shell
 lattice group plan --json --exclude 'cache/**' dev-shell
 ```
 
-In v0.5, service groups are intentionally read-only. `group status` and
+In v0.6, service groups are intentionally read-only. `group status` and
 `group plan` aggregate active services only; inactive members remain visible in
 per-service JSON rows with `active=false` and skipped root inspection. The
 human `group status` output includes `root_exists` so a missing root is not

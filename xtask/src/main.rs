@@ -991,11 +991,11 @@ fn verify_non_unix_compile_harness(root: &Path) -> Result<(), String> {
         .map_err(|error| format!("failed to list rustup targets: {error}"))?;
     ensure(output.status.success(), "rustup target list failed")?;
     let installed = String::from_utf8_lossy(&output.stdout);
-    if installed.lines().any(|line| line == "{{env:NAME}}") {
+    if installed.lines().any(|line| line == "wasm32-wasip2") {
         run_passthrough(
             root,
             "cargo",
-            ["check", "-p", "lattice-core", "--target", "{{env:NAME}}"],
+            ["check", "-p", "lattice-core", "--target", "wasm32-wasip2"],
             [],
         )?;
     } else {

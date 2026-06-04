@@ -154,7 +154,14 @@ See `docs/product/mvp-scope.md`.
 - [x] Align version metadata, changelogs, product scope, install snippets, and product-surface harness expectations for `v0.6.0`.
 - [ ] Split the large CLI command implementation into focused command modules without behavior changes.
 - [ ] Design a read-only `audit`/`guidance` surface before any MCP prototype.
-- [ ] Before tagging v0.6.0, run release acceptance: `cargo run -p xtask -- verify`, `cargo run -p xtask -- release-check`, path install smoke, public tag install smoke, and GitHub Actions matrix.
+- [x] Release acceptance for v0.6.0 completed before the tag.
+
+## v0.7.x Secret Passthrough References
+
+- [x] Add `env` secret metadata so API key/token/password handling stores references, not values.
+- [x] Keep `secret check` non-disclosing with `set`/`unset` status and `value=not-read`.
+- [x] Align version metadata, changelogs, product scope, install snippets, and product-surface harness expectations for `v0.7.0`.
+- [ ] Before tagging v0.7.0, run release acceptance: `cargo run -p xtask -- verify`, `cargo run -p xtask -- release-check 0.7.0`, path install smoke, public tag install smoke, and GitHub Actions matrix.
 
 ## v1.0 Public Stable CLI
 

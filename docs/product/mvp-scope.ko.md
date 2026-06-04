@@ -84,7 +84,22 @@ v0.4.0은 안전한 개인 backup 기준선 위에 automation-friendly surface�
 - JSON, selector, app-catalog, bootstrap contract를 고정하는 CLI smoke와
   product-surface harness coverage.
 
-## 현재 릴리스: v0.6.0
+## 현재 릴리스: v0.7.0
+
+v0.7.0은 Lattice를 secret manager가 아니라 dotfiles/config manager로 유지하면서
+env secret passthrough metadata를 추가한다. API key, token, password 값은 repo 밖에
+두고 environment-variable reference와 restore template만 관리한다.
+
+v0.7.0 범위:
+
+- Secret metadata command가 `rbw`, `bw`와 함께 `env` passthrough reference를
+  지원하며 secret 값 대신 environment-variable 이름을 저장한다.
+- `secret check`는 env reference를 `set`, `unset`, `missing-env-reference`로
+  보고하고 `value=not-read`를 유지한다.
+- README, user docs, product scope, TODO, changelog, product-surface harness
+  expectation을 v0.7.0 release line에 맞춘다.
+
+## 이전 릴리스: v0.6.0
 
 v0.6.0은 기존 command surface 전반의 automation contract를 harden한다. Batch
 mutation이나 remote bootstrap behavior를 추가하지 않고, 문서화된 JSON shape를 확장하고

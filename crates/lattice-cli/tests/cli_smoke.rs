@@ -895,6 +895,42 @@ fn mvp2_commands_cover_apps_repo_secrets_track_adopt_diff_and_tui() {
     let secret_check = run_ok(bin, &env, &["secret", "check", "zsh"]);
     assert!(secret_check.contains("value=not-read"));
 
+    run_ok(
+        bin,
+        &env,
+        &[
+            "secret",
+            "add",
+            "zsh",
+            "api-key",
+            "--backend",
+            "env",
+            "--env",
+            "LATTICE_TEST_API_KEY",
+        ],
+    );
+    let env_secrets = run_ok(bin, &env, &["secret", "list", "zsh"]);
+    assert!(env_secrets.contains(
+        "api-key backend=env item=LATTICE_TEST_API_KEY field=- env=LATTICE_TEST_API_KEY"
+    ));
+    assert!(!env_secrets.contains("test-value"));
+    let env_secret_check = Command::new(bin)
+        .args(["secret", "check", "zsh"])
+        .env("HOME", &env.home)
+        .env("XDG_CONFIG_HOME", &env.config)
+        .env("XDG_DATA_HOME", &env.data)
+        .env("XDG_STATE_HOME", &env.state)
+        .env("XDG_CACHE_HOME", &env.cache)
+        .env("LATTICE_TEST_API_KEY", "test-value")
+        .output()
+        .expect("run env secret check");
+    assert!(env_secret_check.status.success());
+    let env_secret_check = String::from_utf8_lossy(&env_secret_check.stdout);
+    assert!(env_secret_check.contains(
+        "api-key backend=env status=set item=LATTICE_TEST_API_KEY env=LATTICE_TEST_API_KEY value=not-read"
+    ));
+    assert!(!env_secret_check.contains("test-value"));
+
     let repo = env.data.join("lattice/repos/zsh");
     run_ok(bin, &env, &["backup", "zsh"]);
     run_git(&repo, &["init"]);

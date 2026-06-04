@@ -261,6 +261,9 @@ repo at it with normal `git remote` commands.
   `--allow-secret-looking-files` is passed.
 - Secret commands store metadata only. They do not read, print, or back up
   secret values.
+- API keys, tokens, and passwords can be modeled as `env` secret references and
+  `{{env:NAME}}` templates so the real value passes through from the local
+  environment at restore time instead of entering the repo.
 - Restore refuses conflicting local files unless `--force` is passed.
 - Forced restore creates a snapshot before overwriting files. Use `snapshot list`,
   `snapshot show`, and `undo --dry-run` to inspect rollback before restoring from

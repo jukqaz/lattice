@@ -48,7 +48,8 @@ filesystem safety check를 포함한다.
 - root/repo overlap rejection.
 - hard link, extended attribute, macOS resource fork를 위한 metadata-loss
   guard와 명시적 `--allow-metadata-loss` bypass.
-- secret 값을 읽지 않는 `rbw`, `bw` secret metadata command.
+- secret 값을 읽지 않는 `rbw`, `bw`, env passthrough reference용 secret
+  metadata command.
 - `repo status/pull/commit/push` git repo command.
 - 기존 file을 service에 가져오는 `track`, `adopt`.
 - binary redaction과 template-aware output을 포함한 `diff`.

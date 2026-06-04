@@ -4,7 +4,11 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
 ## Unreleased
 
-Nothing yet.
+### Added
+
+- Secret metadata now supports an `env` passthrough backend for API keys, tokens,
+  and passwords that should stay outside Lattice repos and be rendered through
+  `{{env:NAME}}` templates at restore time.
 
 ## v0.6.0 - 2026-06-03
 

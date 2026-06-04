@@ -51,7 +51,8 @@ Released v0.3.3 scope:
 - Root/repo overlap rejection.
 - Metadata-loss guard for hard links, extended attributes, and macOS resource
   forks, with explicit `--allow-metadata-loss` bypass.
-- Secret metadata commands for `rbw` and `bw` without reading secret values.
+- Secret metadata commands for `rbw`, `bw`, and env passthrough references
+  without reading secret values.
 - Git repo commands: `repo status/pull/commit/push`.
 - `track` and `adopt` for importing existing files into a service.
 - `diff` with binary redaction and template-aware output.

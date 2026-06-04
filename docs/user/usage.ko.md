@@ -295,12 +295,15 @@ lattice discover --json
 ## 9. Secret 안전하게 다루기
 
 Lattice는 secret 값을 백업하지 않습니다. Secret command는 backend, item,
-field, environment variable name, folder 같은 metadata만 저장합니다.
+field, environment variable name, folder 같은 metadata만 저장합니다. API key,
+token, password는 외부 source에 두고 `{{env:GITHUB_TOKEN}}` 같은 environment
+variable reference로 restore 시 passthrough합니다.
 
 Secret metadata 추가:
 
 ```bash
 lattice secret add --backend rbw --item "<vault item>" --field password --env <ENV_NAME> <service> <name>
+lattice secret add --backend env --env <ENV_NAME> <service> <name>
 ```
 
 Metadata 목록과 상태 확인:
@@ -310,8 +313,9 @@ lattice secret list <service>
 lattice secret check <service>
 ```
 
-`secret check`는 `rbw`, `bw` 같은 backend tool 사용 가능 여부만 확인하고,
-secret 값을 읽거나 출력하지 않습니다.
+`secret check`는 `rbw`, `bw` 같은 backend tool 사용 가능 여부를 확인합니다.
+`env` backend는 이름이 지정된 environment variable이 set 되었는지만 보고합니다.
+secret 값은 출력하지 않습니다.
 
 백업은 명백한 secret 형태의 파일 내용도 기본적으로 막습니다. 파일을 직접 검토한
 뒤에만 `--allow-secret-looking-files`를 사용합니다.

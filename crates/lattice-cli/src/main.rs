@@ -386,7 +386,7 @@ enum SecretCommands {
         #[arg(long)]
         backend: String,
         #[arg(long)]
-        item: String,
+        item: Option<String>,
         #[arg(long)]
         field: Option<String>,
         #[arg(long)]
@@ -1562,6 +1562,7 @@ fn secret_command(paths: &LatticePaths, command: SecretCommands) -> Result<()> {
             folder,
         } => {
             validate_secret_backend(&backend)?;
+            let item = secret_item_for_backend(&backend, item, env.as_deref())?;
             let mut config = load_service(paths, &service)?;
             config.secrets.retain(|secret| secret.name != name);
             config.secrets.push(SecretRef {
@@ -1590,14 +1591,14 @@ fn secret_command(paths: &LatticePaths, command: SecretCommands) -> Result<()> {
             let config = load_service(paths, &service)?;
             for secret in config.secrets {
                 validate_secret_backend(&secret.backend)?;
-                let status = if which::which(&secret.backend).is_ok() {
-                    "available"
-                } else {
-                    "missing"
-                };
+                let status = secret_backend_status(&secret);
                 println!(
-                    "{} backend={} status={} item={} value=not-read",
-                    secret.name, secret.backend, status, secret.item
+                    "{} backend={} status={} item={} env={} value=not-read",
+                    secret.name,
+                    secret.backend,
+                    status,
+                    secret.item,
+                    secret.env.as_deref().unwrap_or("-")
                 );
             }
             Ok(())
@@ -3124,11 +3125,42 @@ fn default_repo_dir_name(service_name: &str) -> Result<&str> {
 }
 
 fn validate_secret_backend(backend: &str) -> Result<()> {
-    if !matches!(backend, "rbw" | "bw") {
-        bail!("secret backend must be rbw or bw");
+    if !matches!(backend, "rbw" | "bw" | "env") {
+        bail!("secret backend must be rbw, bw, or env");
     }
 
     Ok(())
+}
+
+fn secret_item_for_backend(
+    backend: &str,
+    item: Option<String>,
+    env: Option<&str>,
+) -> Result<String> {
+    match backend {
+        "env" => Ok(env
+            .map(str::to_string)
+            .or(item)
+            .context("env secret references require --env or --item")?),
+        "rbw" | "bw" => Ok(item.context("rbw and bw secret references require --item")?),
+        _ => bail!("secret backend must be rbw, bw, or env"),
+    }
+}
+
+fn secret_backend_status(secret: &SecretRef) -> &'static str {
+    if secret.backend == "env" {
+        return match secret.env.as_deref() {
+            Some(env) if std::env::var_os(env).is_some() => "set",
+            Some(_) => "unset",
+            None => "missing-env-reference",
+        };
+    }
+
+    if which::which(&secret.backend).is_ok() {
+        "available"
+    } else {
+        "missing"
+    }
 }
 
 fn ensure_service_active(service: &ServiceConfig) -> Result<()> {

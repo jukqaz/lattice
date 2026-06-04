@@ -255,6 +255,9 @@ private GitHub repo를 쓸 때는 remote repository를 직접 만든 뒤 일반
   막습니다.
 - secret command는 metadata만 저장합니다. secret 값을 읽거나 출력하거나
   백업하지 않습니다.
+- API key, token, password는 `env` secret reference와 `{{env:NAME}}` template로
+  모델링해 실제 값이 repo에 들어가지 않고 restore 시 local environment에서
+  passthrough되게 할 수 있습니다.
 - restore는 `--force` 없이는 충돌하는 local file을 덮어쓰지 않습니다.
 - forced restore는 덮어쓰기 전에 snapshot을 만듭니다. `snapshot list`,
   `snapshot show`, `undo --dry-run`으로 rollback을 검토한 뒤 snapshot에서 복원합니다.

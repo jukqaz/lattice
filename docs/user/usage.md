@@ -301,12 +301,15 @@ Review the suggestions, then add the service explicitly with `lattice app add` o
 
 
 Lattice does not back up secret values. Secret commands store metadata such as
-backend, item, field, environment variable name, and folder.
+backend, item, field, environment variable name, and folder. API keys, tokens,
+and passwords should stay in an external source and be passed through at restore
+time with an environment-variable reference such as `{{env:GITHUB_TOKEN}}`.
 
 Add secret metadata:
 
 ```bash
 lattice secret add --backend rbw --item "<vault item>" --field password --env <ENV_NAME> <service> <name>
+lattice secret add --backend env --env <ENV_NAME> <service> <name>
 ```
 
 List and check metadata:
@@ -316,8 +319,9 @@ lattice secret list <service>
 lattice secret check <service>
 ```
 
-`secret check` verifies tool availability for backends such as `rbw` and `bw`
-without reading or printing secret values.
+`secret check` verifies tool availability for backends such as `rbw` and `bw`.
+For the `env` backend it reports only whether the named environment variable is
+set. It never prints secret values.
 
 Backups also block obvious secret-looking file contents by default. Use
 `--allow-secret-looking-files` only after reviewing the affected files:

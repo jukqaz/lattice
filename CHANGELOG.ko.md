@@ -4,7 +4,10 @@
 
 ## Unreleased
 
-아직 없음.
+### 추가
+
+- Secret metadata가 API key, token, password를 Lattice repo 밖에 두고 restore 시
+  `{{env:NAME}}` template로 render할 수 있는 `env` passthrough backend를 지원한다.
 
 ## v0.6.0 - 2026-06-03
 

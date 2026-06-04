@@ -3,9 +3,9 @@
 English | [한국어](json-output.ko.md) | [Documentation Index](../README.md)
 
 This reference documents the machine-readable output that scripts and agents can
-use without parsing human text. The shapes below are part of the v0.5.1 hardened
-service-groups release line, but Lattice is still pre-v1.0: treat these fields as
-release-line contracts rather than forever-stable public API.
+use without parsing human text. The shapes below are part of the v0.6.0
+automation-contract hardening release line, but Lattice is still pre-v1.0: treat
+these fields as release-line contracts rather than forever-stable public API.
 
 ## General Rules
 
@@ -19,6 +19,99 @@ release-line contracts rather than forever-stable public API.
 - Service-group aggregate totals are current-host actionable totals: inactive
   services stay visible in per-service rows but do not contribute to active-only
   aggregate counts.
+- The v0.6 fixture contract tests pin top-level keys for every command listed in
+  this reference. Add fields by documenting and testing them together.
+
+## Bootstrap JSON
+
+### `lattice bootstrap check --json`
+
+Top-level keys: `ok`, `config`, `config_exists`, `services_dir`,
+`services_dir_exists`, `services`, `ready_services`, `git`, `diagnostics`, and
+`next_actions`.
+
+Use this as a new-machine readiness summary. `ok=false` means at least one
+blocking readiness issue remains. Repository metadata such as local-only or dirty
+Git state is diagnostic unless a command specifically requires publish/sync
+readiness.
+
+## Single-Service JSON
+
+### `lattice status --json <service>`
+
+Top-level keys: `service`, `root`, `repo`, `active`, `manifest`,
+`included_files`, and `files`.
+
+`files` is the selected tracked-file view after `--only`/`--exclude` filters.
+`manifest` is a compact state string such as `present` or `missing`.
+
+### `lattice plan --json <service>`
+
+Top-level keys: `service`, `root`, `repo`, `active`, `root_exists`, `manifest`,
+`ready`, `requires_force`, `safe_to_restore_without_force`,
+`snapshot_on_conflict`, `snapshot_policy`, `backup_would_copy`,
+`restore_would_restore`, `restore_would_create_dirs`, `files`, `dirs`, `entries`,
+and `conflicts`.
+
+Use `ready=false`, `requires_force=true`, and non-empty `conflicts` as stop signs
+before a restore. `conflicts` is structured data; do not treat it as a numeric
+count.
+
+### `lattice backup --dry-run --json <service>`
+
+Top-level keys: `service`, `dry_run`, `destination`, `files`, `dirs`, `hooks`,
+`would_copy`, and `would_track_dirs`.
+
+The dry-run form does not copy files or write manifests. Non-dry-run JSON backup
+still performs the backup.
+
+### `lattice diff --json <service>`
+
+Top-level keys: `service` and `diffs`.
+
+`diffs` contains one entry per differing tracked path. Binary differences are
+reported without exposing line-level binary content.
+
+### `lattice restore --dry-run --json <service>`
+
+Top-level keys: `service`, `dry_run`, `destination`, `snapshot_policy`,
+`requires_force`, `safe_to_restore_without_force`, `would_restore`,
+`would_create_dirs`, `entries`, `dirs`, `hooks`, and `conflicts`.
+
+The dry-run form performs the same restore preflight checks that reject unsafe
+snapshot inputs, invalid manifest paths, symlink escapes, and conflicts before a
+real restore.
+
+## Snapshot And Undo JSON
+
+### `lattice snapshot list --json`
+
+Top-level keys: `snapshots`.
+
+Each snapshot row includes the snapshot identifier and metadata needed to inspect
+or prune safety snapshots.
+
+### `lattice snapshot show --json <snapshot-id>`
+
+Top-level keys: `id`, `service`, `path`, `files`, and `entries`.
+
+Use this before `undo` when deciding whether a forced-restore safety snapshot is
+the rollback source you expect.
+
+### `lattice undo --dry-run --json <snapshot-id>`
+
+Top-level keys: `snapshot`, `service`, `destination`, `dry_run`, `would_restore`,
+`entries`, and `preflight`.
+
+Dry-run undo runs restore preflight before reporting success, so a successful
+JSON dry run is stronger than a simple snapshot existence check.
+
+### `lattice snapshot prune --dry-run --json --keep <n>`
+
+Top-level keys: `dry_run`, `keep`, `remove`, and `would_remove`.
+
+Use the dry-run form first. Non-dry-run JSON prune still deletes eligible
+snapshots.
 
 ## Discover JSON
 
@@ -55,7 +148,8 @@ Top-level shape:
 Notes:
 
 - `discover` never writes service files. Add reviewed suggestions explicitly with
-  `app add` or `service add`.
+  `service add`; use `app add` only after confirming the catalog entry's root
+  contract matches the root you intend to manage.
 - `next_command` is a conservative copyable starting point for one suggestion;
   review its include/exclude set before running it. Warning-only candidates use
   a review message instead of an add command.
@@ -197,8 +291,8 @@ Notes:
 - `ready=false` means at least one active member has a blocking plan issue such
   as a restore conflict.
 
-## Intentional v0.5 Limits
+## Intentional v0.6 Limits
 
-There is no `group backup` or `group restore` in v0.5. Service groups are
+There is no `group backup` or `group restore` in v0.6. Service groups are
 read-only inspection and planning surfaces until batch mutation safety is
 intentionally designed and tested.

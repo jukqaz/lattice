@@ -32,13 +32,13 @@ shortcut일 뿐입니다. 어떤 앱도 제품을 정의하지 않으며, Codex�
 
 ## 1. 설치
 
-이 가이드에 문서화된 현재 v0.5 release command surface 설치:
+이 가이드에 문서화된 현재 v0.6 release command surface 설치:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.5.1 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.6.0 --locked
 ```
 
-v0.5.1 release 이후 unreleased change를 테스트할 때만 `main` branch나 local
+v0.6.0 release 이후 unreleased change를 테스트할 때만 `main` branch나 local
 checkout을 사용합니다.
 
 Lattice를 개발 중이면 local checkout에서 설치:
@@ -435,7 +435,7 @@ lattice group plan dev-shell
 lattice group plan --json --exclude 'cache/**' dev-shell
 ```
 
-v0.5에서 service group은 의도적으로 읽기 전용입니다. `group status`와
+v0.6에서 service group은 의도적으로 읽기 전용입니다. `group status`와
 `group plan`의 aggregate 값은 active service만 합산합니다. Inactive member는
 per-service JSON row에 `active=false`와 skipped root inspection으로 계속 표시됩니다.
 Human `group status` output에는 `root_exists`가 포함되어 missing root와 empty matched

@@ -2725,9 +2725,6 @@ fn discover_next_actions() -> Vec<&'static str> {
 
 fn discover_next_command(suggestion: &DiscoverySuggestion) -> String {
     let root = shell_quote_if_needed(&suggestion.root.display().to_string());
-    if find_app(&suggestion.name).is_some() {
-        return format!("lattice app add {} --root {root}", suggestion.name);
-    }
     match suggestion.include.first() {
         Some(include) => format!(
             "lattice service add {} --root {root} --include {}",

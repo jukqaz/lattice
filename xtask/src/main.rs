@@ -21,8 +21,12 @@ fn run() -> Result<(), String> {
         Some("verify") => verify(),
         Some("linux-verify") => linux_verify(),
         Some("quality") => quality(),
+        Some("release-check") => release_check(args.next().as_deref().unwrap_or("0.6.0")),
         Some(command) => Err(format!("unknown xtask command: {command}")),
-        None => Err("usage: cargo run -p xtask -- <verify|linux-verify|quality>".to_string()),
+        None => Err(
+            "usage: cargo run -p xtask -- <verify|linux-verify|quality|release-check [version]>"
+                .to_string(),
+        ),
     }
 }
 
@@ -447,14 +451,14 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "lattice group status --json",
         "lattice group plan --json",
         "Service Groups",
-        "Group commands are intentionally read-only in v0.5",
+        "Group commands are intentionally read-only in v0.6",
         "There is no `group backup` or `group restore` yet",
         "conflict_count",
         "active=false",
         "Safe first-adoption playbook",
         "Do not run restore first on a real HOME",
-        "--tag v0.5.1",
-        "beyond the v0.5.1 release",
+        "--tag v0.6.0",
+        "beyond the v0.6.0 release",
         "next_actions",
     ] {
         ensure_contains(&readme, needle, &format!("README.md missing {needle}"))?;
@@ -469,8 +473,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "Service Groups",
         "conflict_count",
         "active=false",
-        "--tag v0.5.1",
-        "v0.5.1 release 이후",
+        "--tag v0.6.0",
+        "v0.6.0 release 이후",
     ] {
         ensure_contains(
             &korean_readme,
@@ -494,8 +498,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "Selector",
         "Safe first-adoption playbook",
         "Do not run restore first on a real HOME",
-        "--tag v0.5.1",
-        "beyond the v0.5.1 release",
+        "--tag v0.6.0",
+        "beyond the v0.6.0 release",
         "next_command",
         "next_actions",
     ] {
@@ -516,8 +520,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "batch backup",
         "conflict_count",
         "active=false",
-        "--tag v0.5.1",
-        "v0.5.1 release 이후",
+        "--tag v0.6.0",
+        "v0.6.0 release 이후",
     ] {
         ensure_contains(
             &korean_user_guide,
@@ -539,8 +543,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "group invariant validation",
         "active-only aggregates",
         "missing-root visibility",
-        "v0.5.1 hardens the service-groups release line",
-        "v0.5.1 scope",
+        "v0.6.0 hardens the automation contract",
+        "v0.6.0 scope",
     ] {
         ensure_contains(
             &product_scope,
@@ -562,8 +566,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "group invariant validation",
         "active-only aggregate",
         "missing-root visibility",
-        "v0.5.1은 service-groups release line을 harden한다",
-        "v0.5.1 범위",
+        "v0.6.0은 기존 command surface 전반의 automation contract를 harden한다",
+        "v0.6.0 범위",
     ] {
         ensure_contains(
             &korean_scope,
@@ -625,7 +629,7 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "conflict_count",
         "next_command",
         "next_actions",
-        "There is no `group backup` or `group restore` in v0.5",
+        "There is no `group backup` or `group restore` in v0.6",
     ] {
         ensure_contains(
             &json_reference,
@@ -680,8 +684,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
     for needle in [
         "## Unreleased",
         "discover` now includes per-suggestion `next_command` hints",
-        "## v0.5.1 - 2026-05-26",
-        "discover` now reports suggestion-level warnings",
+        "## v0.6.0 - 2026-06-03",
+        "JSON output reference now covers the documented automation surfaces",
         "Do not run restore first on a real HOME",
         "wasm32-wasip2",
     ] {
@@ -695,9 +699,9 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
     let korean_changelog = read_repo_text(root, "CHANGELOG.ko.md")?;
     for needle in [
         "## Unreleased",
-        "top-level `next_actions`",
-        "## v0.5.1 - 2026-05-26",
-        "suggestion-level warning",
+        "release-check",
+        "## v0.6.0 - 2026-06-03",
+        "release-check",
         "real HOME",
         "wasm32-wasip2",
     ] {
@@ -1069,6 +1073,173 @@ fn verify_real_home_readonly_script(root: &Path) -> Result<(), String> {
     Ok(())
 }
 
+fn release_check(version: &str) -> Result<(), String> {
+    let root = workspace_root();
+    verify_release_static_contract(&root, version)?;
+    run_passthrough(
+        &root,
+        "cargo",
+        ["metadata", "--locked", "--no-deps", "--format-version", "1"],
+        [],
+    )?;
+
+    let temp = TempTree::new("lattice-release-check")?;
+    let install_root = temp.path().join("install-root");
+    fs::create_dir_all(&install_root).map_err(|error| {
+        format!(
+            "failed to create install root {}: {error}",
+            install_root.display()
+        )
+    })?;
+    let install_root_str = install_root
+        .to_str()
+        .ok_or_else(|| format!("install root is not utf-8: {}", install_root.display()))?;
+    run_passthrough(
+        &root,
+        "cargo",
+        [
+            "install",
+            "--path",
+            "crates/lattice-cli",
+            "--locked",
+            "--root",
+            install_root_str,
+        ],
+        [],
+    )?;
+
+    let binary = install_root.join("bin/lattice");
+    let version_output = Command::new(&binary)
+        .arg("--version")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .map_err(|error| format!("failed to run {} --version: {error}", binary.display()))?;
+    ensure(
+        version_output.status.success(),
+        &format!("{} --version failed", binary.display()),
+    )?;
+    let version_stdout = String::from_utf8_lossy(&version_output.stdout);
+    ensure_contains(
+        &version_stdout,
+        &format!("lattice {version}"),
+        "installed binary version mismatch",
+    )?;
+
+    let help_output = Command::new(&binary)
+        .arg("--help")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .map_err(|error| format!("failed to run {} --help: {error}", binary.display()))?;
+    ensure(
+        help_output.status.success(),
+        &format!("{} --help failed", binary.display()),
+    )?;
+    let help_stdout = String::from_utf8_lossy(&help_output.stdout);
+    for needle in [
+        "A small dotfiles and configuration manager",
+        "Check new-machine readiness without mutating state",
+        "Suggest local service candidates without mutating state",
+        "Inspect service groups without mutating state",
+    ] {
+        ensure_contains(
+            &help_stdout,
+            needle,
+            &format!("installed help missing {needle}"),
+        )?;
+    }
+
+    println!("lattice xtask release-check: ok for v{version}");
+    Ok(())
+}
+
+fn verify_release_static_contract(root: &Path, version: &str) -> Result<(), String> {
+    let tag = format!("v{version}");
+    let version_line = format!("version = \"{version}\"");
+    let dep_line =
+        format!("lattice-core = {{ path = \"../lattice-core\", version = \"{version}\" }}");
+
+    ensure_contains(
+        &read_repo_text(root, "Cargo.toml")?,
+        &version_line,
+        "workspace Cargo.toml version mismatch",
+    )?;
+    ensure_contains(
+        &read_repo_text(root, "crates/lattice-cli/Cargo.toml")?,
+        &dep_line,
+        "lattice-cli dependency version mismatch",
+    )?;
+    let lock = read_repo_text(root, "Cargo.lock")?;
+    ensure_contains(&lock, "name = \"lattice\"", "Cargo.lock missing lattice")?;
+    ensure_contains(&lock, &version_line, "Cargo.lock version mismatch")?;
+
+    for (relative, post_release_wording) in [
+        ("README.md", format!("beyond the {tag} release")),
+        ("docs/user/usage.md", format!("beyond the {tag} release")),
+        ("README.ko.md", format!("{tag} release 이후")),
+        ("docs/user/usage.ko.md", format!("{tag} release 이후")),
+    ] {
+        let body = read_repo_text(root, relative)?;
+        ensure_contains(
+            &body,
+            &format!("--tag {tag}"),
+            &format!("{relative} missing release install tag {tag}"),
+        )?;
+        ensure_contains(
+            &body,
+            &post_release_wording,
+            &format!("{relative} missing post-release testing wording"),
+        )?;
+    }
+
+    let changelog = read_repo_text(root, "CHANGELOG.md")?;
+    ensure_contains(
+        &changelog,
+        &format!("## {tag} - 2026-06-03"),
+        "CHANGELOG.md missing release heading",
+    )?;
+    ensure_contains(
+        &changelog,
+        "JSON output reference now covers the documented automation surfaces",
+        "CHANGELOG.md missing automation contract note",
+    )?;
+    ensure_contains(
+        &changelog,
+        "release-check",
+        "CHANGELOG.md missing release-check note",
+    )?;
+
+    let korean_changelog = read_repo_text(root, "CHANGELOG.ko.md")?;
+    ensure_contains(
+        &korean_changelog,
+        &format!("## {tag} - 2026-06-03"),
+        "CHANGELOG.ko.md missing release heading",
+    )?;
+    ensure_contains(
+        &korean_changelog,
+        "release-check",
+        "CHANGELOG.ko.md missing release-check note",
+    )?;
+
+    for relative in [
+        "docs/product/mvp-scope.md",
+        "docs/product/mvp-scope.ko.md",
+        "docs/reference/json-output.md",
+        "docs/reference/json-output.ko.md",
+        "TODO.md",
+    ] {
+        let body = read_repo_text(root, relative)?;
+        ensure_contains(
+            &body,
+            &tag,
+            &format!("{relative} missing release tag {tag}"),
+        )?;
+    }
+
+    Ok(())
+}
+
 fn workspace_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -1314,5 +1485,10 @@ mod tests {
     #[test]
     fn real_home_readonly_health_check_script_has_static_safety_contract() {
         verify_real_home_readonly_script(&workspace_root()).unwrap();
+    }
+
+    #[test]
+    fn release_static_contract_matches_current_version() {
+        verify_release_static_contract(&workspace_root(), "0.6.0").unwrap();
     }
 }

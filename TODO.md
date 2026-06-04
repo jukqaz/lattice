@@ -143,17 +143,18 @@ See `docs/product/mvp-scope.md`.
 - [x] Harden restore/snapshot/undo planning against tampered manifests, traversal, symlink escapes, non-directory parents, non-regular destinations, and portable path collisions before copying files.
 - [x] Add explicit non-Unix `lattice-core` coverage through the CI `wasm32-wasip2` compile check and local `xtask verify` hook when the target is installed.
 - [x] Align version metadata, changelogs, product scope, install snippets, and product-surface harness expectations for `v0.5.1`.
-- [ ] Before tagging, run release acceptance: `cargo run -p xtask -- verify`, `cargo run -p xtask -- linux-verify`, `cargo run -p xtask -- quality`, workflow lint, path install smoke, tag install smoke, and GitHub Actions matrix.
-- [ ] Tag `v0.5.1` only after explicit release approval.
+- [x] Release acceptance for v0.5.1 completed before the tag.
+- [x] Tagged `v0.5.1` after explicit release approval.
 
 ## v0.6.x Automation Contract Hardening
 
-- [ ] Expand JSON output reference beyond service groups to all `--json` commands.
-- [ ] Add golden or fixture-based JSON contract tests for the stable automation surfaces.
-- [ ] Improve local quality-tool diagnostics or add an explicit bootstrap helper.
+- [x] Expand JSON output reference beyond service groups to all documented `--json` commands.
+- [x] Add fixture-based JSON contract tests for the stable automation surfaces.
+- [x] Improve release tooling with `cargo run -p xtask -- release-check`.
+- [x] Align version metadata, changelogs, product scope, install snippets, and product-surface harness expectations for `v0.6.0`.
 - [ ] Split the large CLI command implementation into focused command modules without behavior changes.
-- [ ] Add release-check automation for version, changelog, path install, and tag smoke steps.
 - [ ] Design a read-only `audit`/`guidance` surface before any MCP prototype.
+- [ ] Before tagging v0.6.0, run release acceptance: `cargo run -p xtask -- verify`, `cargo run -p xtask -- release-check`, path install smoke, public tag install smoke, and GitHub Actions matrix.
 
 ## v1.0 Public Stable CLI
 

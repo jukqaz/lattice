@@ -21,7 +21,7 @@ fn run() -> Result<(), String> {
         Some("verify") => verify(),
         Some("linux-verify") => linux_verify(),
         Some("quality") => quality(),
-        Some("release-check") => release_check(args.next().as_deref().unwrap_or("0.6.0")),
+        Some("release-check") => release_check(args.next().as_deref().unwrap_or("0.7.0")),
         Some(command) => Err(format!("unknown xtask command: {command}")),
         None => Err(
             "usage: cargo run -p xtask -- <verify|linux-verify|quality|release-check [version]>"
@@ -451,14 +451,14 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "lattice group status --json",
         "lattice group plan --json",
         "Service Groups",
-        "Group commands are intentionally read-only in v0.6",
+        "Group commands remain intentionally read-only in v0.7",
         "There is no `group backup` or `group restore` yet",
         "conflict_count",
         "active=false",
         "Safe first-adoption playbook",
-        "Do not run restore first on a real HOME",
-        "--tag v0.6.0",
-        "beyond the v0.6.0 release",
+        "value=not-read",
+        "--tag v0.7.0",
+        "beyond the v0.7.0 release",
         "next_actions",
     ] {
         ensure_contains(&readme, needle, &format!("README.md missing {needle}"))?;
@@ -473,8 +473,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "Service Groups",
         "conflict_count",
         "active=false",
-        "--tag v0.6.0",
-        "v0.6.0 release 이후",
+        "--tag v0.7.0",
+        "v0.7.0 release 이후",
     ] {
         ensure_contains(
             &korean_readme,
@@ -497,9 +497,9 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "lattice group plan --json",
         "Selector",
         "Safe first-adoption playbook",
-        "Do not run restore first on a real HOME",
-        "--tag v0.6.0",
-        "beyond the v0.6.0 release",
+        "value=not-read",
+        "--tag v0.7.0",
+        "beyond the v0.7.0 release",
         "next_command",
         "next_actions",
     ] {
@@ -520,8 +520,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "batch backup",
         "conflict_count",
         "active=false",
-        "--tag v0.6.0",
-        "v0.6.0 release 이후",
+        "--tag v0.7.0",
+        "v0.7.0 release 이후",
     ] {
         ensure_contains(
             &korean_user_guide,
@@ -543,8 +543,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "group invariant validation",
         "active-only aggregates",
         "missing-root visibility",
-        "v0.6.0 hardens the automation contract",
-        "v0.6.0 scope",
+        "v0.7.0 adds env secret passthrough metadata",
+        "v0.7.0 scope",
     ] {
         ensure_contains(
             &product_scope,
@@ -566,8 +566,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "group invariant validation",
         "active-only aggregate",
         "missing-root visibility",
-        "v0.6.0은 기존 command surface 전반의 automation contract를 harden한다",
-        "v0.6.0 범위",
+        "v0.7.0은 Lattice를 secret manager가 아니라 dotfiles/config manager로 유지하면서",
+        "v0.7.0 범위",
     ] {
         ensure_contains(
             &korean_scope,
@@ -629,7 +629,7 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "conflict_count",
         "next_command",
         "next_actions",
-        "There is no `group backup` or `group restore` in v0.6",
+        "There is no `group backup` or `group restore` in v0.7",
     ] {
         ensure_contains(
             &json_reference,
@@ -683,11 +683,11 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
     let changelog = read_repo_text(root, "CHANGELOG.md")?;
     for needle in [
         "## Unreleased",
-        "discover` now includes per-suggestion `next_command` hints",
-        "## v0.6.0 - 2026-06-03",
-        "JSON output reference now covers the documented automation surfaces",
-        "Do not run restore first on a real HOME",
-        "wasm32-wasip2",
+        "Secret metadata now supports an `env` passthrough backend",
+        "## v0.7.0 - 2026-06-04",
+        "Secret metadata now supports an `env` passthrough backend",
+        "value=not-read",
+        "{{env:NAME}}",
     ] {
         ensure_contains(
             &changelog,
@@ -699,11 +699,11 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
     let korean_changelog = read_repo_text(root, "CHANGELOG.ko.md")?;
     for needle in [
         "## Unreleased",
-        "release-check",
-        "## v0.6.0 - 2026-06-03",
-        "release-check",
-        "real HOME",
-        "wasm32-wasip2",
+        "env` passthrough backend",
+        "## v0.7.0 - 2026-06-04",
+        "env` passthrough backend",
+        "value=not-read",
+        "{{env:NAME}}",
     ] {
         ensure_contains(
             &korean_changelog,
@@ -991,11 +991,11 @@ fn verify_non_unix_compile_harness(root: &Path) -> Result<(), String> {
         .map_err(|error| format!("failed to list rustup targets: {error}"))?;
     ensure(output.status.success(), "rustup target list failed")?;
     let installed = String::from_utf8_lossy(&output.stdout);
-    if installed.lines().any(|line| line == "wasm32-wasip2") {
+    if installed.lines().any(|line| line == "{{env:NAME}}") {
         run_passthrough(
             root,
             "cargo",
-            ["check", "-p", "lattice-core", "--target", "wasm32-wasip2"],
+            ["check", "-p", "lattice-core", "--target", "{{env:NAME}}"],
             [],
         )?;
     } else {
@@ -1196,30 +1196,30 @@ fn verify_release_static_contract(root: &Path, version: &str) -> Result<(), Stri
     let changelog = read_repo_text(root, "CHANGELOG.md")?;
     ensure_contains(
         &changelog,
-        &format!("## {tag} - 2026-06-03"),
+        &format!("## {tag} - 2026-06-04"),
         "CHANGELOG.md missing release heading",
     )?;
     ensure_contains(
         &changelog,
-        "JSON output reference now covers the documented automation surfaces",
-        "CHANGELOG.md missing automation contract note",
+        "Secret metadata now supports an `env` passthrough backend",
+        "CHANGELOG.md missing env passthrough note",
     )?;
     ensure_contains(
         &changelog,
-        "release-check",
-        "CHANGELOG.md missing release-check note",
+        "env` passthrough backend",
+        "CHANGELOG.md missing env passthrough note",
     )?;
 
     let korean_changelog = read_repo_text(root, "CHANGELOG.ko.md")?;
     ensure_contains(
         &korean_changelog,
-        &format!("## {tag} - 2026-06-03"),
+        &format!("## {tag} - 2026-06-04"),
         "CHANGELOG.ko.md missing release heading",
     )?;
     ensure_contains(
         &korean_changelog,
-        "release-check",
-        "CHANGELOG.ko.md missing release-check note",
+        "env` passthrough backend",
+        "CHANGELOG.ko.md missing env passthrough note",
     )?;
 
     for relative in [
@@ -1489,6 +1489,6 @@ mod tests {
 
     #[test]
     fn release_static_contract_matches_current_version() {
-        verify_release_static_contract(&workspace_root(), "0.6.0").unwrap();
+        verify_release_static_contract(&workspace_root(), "0.7.0").unwrap();
     }
 }

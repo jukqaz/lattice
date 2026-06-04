@@ -17,14 +17,14 @@ this surface directly as `app`.
 
 ## Start Here
 
-Install the current v0.6 release command surface documented below:
+Install the current v0.7 release command surface documented below:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.6.0 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.7.0 --locked
 ```
 
 Use the `main` branch or a local checkout only when testing unreleased changes
-beyond the v0.6.0 release.
+beyond the v0.7.0 release.
 
 Initialize local config and check whether the machine is ready for managed
 config restores:
@@ -215,7 +215,7 @@ description = "Shell and CLI development environment"
 services = ["zsh", "git", "mise", "ssh"]
 ```
 
-Group commands are intentionally read-only in v0.6. Group names must be unique,
+Group commands remain intentionally read-only in v0.7. Group names must be unique,
 each group must list at least one existing service, and duplicate service members
 are rejected by `lattice validate`. Use groups to list, inspect, status-check,
 and plan across existing services before deciding whether to run individual
@@ -264,6 +264,8 @@ repo at it with normal `git remote` commands.
 - API keys, tokens, and passwords can be modeled as `env` secret references and
   `{{env:NAME}}` templates so the real value passes through from the local
   environment at restore time instead of entering the repo.
+- Env passthrough checks report set/unset status while keeping `value=not-read`
+  so secret values are never materialized in output.
 - Restore refuses conflicting local files unless `--force` is passed.
 - Forced restore creates a snapshot before overwriting files. Use `snapshot list`,
   `snapshot show`, and `undo --dry-run` to inspect rollback before restoring from

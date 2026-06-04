@@ -4,10 +4,22 @@
 
 ## Unreleased
 
+아직 없음.
+
+## v0.7.0 - 2026-06-04
+
 ### 추가
 
 - Secret metadata가 API key, token, password를 Lattice repo 밖에 두고 restore 시
   `{{env:NAME}}` template로 render할 수 있는 `env` passthrough backend를 지원한다.
+- `secret check`는 값을 읽지 않고 env passthrough 상태를 보고하며 명시적인
+  `value=not-read` marker를 유지한다.
+
+### 변경
+
+- Env secret passthrough release line에 맞춰 workspace package version을 `0.7.0`으로 올렸다.
+- README, user docs, product scope, TODO, install snippet, product-surface
+  verification이 `v0.7.0` release contract를 가리킨다.
 
 ## v0.6.0 - 2026-06-03
 

@@ -32,14 +32,14 @@ only one example app. The CLI uses `lattice app ...` directly for this catalog s
 
 ## 1. Install
 
-Install the current v0.6 release command surface documented in this guide:
+Install the current v0.7 release command surface documented in this guide:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.6.0 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.7.0 --locked
 ```
 
 Use the `main` branch or a local checkout only when testing unreleased changes
-beyond the v0.6.0 release.
+beyond the v0.7.0 release.
 
 Install from a local checkout while developing Lattice:
 
@@ -321,7 +321,8 @@ lattice secret check <service>
 
 `secret check` verifies tool availability for backends such as `rbw` and `bw`.
 For the `env` backend it reports only whether the named environment variable is
-set. It never prints secret values.
+set. It never prints secret values, and keeps the output marker
+`value=not-read` for non-disclosure checks.
 
 Backups also block obvious secret-looking file contents by default. Use
 `--allow-secret-looking-files` only after reviewing the affected files:

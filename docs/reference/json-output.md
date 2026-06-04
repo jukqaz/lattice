@@ -3,7 +3,7 @@
 English | [한국어](json-output.ko.md) | [Documentation Index](../README.md)
 
 This reference documents the machine-readable output that scripts and agents can
-use without parsing human text. The shapes below are part of the v0.6.0
+use without parsing human text. The shapes below are part of the v0.7.0
 automation-contract hardening release line, but Lattice is still pre-v1.0: treat
 these fields as release-line contracts rather than forever-stable public API.
 
@@ -293,6 +293,6 @@ Notes:
 
 ## Intentional v0.6 Limits
 
-There is no `group backup` or `group restore` in v0.6. Service groups are
+There is no `group backup` or `group restore` in v0.7. Service groups are
 read-only inspection and planning surfaces until batch mutation safety is
 intentionally designed and tested.

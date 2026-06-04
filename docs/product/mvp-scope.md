@@ -90,7 +90,23 @@ baseline:
 - CLI smoke and product-surface harness coverage for the JSON, selector,
   app-catalog, and bootstrap contracts.
 
-## Current Release: v0.6.0
+## Current Release: v0.7.0
+
+v0.7.0 adds env secret passthrough metadata while preserving Lattice's role as a
+dotfiles/config manager rather than a secret manager. API keys, tokens, and
+passwords stay outside the repo as environment-variable references and restore
+templates.
+
+v0.7.0 scope:
+
+- Secret metadata commands support `env` passthrough references alongside `rbw`
+  and `bw`, storing environment-variable names instead of secret values.
+- `secret check` reports env references as `set`, `unset`, or
+  `missing-env-reference` while keeping `value=not-read`.
+- README, user docs, product scope, TODO, changelog, and product-surface harness
+  expectations are aligned to the v0.7.0 release line.
+
+## Previous Release: v0.6.0
 
 v0.6.0 hardens the automation contract across the existing command surface. It
 expands documented JSON shapes, pins fixture-based contract coverage, and adds a
@@ -127,6 +143,7 @@ intentionally out of scope.
 | `v0.4.x` | Automation, Bootstrap, Recovery, And Discovery | Let scripts and agents call Lattice without parsing human stdout, then make new-machine restore, recovery history, and conservative discovery first-class. | Generic init, JSON output, selectors, `plan`, `bootstrap check`, `app` commands, snapshot/undo, `discover`, and product-surface harness coverage are documented and tested in the v0.4.0 release line. |
 | `v0.5.x` | Service Groups | Inspect and plan related services together without introducing batch mutation. | `group list/show/status/plan`, JSON output, selectors, group invariant validation, active-only aggregates, and missing-root visibility are documented and tested before any group backup/restore behavior. |
 | `v0.6.x` | Automation Contract Hardening | Make existing machine-readable surfaces trustworthy for scripts and agents. | JSON reference coverage, fixture-based contract tests, release-check automation, and release docs are aligned without adding batch mutation. |
+| `v0.7.x` | Secret Passthrough References | Keep secret values out of repos while making env references explicit and checkable. | `env` secret metadata, restore-time `{{env:NAME}}` guidance, non-disclosure smoke coverage, and bilingual docs are aligned. |
 | `v1.0` | Public Stable CLI | Make Lattice recommendable to external users. | Install, changelog, release, migration, change policy, and issue workflows are stable. |
 
 ## Deliberate Non-Goals

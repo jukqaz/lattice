@@ -18,10 +18,10 @@ Lattice는 범용 도구입니다. 특정 tool이나 service 하나가 제품의
 아래에 문서화된 현재 v0.6 release command surface 설치:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.6.0 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.7.0 --locked
 ```
 
-v0.6.0 release 이후 unreleased change를 테스트할 때만 `main` branch나 local
+v0.7.0 release 이후 unreleased change를 테스트할 때만 `main` branch나 local
 checkout을 사용합니다.
 
 로컬 설정을 만들고 새 머신에서 복원 준비가 되었는지 확인합니다.

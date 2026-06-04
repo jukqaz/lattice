@@ -4,11 +4,23 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
 ## Unreleased
 
+Nothing yet.
+
+## v0.7.0 - 2026-06-04
+
 ### Added
 
 - Secret metadata now supports an `env` passthrough backend for API keys, tokens,
   and passwords that should stay outside Lattice repos and be rendered through
   `{{env:NAME}}` templates at restore time.
+- `secret check` now reports env passthrough status without reading values and
+  keeps the explicit `value=not-read` marker.
+
+### Changed
+
+- Workspace package version is now `0.7.0` for the env secret passthrough release line.
+- README, user docs, product scope, TODO, install snippets, and product-surface
+  verification now point at the `v0.7.0` release contract.
 
 ## v0.6.0 - 2026-06-03
 

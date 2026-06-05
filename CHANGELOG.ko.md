@@ -10,6 +10,8 @@
   고정하면서 main command runner의 크기를 줄였다.
 - CLI smoke-test helper를 `crates/lattice-cli/tests/support/`로 옮겨, 이후
   domain별 smoke file이 같은 isolated XDG harness를 공유할 수 있게 했다.
+- CLI help-surface smoke를 `crates/lattice-cli/tests/help_surface.rs`로 옮겨,
+  domain별 integration test 분리를 시작했다.
 
 ### 수정
 

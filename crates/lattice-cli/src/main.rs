@@ -188,8 +188,72 @@ struct BackupCommandOptions {
     selection: PathSelection,
 }
 
+#[derive(Debug)]
+struct BootstrapServiceReport {
+    service: String,
+    active: bool,
+    root: String,
+    root_exists: bool,
+    repo: String,
+    repo_exists: bool,
+    git_repo: bool,
+    remote: String,
+    dirty: bool,
+    manifest: &'static str,
+    issues: Vec<String>,
+    warnings: Vec<String>,
+    ready: bool,
+}
+
+impl BootstrapServiceReport {
+    fn json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "service": self.service,
+            "active": self.active,
+            "root": self.root,
+            "root_exists": self.root_exists,
+            "repo": self.repo,
+            "repo_exists": self.repo_exists,
+            "git_repo": self.git_repo,
+            "remote": self.remote,
+            "dirty": self.dirty,
+            "manifest": self.manifest,
+            "issues": self.issues,
+            "warnings": self.warnings,
+            "ready": self.ready
+        })
+    }
+
+    fn print_human(&self) {
+        println!(
+            "- {} active={} root={} repo={} git={} manifest={} ready={} issues={} warnings={}",
+            self.service,
+            yes_no(self.active),
+            present_missing(self.root_exists),
+            present_missing(self.repo_exists),
+            yes_no(self.git_repo),
+            self.manifest,
+            yes_no(self.ready),
+            self.issues.len(),
+            self.warnings.len()
+        );
+    }
+}
+
 fn selection(only: Vec<String>, exclude: Vec<String>) -> PathSelection {
     PathSelection { only, exclude }
+}
+
+fn yes_no(value: bool) -> &'static str {
+    if value { "yes" } else { "no" }
+}
+
+fn present_missing(value: bool) -> &'static str {
+    if value { "present" } else { "missing" }
+}
+
+fn available_missing(value: bool) -> &'static str {
+    if value { "available" } else { "missing" }
 }
 
 fn init(paths: &LatticePaths, force: bool) -> Result<()> {
@@ -287,10 +351,11 @@ fn bootstrap_check(paths: &LatticePaths, json_output: bool) -> Result<()> {
         if dirty {
             warnings.push("dirty_repo".to_string());
         }
-        if !manifest.exists() {
+        let manifest_exists = manifest.exists();
+        if !manifest_exists {
             issues.push("missing_manifest".to_string());
         }
-        let ready = active && root_exists && manifest.exists() && issues.is_empty();
+        let ready = active && root_exists && manifest_exists && issues.is_empty();
         if ready {
             ready_count += 1;
         }
@@ -300,21 +365,21 @@ fn bootstrap_check(paths: &LatticePaths, json_output: bool) -> Result<()> {
         if !warnings.is_empty() {
             any_service_warnings = true;
         }
-        service_reports.push(serde_json::json!({
-            "service": service.name,
-            "active": active,
-            "root": root.display().to_string(),
-            "root_exists": root_exists,
-            "repo": repo.display().to_string(),
-            "repo_exists": repo_exists,
-            "git_repo": git_repo,
-            "remote": remote,
-            "dirty": dirty,
-            "manifest": if manifest.exists() { "present" } else { "missing" },
-            "issues": issues,
-            "warnings": warnings,
-            "ready": ready
-        }));
+        service_reports.push(BootstrapServiceReport {
+            service: service.name,
+            active,
+            root: root.display().to_string(),
+            root_exists,
+            repo: repo.display().to_string(),
+            repo_exists,
+            git_repo,
+            remote,
+            dirty,
+            manifest: present_missing(manifest_exists),
+            issues,
+            warnings,
+            ready,
+        });
     }
 
     if any_service_issues {
@@ -336,10 +401,10 @@ fn bootstrap_check(paths: &LatticePaths, json_output: bool) -> Result<()> {
             "services_dir": paths.services_dir.display().to_string(),
             "services_dir_exists": services_dir_exists,
             "diagnostics": {
-                "git": if git_available { "available" } else { "missing" }
+                "git": available_missing(git_available)
             },
-            "git": if git_available { "available" } else { "missing" },
-            "services": service_reports,
+            "git": available_missing(git_available),
+            "services": service_reports.iter().map(BootstrapServiceReport::json).collect::<Vec<_>>(),
             "ready_services": ready_count,
             "next_actions": next_actions,
             "ok": ok
@@ -351,59 +416,17 @@ fn bootstrap_check(paths: &LatticePaths, json_output: bool) -> Result<()> {
     println!(
         "config: {} ({})",
         paths.config_file.display(),
-        if config_exists { "present" } else { "missing" }
+        present_missing(config_exists)
     );
     println!(
         "services: {} ({})",
         paths.services_dir.display(),
-        if services_dir_exists {
-            "present"
-        } else {
-            "missing"
-        }
+        present_missing(services_dir_exists)
     );
-    println!(
-        "git: {}",
-        if git_available {
-            "available"
-        } else {
-            "missing"
-        }
-    );
+    println!("git: {}", available_missing(git_available));
     println!("ready services: {ready_count}");
-    for report in service_reports {
-        println!(
-            "- {} active={} root={} repo={} git={} manifest={} ready={} issues={} warnings={}",
-            report["service"].as_str().unwrap_or_default(),
-            if report["active"].as_bool().unwrap_or(false) {
-                "yes"
-            } else {
-                "no"
-            },
-            if report["root_exists"].as_bool().unwrap_or(false) {
-                "present"
-            } else {
-                "missing"
-            },
-            if report["repo_exists"].as_bool().unwrap_or(false) {
-                "present"
-            } else {
-                "missing"
-            },
-            if report["git_repo"].as_bool().unwrap_or(false) {
-                "yes"
-            } else {
-                "no"
-            },
-            report["manifest"].as_str().unwrap_or_default(),
-            if report["ready"].as_bool().unwrap_or(false) {
-                "yes"
-            } else {
-                "no"
-            },
-            report["issues"].as_array().map_or(0, Vec::len),
-            report["warnings"].as_array().map_or(0, Vec::len)
-        );
+    for report in &service_reports {
+        report.print_human();
     }
     if !next_actions.is_empty() {
         println!("next actions:");

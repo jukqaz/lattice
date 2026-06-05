@@ -12,6 +12,9 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
   future domain-specific smoke files can share the same isolated XDG harness.
 - The CLI help-surface smoke now lives in `crates/lattice-cli/tests/help_surface.rs`,
   starting the domain-by-domain integration test split.
+- Dedicated service-group smoke coverage now lives in
+  `crates/lattice-cli/tests/group_surface.rs`, continuing the domain-by-domain
+  split while the broader JSON contract smoke remains in the general suite.
 
 ### Fixed
 

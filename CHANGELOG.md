@@ -4,6 +4,13 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
 ## Unreleased
 
+### Changed
+
+- CLI parser definitions now live in `crates/lattice-cli/src/cli.rs`, keeping the
+  command surface pinned while reducing the size of the main command runner.
+- CLI smoke-test helpers now live under `crates/lattice-cli/tests/support/` so
+  future domain-specific smoke files can share the same isolated XDG harness.
+
 ### Fixed
 
 - Release-state cleanup now records v0.7.0 acceptance as complete in `TODO.md`

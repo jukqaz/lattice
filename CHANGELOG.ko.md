@@ -4,6 +4,13 @@
 
 ## Unreleased
 
+### 변경
+
+- CLI parser 정의를 `crates/lattice-cli/src/cli.rs`로 분리해 command surface는
+  고정하면서 main command runner의 크기를 줄였다.
+- CLI smoke-test helper를 `crates/lattice-cli/tests/support/`로 옮겨, 이후
+  domain별 smoke file이 같은 isolated XDG harness를 공유할 수 있게 했다.
+
 ### 수정
 
 - `v0.7.0 release acceptance가 완료됐음을 TODO에 기록`하고, `v0.7.0`

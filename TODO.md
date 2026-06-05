@@ -163,6 +163,15 @@ See `docs/product/mvp-scope.md`.
 - [x] Align version metadata, changelogs, product scope, install snippets, and product-surface harness expectations for `v0.7.0`.
 - [x] Release acceptance for v0.7.0 is complete: verification, release-check, install smokes, and GitHub Actions matrix are no longer tracked as pre-tag blockers.
 
+## v0.8.x Maintainability And Modularization
+
+- [x] Move CLI parser and command enum definitions into `crates/lattice-cli/src/cli.rs` without behavior changes.
+- [x] Pin top-level command inventory with an in-crate parser surface test.
+- [x] Move shared CLI smoke-test helpers into `crates/lattice-cli/tests/support/`.
+- [ ] Split domain smoke tests into focused files that reuse the shared support module.
+- [ ] Split the large CLI command implementation into focused command modules without behavior changes.
+- [ ] Extract repeated JSON/human output helpers after output contracts are pinned.
+
 ## v1.0 Public Stable CLI
 
 - [ ] Stabilize install, release, changelog, and migration notes.

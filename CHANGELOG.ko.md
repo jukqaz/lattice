@@ -4,7 +4,12 @@
 
 ## Unreleased
 
-아직 없음.
+### 수정
+
+- `v0.7.0 release acceptance가 완료됐음을 TODO에 기록`하고, `v0.7.0`
+  release 이후에도 pre-tag blocker처럼 보이던 stale 항목을 정리했다.
+- Product-surface verification이 stale “Before tagging v0.7.0” 문구를 거부해,
+  완료된 release acceptance가 active TODO로 되돌아오는 drift를 막는다.
 
 ## v0.7.0 - 2026-06-04
 

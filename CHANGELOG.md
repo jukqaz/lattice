@@ -10,6 +10,8 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
   command surface pinned while reducing the size of the main command runner.
 - CLI smoke-test helpers now live under `crates/lattice-cli/tests/support/` so
   future domain-specific smoke files can share the same isolated XDG harness.
+- The CLI help-surface smoke now lives in `crates/lattice-cli/tests/help_surface.rs`,
+  starting the domain-by-domain integration test split.
 
 ### Fixed
 

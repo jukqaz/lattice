@@ -168,6 +168,7 @@ See `docs/product/mvp-scope.md`.
 - [x] Move CLI parser and command enum definitions into `crates/lattice-cli/src/cli.rs` without behavior changes.
 - [x] Pin top-level command inventory with an in-crate parser surface test.
 - [x] Move shared CLI smoke-test helpers into `crates/lattice-cli/tests/support/`.
+- [x] Move CLI help-surface smoke coverage into `crates/lattice-cli/tests/help_surface.rs`.
 - [ ] Split domain smoke tests into focused files that reuse the shared support module.
 - [ ] Split the large CLI command implementation into focused command modules without behavior changes.
 - [ ] Extract repeated JSON/human output helpers after output contracts are pinned.

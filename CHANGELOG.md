@@ -4,7 +4,12 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
 ## Unreleased
 
-Nothing yet.
+### Fixed
+
+- Release-state cleanup now records v0.7.0 acceptance as complete in `TODO.md`
+  instead of leaving a stale pre-tag blocker after the `v0.7.0` release.
+- Product-surface verification now rejects stale “Before tagging v0.7.0” wording
+  so completed release acceptance cannot drift back into active TODOs.
 
 ## v0.7.0 - 2026-06-04
 

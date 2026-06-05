@@ -680,9 +680,22 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
 
     verify_real_home_readonly_script(root)?;
 
+    let todo = read_repo_text(root, "TODO.md")?;
+    ensure_not_contains_case_insensitive(
+        &todo,
+        "Before tagging v0.7.0",
+        "TODO.md should not imply v0.7.0 is still awaiting tag/release acceptance",
+    )?;
+    ensure_contains(
+        &todo,
+        "Release acceptance for v0.7.0 is complete",
+        "TODO.md should record v0.7.0 release acceptance as complete",
+    )?;
+
     let changelog = read_repo_text(root, "CHANGELOG.md")?;
     for needle in [
         "## Unreleased",
+        "Release-state cleanup now records v0.7.0 acceptance as complete",
         "Secret metadata now supports an `env` passthrough backend",
         "## v0.7.0 - 2026-06-04",
         "Secret metadata now supports an `env` passthrough backend",
@@ -699,6 +712,7 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
     let korean_changelog = read_repo_text(root, "CHANGELOG.ko.md")?;
     for needle in [
         "## Unreleased",
+        "v0.7.0 release acceptance가 완료됐음을 TODO에 기록",
         "env` passthrough backend",
         "## v0.7.0 - 2026-06-04",
         "env` passthrough backend",

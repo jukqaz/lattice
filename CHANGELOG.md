@@ -25,6 +25,10 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 - The `discover` command runner now lives in
   `crates/lattice-cli/src/commands/discover.rs`, starting the focused command
   module split for the large CLI implementation.
+- Dedicated bootstrap diagnostics and restore-plan trust smoke coverage now lives
+  in `crates/lattice-cli/tests/bootstrap_surface.rs`, and the bootstrap command
+  runner now lives in `crates/lattice-cli/src/commands/bootstrap.rs` with
+  centralized service-report inspection.
 
 ### Fixed
 

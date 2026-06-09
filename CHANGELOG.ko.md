@@ -22,6 +22,10 @@
   남은 cross-command flow에 집중하도록 했다.
 - `discover` command runner를 `crates/lattice-cli/src/commands/discover.rs`로
   옮겨 큰 CLI 구현의 focused command module 분리를 시작했다.
+- 전용 bootstrap diagnostics 및 restore-plan trust smoke coverage를
+  `crates/lattice-cli/tests/bootstrap_surface.rs`로 옮기고, bootstrap command
+  runner를 `crates/lattice-cli/src/commands/bootstrap.rs`로 분리해 service-report
+  inspection을 한 곳으로 모았다.
 
 ### 수정
 

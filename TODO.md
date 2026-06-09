@@ -173,6 +173,8 @@ See `docs/product/mvp-scope.md`.
 - [x] Move snapshot/undo smoke coverage into `crates/lattice-cli/tests/snapshot_surface.rs`.
 - [x] Move discovery and JSON-contract smoke coverage into focused integration test files.
 - [x] Move the `discover` command implementation into `crates/lattice-cli/src/commands/discover.rs`.
+- [x] Move bootstrap smoke coverage into `crates/lattice-cli/tests/bootstrap_surface.rs`.
+- [x] Move the `bootstrap check` command implementation into `crates/lattice-cli/src/commands/bootstrap.rs`.
 - [ ] Continue splitting remaining domain smoke tests into focused files that reuse the shared support module.
 - [ ] Split the large CLI command implementation into focused command modules without behavior changes.
 - [ ] Extract repeated JSON/human output helpers after output contracts are pinned.

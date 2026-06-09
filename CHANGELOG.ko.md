@@ -16,6 +16,12 @@
   옮겨 domain별 분리를 이어가되, 넓은 JSON contract smoke는 일반 suite에 남겼다.
 - 전용 snapshot/undo smoke coverage를 `crates/lattice-cli/tests/snapshot_surface.rs`로
   옮겨 general smoke suite를 줄이고 recovery safety regression을 독립적으로 유지한다.
+- 전용 discovery 및 JSON-contract smoke coverage를
+  `crates/lattice-cli/tests/discover_surface.rs`와
+  `crates/lattice-cli/tests/json_contract_surface.rs`로 옮겨, 공유 smoke suite가
+  남은 cross-command flow에 집중하도록 했다.
+- `discover` command runner를 `crates/lattice-cli/src/commands/discover.rs`로
+  옮겨 큰 CLI 구현의 focused command module 분리를 시작했다.
 
 ### 수정
 

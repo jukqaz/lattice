@@ -15,6 +15,9 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 - Dedicated service-group smoke coverage now lives in
   `crates/lattice-cli/tests/group_surface.rs`, continuing the domain-by-domain
   split while the broader JSON contract smoke remains in the general suite.
+- Dedicated snapshot/undo smoke coverage now lives in
+  `crates/lattice-cli/tests/snapshot_surface.rs`, shrinking the general smoke
+  suite while keeping recovery safety regressions isolated.
 
 ### Fixed
 

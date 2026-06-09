@@ -14,6 +14,8 @@
   domain별 integration test 분리를 시작했다.
 - 전용 service-group smoke coverage를 `crates/lattice-cli/tests/group_surface.rs`로
   옮겨 domain별 분리를 이어가되, 넓은 JSON contract smoke는 일반 suite에 남겼다.
+- 전용 snapshot/undo smoke coverage를 `crates/lattice-cli/tests/snapshot_surface.rs`로
+  옮겨 general smoke suite를 줄이고 recovery safety regression을 독립적으로 유지한다.
 
 ### 수정
 

@@ -170,6 +170,7 @@ See `docs/product/mvp-scope.md`.
 - [x] Move shared CLI smoke-test helpers into `crates/lattice-cli/tests/support/`.
 - [x] Move CLI help-surface smoke coverage into `crates/lattice-cli/tests/help_surface.rs`.
 - [x] Move service-group smoke coverage into `crates/lattice-cli/tests/group_surface.rs`.
+- [x] Move snapshot/undo smoke coverage into `crates/lattice-cli/tests/snapshot_surface.rs`.
 - [ ] Continue splitting remaining domain smoke tests into focused files that reuse the shared support module.
 - [ ] Split the large CLI command implementation into focused command modules without behavior changes.
 - [ ] Extract repeated JSON/human output helpers after output contracts are pinned.

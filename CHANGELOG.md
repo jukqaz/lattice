@@ -18,6 +18,13 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 - Dedicated snapshot/undo smoke coverage now lives in
   `crates/lattice-cli/tests/snapshot_surface.rs`, shrinking the general smoke
   suite while keeping recovery safety regressions isolated.
+- Dedicated discovery and JSON-contract smoke coverage now lives in
+  `crates/lattice-cli/tests/discover_surface.rs` and
+  `crates/lattice-cli/tests/json_contract_surface.rs`, keeping the shared smoke
+  suite focused on the remaining cross-command flows.
+- The `discover` command runner now lives in
+  `crates/lattice-cli/src/commands/discover.rs`, starting the focused command
+  module split for the large CLI implementation.
 
 ### Fixed
 

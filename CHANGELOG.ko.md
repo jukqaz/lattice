@@ -33,6 +33,9 @@
 - 전용 service lifecycle smoke coverage를
   `crates/lattice-cli/tests/service_lifecycle_surface.rs`로 옮겨, init/doctor/backup/restore
   end-to-end flow는 유지하면서 공유 `cli_smoke.rs` suite를 더 줄였다.
+- 전용 service config 및 secret-guard smoke coverage를
+  `crates/lattice-cli/tests/service_config_surface.rs`로 옮겨, service CRUD,
+  default repo fallback, secret-looking content guard regression을 독립시켰다.
 
 ### 수정
 

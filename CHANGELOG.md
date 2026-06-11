@@ -40,6 +40,9 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 - Dedicated service config and secret-guard smoke coverage now lives in
   `crates/lattice-cli/tests/service_config_surface.rs`, isolating service CRUD,
   default repo fallback, and secret-looking content guard regressions.
+- Dedicated adopt, repo, and diff smoke coverage now lives in
+  `crates/lattice-cli/tests/adopt_repo_diff_surface.rs`, isolating happy-path
+  and safety regressions from the shared `cli_smoke.rs` suite.
 
 ### Fixed
 

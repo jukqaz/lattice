@@ -44,7 +44,9 @@
 - 전용 restore-mode 및 safety smoke coverage를
   `crates/lattice-cli/tests/restore_surface.rs`와
   `crates/lattice-cli/tests/safety_surface.rs`로 옮겨, `cli_smoke.rs`는 얇은
-  cross-command end-to-end smoke guard로 남겼다.
+  cross-command smoke guard로 남겼다.
+- CLI command 구현을 app, group, permission, repo, secret, snapshot, TUI별
+  `crates/lattice-cli/src/commands/` 모듈로 분리했다.
 
 ### 수정
 

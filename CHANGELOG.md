@@ -50,6 +50,8 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
   `crates/lattice-cli/tests/restore_surface.rs` and
   `crates/lattice-cli/tests/safety_surface.rs`, leaving `cli_smoke.rs` as the
   thin cross-command end-to-end smoke guard.
+- CLI command implementations now live in focused `crates/lattice-cli/src/commands/`
+  modules for app, group, permission, repo, secret, snapshot, and TUI surfaces.
 
 ### Fixed
 

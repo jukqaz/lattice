@@ -2,9 +2,12 @@ use anyhow::Result;
 use lattice_core::config::ServiceConfig;
 use lattice_core::paths::LatticePaths;
 
+use crate::cli::BootstrapCommands;
+
 use crate::{
-    available_missing, expand_path, git_dirty, git_remote_status, load_services, present_missing,
-    print_json, resolve_repo_path, service_is_active, service_root_exists, yes_no,
+    available_missing, commands::group::service_root_exists, expand_path, git_dirty,
+    git_remote_status, load_services, present_missing, print_json, resolve_repo_path,
+    service_is_active, yes_no,
 };
 
 #[derive(Debug)]
@@ -121,6 +124,12 @@ impl BootstrapServiceReport {
             self.issues.len(),
             self.warnings.len()
         );
+    }
+}
+
+pub(crate) fn run(paths: &LatticePaths, command: BootstrapCommands) -> Result<()> {
+    match command {
+        BootstrapCommands::Check { json } => bootstrap_check(paths, json),
     }
 }
 

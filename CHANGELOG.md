@@ -43,6 +43,9 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 - Dedicated adopt, repo, and diff smoke coverage now lives in
   `crates/lattice-cli/tests/adopt_repo_diff_surface.rs`, isolating happy-path
   and safety regressions from the shared `cli_smoke.rs` suite.
+- Dedicated selector smoke coverage now lives in
+  `crates/lattice-cli/tests/selector_surface.rs`, isolating `--only`/`--exclude`
+  JSON behavior from the shared `cli_smoke.rs` suite.
 
 ### Fixed
 

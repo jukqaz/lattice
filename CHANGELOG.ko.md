@@ -39,6 +39,8 @@
 - 전용 adopt, repo, diff smoke coverage를
   `crates/lattice-cli/tests/adopt_repo_diff_surface.rs`로 옮겨, happy-path와
   safety regression을 공유 `cli_smoke.rs` suite에서 분리했다.
+- 전용 selector smoke coverage를 `crates/lattice-cli/tests/selector_surface.rs`로
+  옮겨, `--only`/`--exclude` JSON 동작을 공유 `cli_smoke.rs` suite에서 분리했다.
 
 ### 수정
 

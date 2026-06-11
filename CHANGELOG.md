@@ -37,6 +37,9 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
   `crates/lattice-cli/tests/service_lifecycle_surface.rs`, further shrinking
   the shared `cli_smoke.rs` suite while preserving the init/doctor/backup/restore
   end-to-end flow.
+- Dedicated service config and secret-guard smoke coverage now lives in
+  `crates/lattice-cli/tests/service_config_surface.rs`, isolating service CRUD,
+  default repo fallback, and secret-looking content guard regressions.
 
 ### Fixed
 

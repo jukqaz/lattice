@@ -36,6 +36,9 @@
 - 전용 service config 및 secret-guard smoke coverage를
   `crates/lattice-cli/tests/service_config_surface.rs`로 옮겨, service CRUD,
   default repo fallback, secret-looking content guard regression을 독립시켰다.
+- 전용 adopt, repo, diff smoke coverage를
+  `crates/lattice-cli/tests/adopt_repo_diff_surface.rs`로 옮겨, happy-path와
+  safety regression을 공유 `cli_smoke.rs` suite에서 분리했다.
 
 ### 수정
 

@@ -1,2 +1,9 @@
+pub(crate) mod app;
 pub(crate) mod bootstrap;
 pub(crate) mod discover;
+pub(crate) mod group;
+pub(crate) mod permission;
+pub(crate) mod repo;
+pub(crate) mod secret;
+pub(crate) mod snapshot;
+pub(crate) mod tui;

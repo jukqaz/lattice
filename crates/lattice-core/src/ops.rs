@@ -1329,7 +1329,14 @@ mod tests {
     fn force_restore_directory_over_socket_snapshots_metadata_without_copying_socket() {
         use std::os::unix::net::UnixListener;
 
-        let temp = tempdir().expect("tempdir");
+        // Unix socket pathnames have a small platform limit (roughly 104-108
+        // bytes). Keep this fixture under a short temp root so the test checks
+        // restore behavior instead of failing in socket setup when TMPDIR or
+        // the workspace path is long.
+        let temp = tempfile::Builder::new()
+            .prefix("lt-")
+            .tempdir_in("/tmp")
+            .expect("tempdir");
         let repo = temp.path().join("repo");
         let root = temp.path().join("root");
         let state = temp.path().join("state");

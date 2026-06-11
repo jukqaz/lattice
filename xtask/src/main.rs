@@ -72,6 +72,7 @@ fn quality() -> Result<(), String> {
     ensure_required_tool("cargo-machete", &["--version"])?;
     ensure_required_tool("cargo", &["llvm-cov", "--version"])?;
     ensure_required_tool("typos", &["--version"])?;
+    ensure_required_tool("actionlint", &["-version"])?;
 
     verify()?;
     run_passthrough(&root, "cargo-deny", ["check"], [])?;
@@ -82,6 +83,7 @@ fn quality() -> Result<(), String> {
         [],
     )?;
     run_passthrough(&root, "typos", ["--config", "_typos.toml"], [])?;
+    run_passthrough(&root, "actionlint", [".github/workflows/ci.yml"], [])?;
     run_passthrough(
         &root,
         "rustup",
@@ -311,7 +313,7 @@ fn ensure_required_tool(tool: &str, args: &[&str]) -> Result<(), String> {
         .map_err(|error| {
             format!(
                 "required quality tool {tool} {args:?} is not installed or not executable: {error}. \
-Install with cargo install cargo-deny cargo-machete cargo-llvm-cov typos-cli --locked"
+Install cargo tools with `cargo install cargo-deny cargo-machete cargo-llvm-cov typos-cli --locked`; install actionlint from https://github.com/rhysd/actionlint/releases or your package manager"
             )
         })?;
     ensure(
@@ -645,6 +647,7 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "cargo install cargo-machete --locked",
         "cargo install cargo-llvm-cov --locked",
         "cargo install typos-cli --locked",
+        "actionlint .github/workflows/ci.yml",
         "cargo run -p xtask -- quality",
         "scripts/lint.sh",
         "check-only lint script",

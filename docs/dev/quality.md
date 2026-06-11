@@ -49,6 +49,7 @@ cargo install cargo-machete --locked
 cargo install cargo-llvm-cov --locked
 cargo install typos-cli --locked
 rustup component add llvm-tools-preview
+actionlint -version
 ```
 
 Then run:
@@ -63,6 +64,7 @@ cargo run -p xtask -- quality
 cargo-deny check
 cargo-machete --with-metadata --skip-target-dir
 typos --config _typos.toml
+actionlint .github/workflows/ci.yml
 cargo llvm-cov --workspace --all-features --locked --lcov --output-path target/llvm-cov/lcov.info
 ```
 
@@ -100,6 +102,7 @@ available. You can also run it directly:
 actionlint .github/workflows/ci.yml
 ```
 
-The current CI workflow installs quality tools before running `xtask quality`; a
-local failure that says a required quality tool is missing means the development
-machine is not bootstrapped yet, not that product tests failed.
+The current CI workflow installs cargo-based quality tools plus `actionlint`
+before running `xtask quality`; a local failure that says a required quality tool
+is missing means the development machine is not bootstrapped yet, not that
+product tests failed.

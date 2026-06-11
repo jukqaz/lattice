@@ -17,6 +17,7 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: "1"
+  ACTIONLINT_VERSION: "1.7.12"
 
 jobs:
   verify:
@@ -85,6 +86,17 @@ jobs:
           cargo install cargo-machete --locked
           cargo install cargo-llvm-cov --locked
           cargo install typos-cli --locked
+
+      - name: Install actionlint
+        shell: bash
+        run: |
+          curl -fsSL \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" \
+            -o actionlint.tar.gz
+          tar -xzf actionlint.tar.gz actionlint
+          chmod +x actionlint
+          sudo mv actionlint /usr/local/bin/actionlint
+          rm actionlint.tar.gz
 
       - name: Run quality gate
         shell: bash

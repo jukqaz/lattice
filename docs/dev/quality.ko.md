@@ -47,6 +47,7 @@ cargo install cargo-machete --locked
 cargo install cargo-llvm-cov --locked
 cargo install typos-cli --locked
 rustup component add llvm-tools-preview
+actionlint -version
 ```
 
 그 다음 실행합니다.
@@ -61,6 +62,7 @@ cargo run -p xtask -- quality
 cargo-deny check
 cargo-machete --with-metadata --skip-target-dir
 typos --config _typos.toml
+actionlint .github/workflows/ci.yml
 cargo llvm-cov --workspace --all-features --locked --lcov --output-path target/llvm-cov/lcov.info
 ```
 
@@ -97,6 +99,6 @@ repo push/commit 흐름으로 대체하지 마세요.
 actionlint .github/workflows/ci.yml
 ```
 
-현재 CI workflow는 quality tool을 설치한 뒤 `xtask quality`를 실행합니다. 로컬에서
-required quality tool missing 오류가 나면 product test 실패가 아니라 개발 머신이
-아직 bootstrap되지 않았다는 뜻입니다.
+현재 CI workflow는 cargo 기반 quality tool과 `actionlint`를 설치한 뒤
+`xtask quality`를 실행합니다. 로컬에서 required quality tool missing 오류가 나면
+product test 실패가 아니라 개발 머신이 아직 bootstrap되지 않았다는 뜻입니다.

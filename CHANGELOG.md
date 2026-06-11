@@ -46,6 +46,10 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 - Dedicated selector smoke coverage now lives in
   `crates/lattice-cli/tests/selector_surface.rs`, isolating `--only`/`--exclude`
   JSON behavior from the shared `cli_smoke.rs` suite.
+- Dedicated restore-mode and safety smoke coverage now lives in
+  `crates/lattice-cli/tests/restore_surface.rs` and
+  `crates/lattice-cli/tests/safety_surface.rs`, leaving `cli_smoke.rs` as the
+  thin cross-command end-to-end smoke guard.
 
 ### Fixed
 

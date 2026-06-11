@@ -179,7 +179,7 @@ See `docs/product/mvp-scope.md`.
 - [x] Move service lifecycle smoke coverage into `crates/lattice-cli/tests/service_lifecycle_surface.rs`.
 - [x] Move service config and secret-guard smoke coverage into `crates/lattice-cli/tests/service_config_surface.rs`.
 - [x] Move adopt, repo, and diff smoke coverage into `crates/lattice-cli/tests/adopt_repo_diff_surface.rs`.
-- [ ] Continue splitting remaining domain smoke tests into focused files that reuse the shared support module.
+- [x] Continue splitting remaining domain smoke tests into focused files that reuse the shared support module.
 - [ ] Split the large CLI command implementation into focused command modules without behavior changes.
 - [ ] Extract repeated JSON/human output helpers after output contracts are pinned.
 

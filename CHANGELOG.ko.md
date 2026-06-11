@@ -41,6 +41,10 @@
   safety regression을 공유 `cli_smoke.rs` suite에서 분리했다.
 - 전용 selector smoke coverage를 `crates/lattice-cli/tests/selector_surface.rs`로
   옮겨, `--only`/`--exclude` JSON 동작을 공유 `cli_smoke.rs` suite에서 분리했다.
+- 전용 restore-mode 및 safety smoke coverage를
+  `crates/lattice-cli/tests/restore_surface.rs`와
+  `crates/lattice-cli/tests/safety_surface.rs`로 옮겨, `cli_smoke.rs`는 얇은
+  cross-command end-to-end smoke guard로 남겼다.
 
 ### 수정
 

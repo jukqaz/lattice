@@ -6,6 +6,10 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
 ### Changed
 
+- Added `scripts/lint.sh` as a check-only local lint entrypoint for Rust, shell,
+  and workflow maintenance, and formatted the real-HOME health script with the
+  same shell style.
+
 - CLI parser definitions now live in `crates/lattice-cli/src/cli.rs`, keeping the
   command surface pinned while reducing the size of the main command runner.
 - CLI smoke-test helpers now live under `crates/lattice-cli/tests/support/` so

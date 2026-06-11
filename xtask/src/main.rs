@@ -646,6 +646,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "cargo install cargo-llvm-cov --locked",
         "cargo install typos-cli --locked",
         "cargo run -p xtask -- quality",
+        "scripts/lint.sh",
+        "check-only lint script",
         "scripts/real-home-readonly-health-check.sh",
         "read-only real HOME health check",
     ] {
@@ -655,6 +657,27 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
             &format!("docs/dev/quality.md missing {needle}"),
         )?;
     }
+
+    let local_lint_script = read_repo_text(root, "scripts/lint.sh")?;
+    for needle in [
+        "check-only",
+        "cargo fmt --all -- --check",
+        "cargo clippy --workspace --all-targets -- -D warnings",
+        "shellcheck scripts/*.sh",
+        "shfmt -d -i 2 -ci -sr scripts/*.sh",
+        "actionlint .github/workflows/*.yml",
+    ] {
+        ensure_contains(
+            &local_lint_script,
+            needle,
+            &format!("scripts/lint.sh missing {needle}"),
+        )?;
+    }
+    ensure_not_contains_case_insensitive(
+        &local_lint_script,
+        "shfmt -w",
+        "scripts/lint.sh should remain check-only and must not rewrite shell scripts",
+    )?;
 
     let home_check_script = read_repo_text(root, "scripts/real-home-readonly-health-check.sh")?;
     for needle in [

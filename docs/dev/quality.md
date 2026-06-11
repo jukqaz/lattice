@@ -7,7 +7,18 @@ quality job locally.
 
 ## Fast Local Gate
 
-Run the shared verification harness for normal development tasks:
+Run the check-only lint script while iterating on normal Rust or shell changes:
+
+```bash
+scripts/lint.sh
+```
+
+`scripts/lint.sh` runs Rust formatting and Clippy, then checks shell scripts with
+`shellcheck` and `shfmt` when those tools are installed. It also runs `actionlint`
+when available so workflow edits can be checked without remembering a separate
+command. The script is intentionally check-only and never rewrites files.
+
+Run the shared verification harness before opening or merging a PR:
 
 ```bash
 cargo run -p xtask -- verify
@@ -82,7 +93,8 @@ push/commit flows unless the user explicitly approves live HOME mutation.
 
 ## Workflow Lint
 
-When `.github/workflows/ci.yml` changes, also run `actionlint` if available:
+When `.github/workflows/ci.yml` changes, `scripts/lint.sh` runs `actionlint` if
+available. You can also run it directly:
 
 ```bash
 actionlint .github/workflows/ci.yml

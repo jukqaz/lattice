@@ -33,6 +33,10 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
   in `crates/lattice-cli/tests/bootstrap_surface.rs`, and the bootstrap command
   runner now lives in `crates/lattice-cli/src/commands/bootstrap.rs` with
   centralized service-report inspection.
+- Dedicated service lifecycle smoke coverage now lives in
+  `crates/lattice-cli/tests/service_lifecycle_surface.rs`, further shrinking
+  the shared `cli_smoke.rs` suite while preserving the init/doctor/backup/restore
+  end-to-end flow.
 
 ### Fixed
 

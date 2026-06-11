@@ -6,6 +6,10 @@
 
 ### 변경
 
+- Rust, shell, workflow 유지보수를 위한 check-only local lint entrypoint로
+  `scripts/lint.sh`를 추가하고, 같은 shell style로 real-HOME health script를
+  정리했다.
+
 - CLI parser 정의를 `crates/lattice-cli/src/cli.rs`로 분리해 command surface는
   고정하면서 main command runner의 크기를 줄였다.
 - CLI smoke-test helper를 `crates/lattice-cli/tests/support/`로 옮겨, 이후

@@ -175,6 +175,7 @@ See `docs/product/mvp-scope.md`.
 - [x] Move the `discover` command implementation into `crates/lattice-cli/src/commands/discover.rs`.
 - [x] Move bootstrap smoke coverage into `crates/lattice-cli/tests/bootstrap_surface.rs`.
 - [x] Move the `bootstrap check` command implementation into `crates/lattice-cli/src/commands/bootstrap.rs`.
+- [x] Add a check-only local lint entrypoint for Rust, shell, and workflow maintenance.
 - [ ] Continue splitting remaining domain smoke tests into focused files that reuse the shared support module.
 - [ ] Split the large CLI command implementation into focused command modules without behavior changes.
 - [ ] Extract repeated JSON/human output helpers after output contracts are pinned.

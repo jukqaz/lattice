@@ -7,7 +7,19 @@ Release-oriented change를 준비하거나 CI quality job을 로컬에서 재현
 
 ## 빠른 로컬 게이트
 
-일반 개발 작업에서는 shared verification harness를 실행합니다.
+일반 Rust 또는 shell 변경을 반복 작업하는 동안에는 check-only lint script를
+실행합니다.
+
+```bash
+scripts/lint.sh
+```
+
+`scripts/lint.sh`는 Rust formatting과 Clippy를 실행한 뒤, 도구가 설치되어 있으면
+shell script를 `shellcheck`와 `shfmt`로 검사합니다. Workflow 변경도 별도 명령을
+기억하지 않도록 `actionlint`가 있으면 함께 실행합니다. 이 스크립트는 check-only라서
+파일을 직접 고치지 않습니다.
+
+PR을 열거나 merge하기 전에는 shared verification harness를 실행합니다.
 
 ```bash
 cargo run -p xtask -- verify
@@ -78,7 +90,8 @@ repo push/commit 흐름으로 대체하지 마세요.
 
 ## Workflow Lint
 
-`.github/workflows/ci.yml`이 바뀌면 가능할 때 `actionlint`도 실행합니다.
+`.github/workflows/ci.yml`이 바뀌면 `scripts/lint.sh`가 가능할 때 `actionlint`도
+실행합니다. 직접 실행할 수도 있습니다.
 
 ```bash
 actionlint .github/workflows/ci.yml

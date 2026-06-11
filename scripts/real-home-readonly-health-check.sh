@@ -98,7 +98,7 @@ run_lattice() {
 }
 
 parse_group_names() {
-  if ! command -v python3 >/dev/null 2>&1; then
+  if ! command -v python3 > /dev/null 2>&1; then
     return 0
   fi
 
@@ -138,7 +138,7 @@ if [[ ${service_list_status} -eq 0 ]]; then
     [[ -n "${service}" ]] || continue
     run_lattice "lattice status --json ${service}" status --json "${service}"
     run_lattice "lattice plan --json ${service}" plan --json "${service}"
-  done <<<"${service_list}"
+  done <<< "${service_list}"
 else
   printf '\nSkipping per-service status/plan because lattice service list exited %s.\n' "${service_list_status}"
 fi

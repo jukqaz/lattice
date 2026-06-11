@@ -8,9 +8,10 @@ use lattice_core::paths::LatticePaths;
 use lattice_core::scanner::scan_service;
 
 use crate::{
-    cli::GroupCommands, effective_patterns, expand_path, load_global_config, load_service,
-    load_services, manifest_entry_strings, path_strings, print_json, resolve_repo_path, selection,
-    service_is_active, snapshot_policy,
+    cli::GroupCommands,
+    effective_patterns, expand_path, load_global_config, load_service, load_services,
+    output::{manifest_entry_strings, path_strings, print_json},
+    resolve_repo_path, selection, service_is_active, snapshot_policy,
 };
 
 pub(crate) fn run(paths: &LatticePaths, command: GroupCommands) -> Result<()> {

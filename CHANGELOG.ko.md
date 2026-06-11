@@ -47,6 +47,9 @@
   cross-command smoke guard로 남겼다.
 - CLI command 구현을 app, group, permission, repo, secret, snapshot, TUI별
   `crates/lattice-cli/src/commands/` 모듈로 분리했다.
+- 공유 JSON 및 human-output helper를 `crates/lattice-cli/src/output.rs`로
+  옮겨, 고정된 output contract는 유지하면서 command-local output formatting
+  중복을 제거했다.
 
 ### 수정
 

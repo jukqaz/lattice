@@ -152,7 +152,7 @@ See `docs/product/mvp-scope.md`.
 - [x] Add fixture-based JSON contract tests for the stable automation surfaces.
 - [x] Improve release tooling with `cargo run -p xtask -- release-check`.
 - [x] Align version metadata, changelogs, product scope, install snippets, and product-surface harness expectations for `v0.6.0`.
-- [ ] Split the large CLI command implementation into focused command modules without behavior changes.
+- [x] Split the large CLI command implementation into focused command modules without behavior changes.
 - [ ] Design a read-only `audit`/`guidance` surface before any MCP prototype.
 - [x] Release acceptance for v0.6.0 completed before the tag.
 
@@ -181,7 +181,7 @@ See `docs/product/mvp-scope.md`.
 - [x] Move adopt, repo, and diff smoke coverage into `crates/lattice-cli/tests/adopt_repo_diff_surface.rs`.
 - [x] Continue splitting remaining domain smoke tests into focused files that reuse the shared support module.
 - [x] Split the large CLI command implementation into focused command modules without behavior changes.
-- [ ] Extract repeated JSON/human output helpers after output contracts are pinned.
+- [x] Extract repeated JSON/human output helpers after output contracts are pinned.
 
 ## v1.0 Public Stable CLI
 

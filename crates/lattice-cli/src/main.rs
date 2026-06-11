@@ -8,8 +8,7 @@ use clap::Parser;
 use lattice_core::config::{
     ConditionsConfig, GlobalConfig, HooksConfig, RestoreConfig, SecretRef, ServiceConfig,
 };
-use lattice_core::hooks::{HookOutcome, HookPhase, HookStatus, run_hooks};
-use lattice_core::manifest::ManifestEntry;
+use lattice_core::hooks::{HookPhase, run_hooks};
 use lattice_core::ops::{
     BackupOptions, PathSelection, RestoreOptions, apply_permission_rules,
     backup_service_with_options, create_restore_dirs, filter_paths_by_selection, render_template,
@@ -21,9 +20,13 @@ use similar::{ChangeTag, TextDiff};
 
 mod cli;
 mod commands;
+mod output;
 
 use cli::{Cli, Commands, PatternCommands, ServiceCommands};
 use commands::discover::discover;
+use output::{
+    hook_outcomes_json, manifest_entry_strings, path_strings, print_hook_outcomes, print_json,
+};
 
 fn main() {
     if let Err(error) = run() {
@@ -183,18 +186,6 @@ struct BackupCommandOptions {
 
 fn selection(only: Vec<String>, exclude: Vec<String>) -> PathSelection {
     PathSelection { only, exclude }
-}
-
-fn yes_no(value: bool) -> &'static str {
-    if value { "yes" } else { "no" }
-}
-
-fn present_missing(value: bool) -> &'static str {
-    if value { "present" } else { "missing" }
-}
-
-fn available_missing(value: bool) -> &'static str {
-    if value { "available" } else { "missing" }
 }
 
 fn init(paths: &LatticePaths, force: bool) -> Result<()> {
@@ -875,64 +866,6 @@ fn snapshot_policy(requires_force: bool) -> &'static str {
         "forced restore snapshots conflicts before overwrite"
     } else {
         "no snapshot needed for non-conflicting restore"
-    }
-}
-
-fn path_strings(paths: &[PathBuf]) -> Vec<String> {
-    paths
-        .iter()
-        .map(|path| path.display().to_string())
-        .collect()
-}
-
-fn manifest_entry_strings(entries: &[ManifestEntry]) -> Vec<String> {
-    entries
-        .iter()
-        .map(|entry| entry.path.display().to_string())
-        .collect()
-}
-
-fn hook_outcomes_json(before: &[HookOutcome], after: &[HookOutcome]) -> Vec<serde_json::Value> {
-    before
-        .iter()
-        .chain(after.iter())
-        .map(|outcome| {
-            let status = match outcome.status {
-                HookStatus::WouldRun => "would_run",
-                HookStatus::Ran => "ran",
-                HookStatus::SkippedConfirm => "skipped_confirm",
-            };
-            serde_json::json!({
-                "phase": outcome.phase.label(),
-                "name": outcome.name,
-                "status": status
-            })
-        })
-        .collect()
-}
-
-fn print_json(value: serde_json::Value) -> Result<()> {
-    println!("{}", serde_json::to_string_pretty(&value)?);
-    Ok(())
-}
-
-fn print_hook_outcomes(outcomes: &[HookOutcome]) {
-    for outcome in outcomes {
-        match outcome.status {
-            HookStatus::WouldRun => {
-                println!("would run hook {}: {}", outcome.phase.label(), outcome.name);
-            }
-            HookStatus::Ran => {
-                println!("ran hook {}: {}", outcome.phase.label(), outcome.name);
-            }
-            HookStatus::SkippedConfirm => {
-                println!(
-                    "skipped hook {}: {} (requires --yes)",
-                    outcome.phase.label(),
-                    outcome.name
-                );
-            }
-        }
     }
 }
 

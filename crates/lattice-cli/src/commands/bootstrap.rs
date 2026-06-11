@@ -5,9 +5,10 @@ use lattice_core::paths::LatticePaths;
 use crate::cli::BootstrapCommands;
 
 use crate::{
-    available_missing, commands::group::service_root_exists, expand_path, git_dirty,
-    git_remote_status, load_services, present_missing, print_json, resolve_repo_path,
-    service_is_active, yes_no,
+    commands::group::service_root_exists,
+    expand_path, git_dirty, git_remote_status, load_services,
+    output::{available_missing, present_missing, print_json, yes_no},
+    resolve_repo_path, service_is_active,
 };
 
 #[derive(Debug)]

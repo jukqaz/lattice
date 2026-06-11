@@ -52,6 +52,9 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
   thin cross-command end-to-end smoke guard.
 - CLI command implementations now live in focused `crates/lattice-cli/src/commands/`
   modules for app, group, permission, repo, secret, snapshot, and TUI surfaces.
+- Shared JSON and human-output helpers now live in
+  `crates/lattice-cli/src/output.rs`, removing duplicate command-local output
+  formatting while preserving the pinned output contracts.
 
 ### Fixed
 

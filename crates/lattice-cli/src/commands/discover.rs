@@ -6,6 +6,8 @@ use lattice_core::app_catalog::find_app;
 use lattice_core::paths::LatticePaths;
 use lattice_core::secrets::find_secret_like_patterns;
 
+use crate::output::print_json;
+
 pub(crate) fn discover(paths: &LatticePaths, json_output: bool) -> Result<()> {
     let home = PathBuf::from(std::env::var_os("HOME").context("HOME is not set")?);
     let mut suggestions = Vec::new();
@@ -265,9 +267,4 @@ fn path_is_directory(path: &Path) -> Result<bool> {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
         Err(error) => Err(error).with_context(|| format!("failed to stat {}", path.display())),
     }
-}
-
-fn print_json(value: serde_json::Value) -> Result<()> {
-    println!("{}", serde_json::to_string_pretty(&value)?);
-    Ok(())
 }

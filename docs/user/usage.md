@@ -32,14 +32,14 @@ only one example app. The CLI uses `lattice app ...` directly for this catalog s
 
 ## 1. Install
 
-Install the current v0.7 release command surface documented in this guide:
+Install the current v0.8.1 release command surface documented in this guide:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.8.0 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.8.1 --locked
 ```
 
 Use the `main` branch or a local checkout only when testing unreleased changes
-beyond the v0.8.0 release.
+beyond the v0.8.1 release.
 
 Install from a local checkout while developing Lattice:
 

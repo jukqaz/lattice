@@ -90,7 +90,23 @@ baseline:
 - CLI smoke and product-surface harness coverage for the JSON, selector,
   app-catalog, and bootstrap contracts.
 
-## Current Release: v0.8.0
+## Current Release: v0.8.1
+
+v0.8.1 is the post-review patch release for the v0.8 maintainability and
+modularization line. It keeps the v0.8.0 CLI behavior intact while shipping the
+review follow-up that scopes release-check changelog validation to the requested
+release section.
+
+v0.8.1 scope:
+
+- Release-check changelog assertions read only the requested release section, so
+  older release notes cannot satisfy the current release contract.
+- Version metadata, install snippets, changelogs, product scope, TODO, and
+  product-surface harness expectations are aligned to the v0.8.1 patch release.
+- The v0.8.0 modularized command surface remains the current user-facing CLI
+  contract.
+
+## Previous Release: v0.8.0
 
 v0.8.0 completes the maintainability and modularization line. It keeps the CLI
 behavior stable while splitting the parser, smoke harnesses, command runners,
@@ -111,7 +127,7 @@ v0.8.0 scope:
 - README, user docs, product scope, TODO, changelog, and product-surface harness
   expectations are aligned to the v0.8.0 release line.
 
-## Previous Release: v0.7.0
+## Earlier Release: v0.7.0
 
 v0.7.0 adds env secret passthrough metadata while preserving Lattice's role as a
 dotfiles/config manager rather than a secret manager. API keys, tokens, and

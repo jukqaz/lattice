@@ -4,6 +4,23 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
 ## Unreleased
 
+## v0.8.1 - 2026-06-12
+
+### Fixed
+
+- Release-check changelog validation now scopes note checks to the requested
+  release section instead of allowing older release notes to satisfy the current
+  release contract.
+- The v0.8 patch release tag now includes the Codex review follow-up that hardens
+  `cargo run -p xtask -- release-check 0.8.1`.
+
+### Changed
+
+- Workspace package version is now `0.8.1` for the post-review release-gate
+  hardening patch.
+- README, user docs, product scope, TODO, install snippets, and product-surface
+  verification now point at the `v0.8.1` release contract.
+
 ## v0.8.0 - 2026-06-12
 
 ### Changed

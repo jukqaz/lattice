@@ -12,11 +12,15 @@ people evaluating or using Lattice.
    backup, restore safely, and sync service repos with Git.
 2. [Product Scope](product/mvp-scope.md): understand what Lattice intentionally
    does, what it avoids, and what belongs in the current release.
-3. [JSON Output Reference](reference/json-output.md): inspect the machine
+3. [Migration Guide](user/migration.md): upgrade from `v0.8.1` toward the
+   public-stable release line.
+4. [JSON Output Reference](reference/json-output.md): inspect the machine
    contracts used by scripts and agents.
-4. [Changelog](../CHANGELOG.md): review release-by-release behavior changes and
+5. [Change Policy](dev/change-policy.md): review compatibility, safety, and
+   release policy on the v1.0 path.
+6. [Changelog](../CHANGELOG.md): review release-by-release behavior changes and
    migration notes.
-5. [Repository README](../README.md): use the root README as the quick command
+7. [Repository README](../README.md): use the root README as the quick command
    reference.
 
 ## Public Docs
@@ -25,14 +29,18 @@ people evaluating or using Lattice.
 | --- | --- | --- |
 | 1 | [User Guide](user/usage.md) | Day-one setup and common operations |
 | 2 | [Product Scope](product/mvp-scope.md) | Product boundaries and release scope |
-| 3 | [JSON Output Reference](reference/json-output.md) | Machine-readable output contracts |
-| 4 | [Quality Gates](dev/quality.md) | Local verification and release quality tools |
-| 5 | [Changelog](../CHANGELOG.md) | Upgrade and release history |
-| 6 | [Korean User Guide](user/usage.ko.md) | Korean day-one setup |
-| 7 | [Korean Product Scope](product/mvp-scope.ko.md) | Korean product boundaries |
-| 8 | [Korean JSON Output Reference](reference/json-output.ko.md) | Korean machine-readable output contracts |
-| 9 | [Korean Quality Gates](dev/quality.ko.md) | Korean local verification and quality tools |
-| 10 | [Korean Changelog](../CHANGELOG.ko.md) | Korean release history |
+| 3 | [Migration Guide](user/migration.md) | Upgrade and rollback guidance |
+| 4 | [JSON Output Reference](reference/json-output.md) | Machine-readable output contracts |
+| 5 | [Change Policy](dev/change-policy.md) | Compatibility, safety, and release policy |
+| 6 | [Quality Gates](dev/quality.md) | Local verification and release quality tools |
+| 7 | [Changelog](../CHANGELOG.md) | Upgrade and release history |
+| 8 | [Korean User Guide](user/usage.ko.md) | Korean day-one setup |
+| 9 | [Korean Product Scope](product/mvp-scope.ko.md) | Korean product boundaries |
+| 10 | [Korean Migration Guide](user/migration.ko.md) | Korean upgrade and rollback guidance |
+| 11 | [Korean JSON Output Reference](reference/json-output.ko.md) | Korean machine-readable output contracts |
+| 12 | [Korean Change Policy](dev/change-policy.ko.md) | Korean compatibility, safety, and release policy |
+| 13 | [Korean Quality Gates](dev/quality.ko.md) | Korean local verification and quality tools |
+| 14 | [Korean Changelog](../CHANGELOG.ko.md) | Korean release history |
 
 ## LLM Docs
 

@@ -169,7 +169,32 @@ creation, package installation, MCP prototype, crates.io publish는 의도적으
 | `v0.6.x` | Automation Contract Hardening | 기존 machine-readable surface를 script와 agent가 신뢰할 수 있게 만든다. | JSON reference coverage, fixture-based contract test, release-check automation, release docs를 batch mutation 없이 정렬. |
 | `v0.7.x` | Secret Passthrough References | Secret 값을 repo 밖에 두면서 env reference를 명시적으로 점검 가능하게 만든다. | `env` secret metadata, restore-time `{{env:NAME}}` guidance, non-disclosure smoke coverage, bilingual docs 정렬. |
 | `v0.8.x` | Maintainability And Modularization | Pre-1.0 CLI를 동작 변경 없이 검토와 확장이 쉬운 구조로 만든다. | Parser, command module, smoke domain, output helper, release docs, xtask structure contract 정렬. |
-| `v1.0` | Public Stable CLI | 외부 사용자에게 추천 가능한 안정 CLI. | install, changelog, release, migration, change policy, issue workflow 안정화. |
+| `v0.9.0` | Public Readiness | Core backup/restore 동작을 바꾸지 않고 새 외부 사용자가 이해하고 설치할 수 있게 만든다. | Public positioning, 첫 15분 walkthrough, install/update/rollback docs, migration docs, change policy, issue template, home/work guidance 정렬. |
+| `v0.9.1` | Release Candidate Hardening | Stable freeze 전에 public-ready surface를 dogfood하고 contract ambiguity를 제거한다. | Command/help/JSON contract audit, real-HOME read-only dogfood, safety review, optional context inactive-reason coverage, accepted read-only audit/guidance surface 완료. |
+| `v1.0.0` | Public Stable CLI | 기존 safety-first command/config/JSON contract를 외부 사용자용으로 freeze한다. | Version/docs/changelog/release-check 정렬, stability reference, local/CI gate, GitHub Release, tag install smoke, Linear closeout을 명시 승인 후 완료. |
+
+## v1.0 제품 정의
+
+Public Stable CLI는 기존 safety-first 제품의 command, config, JSON contract를
+안정화하고, 외부 사용자가 repository history를 읽지 않아도 시도할 수 있는 onboarding과
+release hygiene를 갖춘 상태를 뜻합니다. `v1.0.0` 경로는 큰 feature line이 아니라
+stabilization line입니다.
+
+`v1.0.0` 배포 정책 권장안:
+
+- `cargo install --git https://github.com/jukqaz/lattice lattice --tag vX.Y.Z --locked`를
+  canonical install path로 유지합니다.
+- Rust 없는 설치 경로가 필요하면 CI-covered target용 GitHub Release binary archive를
+  선택적으로 고려합니다.
+- v1.0에서는 crates.io publish를 하지 않습니다. 현재 project policy는 git-distributed이고
+  `lattice` crate name은 이미 사용 중입니다.
+
+Home/work 지원은 v1.0 경로에서 작고 명시적으로 유지합니다. 오늘은 기존 OS/hostname
+service condition과 read-only group을 사용합니다. Stable freeze 전에 context feature를
+받아들이면, local label인 `contexts = ["work"]`, 그 label을 match하는 service condition,
+read-only context inspection command, machine-readable inactive reason 정도로 제한합니다.
+Per-file alternate suffix, full conditional template language, secret value materialization,
+package/app installation은 추가하지 않습니다.
 
 ## 의도적으로 하지 않는 것
 
@@ -179,6 +204,9 @@ creation, package installation, MCP prototype, crates.io publish는 의도적으
 - secret value materialization from `rbw` or `bw`.
 - full plugin system.
 - Home Manager 또는 Nix-style declarative program module.
+- yadm-style per-file alternate 또는 chezmoi-style full conditional template.
+- context-selected secret value 또는 context-driven package/app installation.
+- batch group backup/restore mutation.
 - GUI.
 - database-backed state.
 - generic dotfile manager 안의 tool-specific product feature.
@@ -192,6 +220,12 @@ name = "shell"
 root = "~/.config/shell"
 include = ["config.toml", "scripts/**"]
 exclude = ["cache/**", "state/**"]
+
+[conditions]
+os = "linux"
+hostname = "workstation"
+# Stable freeze 전에 받아들이는 경우의 optional v1.0-path decision:
+# contexts = ["work"]
 
 [restore]
 create_dirs = [

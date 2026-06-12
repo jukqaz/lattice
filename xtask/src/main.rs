@@ -21,7 +21,7 @@ fn run() -> Result<(), String> {
         Some("verify") => verify(),
         Some("linux-verify") => linux_verify(),
         Some("quality") => quality(),
-        Some("release-check") => release_check(args.next().as_deref().unwrap_or("0.8.0")),
+        Some("release-check") => release_check(args.next().as_deref().unwrap_or("0.8.1")),
         Some(command) => Err(format!("unknown xtask command: {command}")),
         None => Err(
             "usage: cargo run -p xtask -- <verify|linux-verify|quality|release-check [version]>"
@@ -492,8 +492,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "active=false",
         "Safe first-adoption playbook",
         "value=not-read",
-        "--tag v0.8.0",
-        "beyond the v0.8.0 release",
+        "--tag v0.8.1",
+        "beyond the v0.8.1 release",
         "next_actions",
     ] {
         ensure_contains(&readme, needle, &format!("README.md missing {needle}"))?;
@@ -508,8 +508,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "Service Groups",
         "conflict_count",
         "active=false",
-        "--tag v0.8.0",
-        "v0.8.0 release 이후",
+        "--tag v0.8.1",
+        "v0.8.1 release 이후",
     ] {
         ensure_contains(
             &korean_readme,
@@ -533,8 +533,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "Selector",
         "Safe first-adoption playbook",
         "value=not-read",
-        "--tag v0.8.0",
-        "beyond the v0.8.0 release",
+        "--tag v0.8.1",
+        "beyond the v0.8.1 release",
         "next_command",
         "next_actions",
     ] {
@@ -555,8 +555,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "batch backup",
         "conflict_count",
         "active=false",
-        "--tag v0.8.0",
-        "v0.8.0 release 이후",
+        "--tag v0.8.1",
+        "v0.8.1 release 이후",
     ] {
         ensure_contains(
             &korean_user_guide,
@@ -578,8 +578,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "group invariant validation",
         "active-only aggregates",
         "missing-root visibility",
-        "v0.8.0 completes the maintainability and modularization line",
-        "v0.8.0 scope",
+        "v0.8.1 is the post-review patch release",
+        "v0.8.1 scope",
     ] {
         ensure_contains(
             &product_scope,
@@ -601,8 +601,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "group invariant validation",
         "active-only aggregate",
         "missing-root visibility",
-        "v0.8.0은 maintainability와 modularization 라인을 완료한다",
-        "v0.8.0 범위",
+        "v0.8.1은 v0.8 maintainability와 modularization",
+        "v0.8.1 범위",
     ] {
         ensure_contains(
             &korean_scope,
@@ -1274,16 +1274,16 @@ fn verify_release_static_contract(root: &Path, version: &str) -> Result<(), Stri
         &release_heading,
         &[
             (
-                "Remaining CLI infrastructure now lives outside `main.rs`",
-                "CHANGELOG.md missing v0.8 CLI module restructure note",
+                "Release-check changelog validation now scopes note checks",
+                "CHANGELOG.md missing v0.8.1 scoped changelog validation note",
             ),
             (
-                "`xtask` module-structure harness pinning the v0.8 layout",
-                "CHANGELOG.md missing v0.8 module harness note",
+                "release-check 0.8.1",
+                "CHANGELOG.md missing v0.8.1 release-check note",
             ),
             (
-                "Workspace package version is now `0.8.0`",
-                "CHANGELOG.md missing v0.8 package version note",
+                "Workspace package version is now `0.8.1`",
+                "CHANGELOG.md missing v0.8.1 package version note",
             ),
         ],
     )?;
@@ -1295,16 +1295,16 @@ fn verify_release_static_contract(root: &Path, version: &str) -> Result<(), Stri
         &release_heading,
         &[
             (
-                "남은 CLI infrastructure도 `main.rs` 밖으로 옮겼다",
-                "CHANGELOG.ko.md missing v0.8 CLI module restructure note",
+                "Release-check changelog validation이 이제 전체 changelog가 아니라 요청한",
+                "CHANGELOG.ko.md missing v0.8.1 scoped changelog validation note",
             ),
             (
-                "v0.8 layout을 고정하는 `xtask` module-structure",
-                "CHANGELOG.ko.md missing v0.8 module harness note",
+                "release-check 0.8.1",
+                "CHANGELOG.ko.md missing v0.8.1 release-check note",
             ),
             (
-                "workspace package version을\n  `0.8.0`으로 올렸다",
-                "CHANGELOG.ko.md missing v0.8 package version note",
+                "workspace package version을\n  `0.8.1`으로 올렸다",
+                "CHANGELOG.ko.md missing v0.8.1 package version note",
             ),
         ],
     )?;
@@ -1613,7 +1613,7 @@ mod tests {
 
     #[test]
     fn release_static_contract_matches_current_version() {
-        verify_release_static_contract(&workspace_root(), "0.8.0").unwrap();
+        verify_release_static_contract(&workspace_root(), "0.8.1").unwrap();
     }
 
     #[test]

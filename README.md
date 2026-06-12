@@ -17,14 +17,14 @@ this surface directly as `app`.
 
 ## Start Here
 
-Install the current v0.7 release command surface documented below:
+Install the current v0.8.1 release command surface documented below:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.8.0 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.8.1 --locked
 ```
 
 Use the `main` branch or a local checkout only when testing unreleased changes
-beyond the v0.8.0 release.
+beyond the v0.8.1 release.
 
 Initialize local config and check whether the machine is ready for managed
 config restores:

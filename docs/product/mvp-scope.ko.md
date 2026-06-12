@@ -84,7 +84,22 @@ v0.4.0은 안전한 개인 backup 기준선 위에 automation-friendly surface�
 - JSON, selector, app-catalog, bootstrap contract를 고정하는 CLI smoke와
   product-surface harness coverage.
 
-## 현재 릴리스: v0.8.0
+## 현재 릴리스: v0.8.1
+
+v0.8.1은 v0.8 maintainability와 modularization 라인의 post-review patch
+release다. v0.8.0 CLI 동작은 유지하면서 release-check changelog validation을
+요청한 release section으로 제한하는 review follow-up을 배포한다.
+
+v0.8.1 범위:
+
+- Release-check changelog assertion이 요청한 release section만 읽어, 이전
+  release note가 현재 release contract를 대신 만족하지 못하게 한다.
+- Version metadata, install snippet, changelog, product scope, TODO,
+  product-surface harness expectation을 v0.8.1 patch release에 맞춘다.
+- v0.8.0에서 modularized된 command surface가 현재 user-facing CLI contract로
+  유지된다.
+
+## 이전 릴리스: v0.8.0
 
 v0.8.0은 maintainability와 modularization 라인을 완료한다. CLI 동작은 유지하면서
 parser, smoke harness, command runner, output helper, config storage, runtime probe,

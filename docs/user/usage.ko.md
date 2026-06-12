@@ -35,10 +35,10 @@ shortcut일 뿐입니다. 어떤 앱도 제품을 정의하지 않으며, Codex�
 이 가이드에 문서화된 현재 v0.6 release command surface 설치:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.8.0 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.8.1 --locked
 ```
 
-v0.8.0 release 이후 unreleased change를 테스트할 때만 `main` branch나 local
+v0.8.1 release 이후 unreleased change를 테스트할 때만 `main` branch나 local
 checkout을 사용합니다.
 
 Lattice를 개발 중이면 local checkout에서 설치:

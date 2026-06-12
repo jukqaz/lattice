@@ -4,6 +4,23 @@
 
 ## Unreleased
 
+## v0.8.1 - 2026-06-12
+
+### 수정
+
+- Release-check changelog validation이 이제 전체 changelog가 아니라 요청한
+  release section 안에서만 note를 확인해, 이전 release note가 현재 release
+  contract를 대신 만족하지 못하게 했다.
+- v0.8 patch release tag에 Codex review follow-up을 포함해
+  `cargo run -p xtask -- release-check 0.8.1`을 더 엄격하게 만들었다.
+
+### 변경
+
+- Post-review release-gate hardening patch에 맞춰 workspace package version을
+  `0.8.1`으로 올렸다.
+- README, user docs, product scope, TODO, install snippet, product-surface
+  verification이 `v0.8.1` release contract를 가리킨다.
+
 ## v0.8.0 - 2026-06-12
 
 ### 변경

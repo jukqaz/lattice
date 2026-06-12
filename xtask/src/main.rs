@@ -1266,33 +1266,47 @@ fn verify_release_static_contract(root: &Path, version: &str) -> Result<(), Stri
         )?;
     }
 
+    let release_heading = format!("## {tag} - 2026-06-12");
     let changelog = read_repo_text(root, "CHANGELOG.md")?;
-    ensure_contains(
+    verify_release_changelog_section(
+        "CHANGELOG.md",
         &changelog,
-        &format!("## {tag} - 2026-06-12"),
-        "CHANGELOG.md missing release heading",
-    )?;
-    ensure_contains(
-        &changelog,
-        "Secret metadata now supports an `env` passthrough backend",
-        "CHANGELOG.md missing env passthrough note",
-    )?;
-    ensure_contains(
-        &changelog,
-        "env` passthrough backend",
-        "CHANGELOG.md missing env passthrough note",
+        &release_heading,
+        &[
+            (
+                "Remaining CLI infrastructure now lives outside `main.rs`",
+                "CHANGELOG.md missing v0.8 CLI module restructure note",
+            ),
+            (
+                "`xtask` module-structure harness pinning the v0.8 layout",
+                "CHANGELOG.md missing v0.8 module harness note",
+            ),
+            (
+                "Workspace package version is now `0.8.0`",
+                "CHANGELOG.md missing v0.8 package version note",
+            ),
+        ],
     )?;
 
     let korean_changelog = read_repo_text(root, "CHANGELOG.ko.md")?;
-    ensure_contains(
+    verify_release_changelog_section(
+        "CHANGELOG.ko.md",
         &korean_changelog,
-        &format!("## {tag} - 2026-06-12"),
-        "CHANGELOG.ko.md missing release heading",
-    )?;
-    ensure_contains(
-        &korean_changelog,
-        "env` passthrough backend",
-        "CHANGELOG.ko.md missing env passthrough note",
+        &release_heading,
+        &[
+            (
+                "남은 CLI infrastructure도 `main.rs` 밖으로 옮겼다",
+                "CHANGELOG.ko.md missing v0.8 CLI module restructure note",
+            ),
+            (
+                "v0.8 layout을 고정하는 `xtask` module-structure",
+                "CHANGELOG.ko.md missing v0.8 module harness note",
+            ),
+            (
+                "workspace package version을\n  `0.8.0`으로 올렸다",
+                "CHANGELOG.ko.md missing v0.8 package version note",
+            ),
+        ],
     )?;
 
     for relative in [
@@ -1311,6 +1325,43 @@ fn verify_release_static_contract(root: &Path, version: &str) -> Result<(), Stri
     }
 
     Ok(())
+}
+
+fn verify_release_changelog_section(
+    relative: &str,
+    body: &str,
+    heading: &str,
+    expected_notes: &[(&str, &str)],
+) -> Result<(), String> {
+    let section = markdown_h2_section(body, heading)
+        .ok_or_else(|| format!("{relative} missing release heading {heading}"))?;
+
+    for (needle, message) in expected_notes {
+        ensure_contains(section, needle, message)?;
+    }
+
+    Ok(())
+}
+
+fn markdown_h2_section<'a>(body: &'a str, heading: &str) -> Option<&'a str> {
+    let mut start = None;
+    let mut end = body.len();
+    let mut offset = 0;
+
+    for line in body.split_inclusive('\n') {
+        let line_text = line.trim_end_matches(['\r', '\n']);
+        if start.is_none() {
+            if line_text == heading {
+                start = Some(offset);
+            }
+        } else if line_text.starts_with("## ") {
+            end = offset;
+            break;
+        }
+        offset += line.len();
+    }
+
+    start.map(|start| &body[start..end])
 }
 
 fn workspace_root() -> PathBuf {
@@ -1563,6 +1614,39 @@ mod tests {
     #[test]
     fn release_static_contract_matches_current_version() {
         verify_release_static_contract(&workspace_root(), "0.8.0").unwrap();
+    }
+
+    #[test]
+    fn release_changelog_contract_is_scoped_to_current_release_section() {
+        let changelog = concat!(
+            "# Changelog\n\n",
+            "## Unreleased\n\n",
+            "## v0.8.0 - 2026-06-12\n\n",
+            "### Changed\n\n",
+            "## v0.7.0 - 2026-06-04\n\n",
+            "### Added\n\n",
+            "- Remaining CLI infrastructure now lives outside `main.rs`.\n",
+            "- `xtask` module-structure harness pinning the v0.8 layout.\n"
+        );
+
+        let section = markdown_h2_section(changelog, "## v0.8.0 - 2026-06-12").unwrap();
+        assert!(!section.contains("Remaining CLI infrastructure"));
+
+        let error = verify_release_changelog_section(
+            "CHANGELOG.md",
+            changelog,
+            "## v0.8.0 - 2026-06-12",
+            &[(
+                "Remaining CLI infrastructure now lives outside `main.rs`",
+                "CHANGELOG.md missing v0.8 CLI module restructure note",
+            )],
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            error,
+            "CHANGELOG.md missing v0.8 CLI module restructure note"
+        );
     }
 
     #[test]

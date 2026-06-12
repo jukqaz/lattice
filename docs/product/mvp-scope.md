@@ -182,7 +182,33 @@ intentionally out of scope.
 | `v0.6.x` | Automation Contract Hardening | Make existing machine-readable surfaces trustworthy for scripts and agents. | JSON reference coverage, fixture-based contract tests, release-check automation, and release docs are aligned without adding batch mutation. |
 | `v0.7.x` | Secret Passthrough References | Keep secret values out of repos while making env references explicit and checkable. | `env` secret metadata, restore-time `{{env:NAME}}` guidance, non-disclosure smoke coverage, and bilingual docs are aligned. |
 | `v0.8.x` | Maintainability And Modularization | Make the pre-1.0 CLI easier to review and extend without behavior churn. | Parser, command modules, smoke domains, output helpers, release docs, and xtask structure contracts are aligned. |
-| `v1.0` | Public Stable CLI | Make Lattice recommendable to external users. | Install, changelog, release, migration, change policy, and issue workflows are stable. |
+| `v0.9.0` | Public Readiness | Make the current product understandable and installable by new external users without changing core backup/restore behavior. | Public positioning, first-15-minutes walkthrough, install/update/rollback docs, migration docs, change policy, issue templates, and home/work guidance are aligned. |
+| `v0.9.1` | Release Candidate Hardening | Dogfood the public-ready surface and remove contract ambiguity before the stable freeze. | Command/help/JSON contract audit, real-HOME read-only dogfood, safety review, optional context inactive-reason coverage, and any accepted read-only audit/guidance surface are complete. |
+| `v1.0.0` | Public Stable CLI | Freeze the existing safety-first command/config/JSON contract for external users. | Version/docs/changelog/release-check alignment, stability reference, local and CI gates, GitHub Release, tagged install smoke, and Linear closeout are complete after explicit approval. |
+
+## v1.0 Product Definition
+
+Public Stable CLI means stable command, config, and JSON contracts for the
+existing safety-first product, plus onboarding and release hygiene good enough
+for an external user to try Lattice without reading repository history. The path
+to `v1.0.0` is a stabilization line, not a broad feature line.
+
+Recommended distribution policy for `v1.0.0`:
+
+- Keep `cargo install --git https://github.com/jukqaz/lattice lattice --tag vX.Y.Z --locked`
+  as the canonical install path.
+- Consider GitHub Release binary archives as an optional no-Rust install path for
+  CI-covered targets.
+- Do not publish to crates.io for v1.0; the current project policy is
+  git-distributed, and the `lattice` crate name is already taken.
+
+Home/work support should stay explicit and small on the v1.0 path. Use current
+OS/hostname service conditions and read-only groups today. If a context feature
+is accepted before the stable freeze, it should add local labels such as
+`contexts = ["work"]`, service conditions that match those labels, a read-only
+context inspection command, and machine-readable inactive reasons. It should not
+add per-file alternate suffixes, a full conditional template language, secret
+value materialization, or package/app installation.
 
 ## Deliberate Non-Goals
 
@@ -192,6 +218,9 @@ intentionally out of scope.
 - Secret value materialization from `rbw` or `bw`.
 - Full plugin system.
 - Home Manager or Nix-style declarative program modules.
+- yadm-style per-file alternates or chezmoi-style full conditional templates.
+- Context-selected secret values or context-driven package/app installation.
+- Batch group backup/restore mutation.
 - GUI.
 - Database-backed state.
 - Tool-specific product features in the generic dotfile manager.
@@ -205,6 +234,12 @@ name = "shell"
 root = "~/.config/shell"
 include = ["config.toml", "scripts/**"]
 exclude = ["cache/**", "state/**"]
+
+[conditions]
+os = "linux"
+hostname = "workstation"
+# Optional v1.0-path decision, if accepted before the stable freeze:
+# contexts = ["work"]
 
 [restore]
 create_dirs = [

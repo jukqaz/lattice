@@ -32,7 +32,7 @@ shortcut일 뿐입니다. 어떤 앱도 제품을 정의하지 않으며, Codex�
 
 ## 1. 설치
 
-이 가이드에 문서화된 현재 v0.6 release command surface 설치:
+이 가이드에 문서화된 현재 v0.8.1 release command surface 설치:
 
 ```bash
 cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.8.1 --locked

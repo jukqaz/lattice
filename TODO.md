@@ -188,9 +188,66 @@ See `docs/product/mvp-scope.md`.
 - [x] Align version metadata, changelogs, product scope, install snippets, and product-surface harness expectations for `v0.8.0`.
 - [x] Ship `v0.8.1` patch release so published tags include scoped release-check changelog validation.
 
+## v0.9 Public Readiness
+
+Goal: make the existing safety-first product understandable, installable, and
+reviewable by external users before freezing the stable contract.
+
+- [ ] Refresh README and user docs around the public positioning: explicit TOML,
+  service-scoped backup/restore, dry-run-first workflows, snapshots/undo, and
+  JSON automation.
+- [ ] Add a first-15-minutes walkthrough using one low-risk service.
+- [ ] Split install/update/rollback guidance into current Git tag install, local
+  checkout install, and optional GitHub Release binary archives if adopted.
+- [ ] Add migration docs for upgrading from `v0.8.1` through `v0.9.x` to `v1.0`.
+- [ ] Add a public change policy covering SemVer, JSON compatibility, safety
+  regressions, deprecations, and release approval.
+- [ ] Add issue templates and a pull request template that preserve the safety
+  and verification expectations.
+- [ ] Add shell completions and a manpage if the generated-artifact checks stay
+  small and reviewable.
+- [ ] Keep Git tag install canonical; do not publish to crates.io for v1.0 unless
+  a separate package-name migration is explicitly approved.
+- [ ] Document home/work setup using current OS/hostname conditions and read-only
+  groups with `shared`, `work`, and `home` examples.
+- [ ] Decide whether the minimal explicit `contexts = ["work"]` model is accepted
+  for implementation before the v1.0 stable contract freezes.
+
+## v0.9.1 Release Candidate Hardening
+
+Goal: dogfood the public-ready surface and remove ambiguity before `v1.0.0`.
+
+- [ ] Audit every command help surface and JSON top-level contract.
+- [ ] Mark unstable or best-effort JSON fields in the JSON reference.
+- [ ] Decide the pending read-only `audit`/`guidance` surface before the stable
+  freeze; defer it unless it is a thin wrapper over existing read-only commands.
+- [ ] Run real-HOME read-only health checks and one low-risk isolated backup flow.
+- [ ] Reconfirm secret scan, env-reference templates, traversal guards, symlink
+  escape guards, snapshots, undo, and metadata-loss warnings.
+- [ ] If context labels are accepted, verify isolated `shared` + `work` + `home`
+  configs and machine-readable inactive reasons.
+
 ## v1.0 Public Stable CLI
 
-- [ ] Stabilize install, release, changelog, and migration notes.
-- [ ] Decide crates.io publish policy.
-- [ ] Add shell completions and polished help/manpage surfaces if they remain small.
-- [ ] Add issue templates and a clear pre-1.0 change policy.
+Goal: freeze the command/config/JSON contract for the current product, not turn
+Lattice into a package manager, secret manager, or full system configuration
+framework.
+
+- [ ] Bump workspace/package versions, changelogs, docs, TODO, release-check
+  expectations, and install snippets to `1.0.0`.
+- [ ] Add a stability reference for command names, config keys, JSON top-level
+  keys, safety behavior, and deprecation policy.
+- [ ] Keep group commands read-only; do not add group backup/restore mutation on
+  the v1.0 path.
+- [ ] Keep home/work support explicit and small: conditions/groups now, optional
+  context labels only if accepted before the freeze.
+- [ ] Exclude yadm-style per-file alternates, chezmoi-style full conditional
+  templates, context-selected secret materialization, package/app install, GUI,
+  plugin/MCP, database-backed state, and large restore-core rewrites.
+- [ ] Pass local gates: `cargo fmt --check`, `scripts/lint.sh`,
+  `cargo run -p xtask -- verify`, `cargo run -p xtask -- quality`,
+  `cargo run -p xtask -- release-check 1.0.0`, and `git diff --check`.
+- [ ] Pass GitHub Actions on Linux x86_64, Linux ARM64, macOS Apple Silicon, and
+  the quality job.
+- [ ] Create the `v1.0.0` tag and GitHub Release only after explicit approval,
+  then run tagged install smoke with `cargo install --git ... --tag v1.0.0 --locked`.

@@ -11,10 +11,13 @@ Public docs는 Lattice를 평가하거나 사용하는 사람의 주 진입점�
    안전한 restore, Git sync.
 2. [제품 범위](product/mvp-scope.ko.md): Lattice가 의도적으로 하는 것과 하지 않는 것,
    현재 release 범위.
-3. [JSON Output Reference](reference/json-output.ko.md): script와 agent가 쓰는
+3. [Migration Guide](user/migration.ko.md): `v0.8.1`에서 public-stable release line으로
+   upgrade/rollback.
+4. [JSON Output Reference](reference/json-output.ko.md): script와 agent가 쓰는
    machine-readable contract.
-4. [변경 로그](../CHANGELOG.ko.md): release별 behavior change와 migration note.
-5. [Repository README](../README.ko.md): 빠른 command reference.
+5. [Change Policy](dev/change-policy.ko.md): v1.0 경로의 compatibility, safety, release policy.
+6. [변경 로그](../CHANGELOG.ko.md): release별 behavior change와 migration note.
+7. [Repository README](../README.ko.md): 빠른 command reference.
 
 ## Public Docs
 
@@ -22,14 +25,18 @@ Public docs는 Lattice를 평가하거나 사용하는 사람의 주 진입점�
 | --- | --- | --- |
 | 1 | [사용자 가이드](user/usage.ko.md) | 첫 설정과 일반 작업 |
 | 2 | [제품 범위](product/mvp-scope.ko.md) | 제품 경계와 release scope |
-| 3 | [JSON Output Reference](reference/json-output.ko.md) | Machine-readable output contract |
-| 4 | [Quality Gates](dev/quality.ko.md) | 로컬 검증과 release quality tool |
-| 5 | [변경 로그](../CHANGELOG.ko.md) | upgrade와 release history |
-| 6 | [English User Guide](user/usage.md) | English day-one setup |
-| 7 | [English Product Scope](product/mvp-scope.md) | English product boundaries |
-| 8 | [English JSON Output Reference](reference/json-output.md) | English machine-readable output contracts |
-| 9 | [English Quality Gates](dev/quality.md) | English local verification and quality tools |
-| 10 | [English Changelog](../CHANGELOG.md) | English release history |
+| 3 | [Migration Guide](user/migration.ko.md) | Upgrade와 rollback guidance |
+| 4 | [JSON Output Reference](reference/json-output.ko.md) | Machine-readable output contract |
+| 5 | [Change Policy](dev/change-policy.ko.md) | Compatibility, safety, release policy |
+| 6 | [Quality Gates](dev/quality.ko.md) | 로컬 검증과 release quality tool |
+| 7 | [변경 로그](../CHANGELOG.ko.md) | upgrade와 release history |
+| 8 | [English User Guide](user/usage.md) | English day-one setup |
+| 9 | [English Product Scope](product/mvp-scope.md) | English product boundaries |
+| 10 | [English Migration Guide](user/migration.md) | English upgrade and rollback guidance |
+| 11 | [English JSON Output Reference](reference/json-output.md) | English machine-readable output contracts |
+| 12 | [English Change Policy](dev/change-policy.md) | English compatibility, safety, and release policy |
+| 13 | [English Quality Gates](dev/quality.md) | English local verification and quality tools |
+| 14 | [English Changelog](../CHANGELOG.md) | English release history |
 
 ## LLM Docs
 

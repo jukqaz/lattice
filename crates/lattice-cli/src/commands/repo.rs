@@ -6,7 +6,9 @@ use anyhow::{Context, Result, bail};
 use lattice_core::paths::LatticePaths;
 use lattice_core::secrets::find_secret_like_patterns;
 
-use crate::{cli::RepoCommands, load_service, resolve_repo_path};
+use crate::cli::RepoCommands;
+use crate::config_store::load_service;
+use crate::service_state::resolve_repo_path;
 
 pub(crate) fn run(paths: &LatticePaths, command: RepoCommands) -> Result<()> {
     match command {

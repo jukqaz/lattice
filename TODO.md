@@ -182,6 +182,9 @@ See `docs/product/mvp-scope.md`.
 - [x] Continue splitting remaining domain smoke tests into focused files that reuse the shared support module.
 - [x] Split the large CLI command implementation into focused command modules without behavior changes.
 - [x] Extract repeated JSON/human output helpers after output contracts are pinned.
+- [x] Move shared config store, runtime probes, service state, setup, service CRUD,
+  and backup/restore/status/diff flows out of `main.rs` into focused modules.
+- [x] Pin the v0.8 module layout with an `xtask` module-structure harness.
 
 ## v1.0 Public Stable CLI
 

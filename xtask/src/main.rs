@@ -297,10 +297,43 @@ mode = "0700"
     ensure(mode(&source.join("cache"))? == 0o700, "cache mode mismatch")?;
 
     verify_product_surface_harness(&root)?;
+    verify_module_structure_harness(&root)?;
     verify_cli_edge_harness(&root)?;
     verify_non_unix_compile_harness(&root)?;
 
     println!("lattice xtask verify: ok");
+    Ok(())
+}
+
+fn verify_module_structure_harness(root: &Path) -> Result<(), String> {
+    for relative in [
+        "crates/lattice-cli/src/config_store.rs",
+        "crates/lattice-cli/src/runtime.rs",
+        "crates/lattice-cli/src/service_state.rs",
+        "crates/lattice-cli/src/commands/setup.rs",
+        "crates/lattice-cli/src/commands/service.rs",
+        "crates/lattice-cli/src/commands/sync.rs",
+    ] {
+        ensure(
+            root.join(relative).is_file(),
+            &format!("module structure missing {relative}"),
+        )?;
+    }
+
+    let main_rs = read_repo_text(root, "crates/lattice-cli/src/main.rs")?;
+    for removed_impl in [
+        "fn service_add(",
+        "fn backup_service_config(",
+        "fn restore(",
+        "fn load_service(",
+        "fn expand_path(",
+    ] {
+        ensure(
+            !main_rs.contains(removed_impl),
+            &format!("main.rs should only dispatch commands, still contains {removed_impl}"),
+        )?;
+    }
+
     Ok(())
 }
 
@@ -1530,5 +1563,10 @@ mod tests {
     #[test]
     fn release_static_contract_matches_current_version() {
         verify_release_static_contract(&workspace_root(), "0.7.0").unwrap();
+    }
+
+    #[test]
+    fn module_structure_matches_v080_refactor_contract() {
+        verify_module_structure_harness(&workspace_root()).unwrap();
     }
 }

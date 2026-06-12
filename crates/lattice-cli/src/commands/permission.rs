@@ -2,10 +2,9 @@ use anyhow::Result;
 use lattice_core::config::PermissionRule;
 use lattice_core::paths::LatticePaths;
 
-use crate::{
-    cli::PermissionCommands, load_service, validate_mode, validate_relative_config_path,
-    write_service_config,
-};
+use crate::cli::PermissionCommands;
+use crate::config_store::{load_service, write_service_config};
+use crate::service_state::{validate_mode, validate_relative_config_path};
 
 pub(crate) fn run(paths: &LatticePaths, command: PermissionCommands) -> Result<()> {
     match command {

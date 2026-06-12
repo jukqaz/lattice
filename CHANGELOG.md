@@ -55,6 +55,10 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 - Shared JSON and human-output helpers now live in
   `crates/lattice-cli/src/output.rs`, removing duplicate command-local output
   formatting while preserving the pinned output contracts.
+- Remaining CLI infrastructure now lives outside `main.rs`: config read/write
+  helpers, runtime probes, shared service state, setup commands, service CRUD,
+  and backup/restore/status/diff flows are split into focused modules with an
+  `xtask` module-structure harness pinning the v0.8 layout.
 
 ### Fixed
 

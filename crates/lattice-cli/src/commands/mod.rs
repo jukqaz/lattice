@@ -5,5 +5,8 @@ pub(crate) mod group;
 pub(crate) mod permission;
 pub(crate) mod repo;
 pub(crate) mod secret;
+pub(crate) mod service;
+pub(crate) mod setup;
 pub(crate) mod snapshot;
+pub(crate) mod sync;
 pub(crate) mod tui;

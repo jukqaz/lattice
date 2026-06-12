@@ -2,7 +2,8 @@ use anyhow::{Context, Result};
 use lattice_core::app_catalog::{app_names, find_app};
 use lattice_core::paths::LatticePaths;
 
-use crate::{ServiceAddInput, cli::AppCommands, service_add};
+use crate::cli::AppCommands;
+use crate::commands::service::{ServiceAddInput, add as service_add};
 
 pub(crate) fn run(paths: &LatticePaths, command: AppCommands) -> Result<()> {
     match command {

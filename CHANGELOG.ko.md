@@ -50,6 +50,10 @@
 - 공유 JSON 및 human-output helper를 `crates/lattice-cli/src/output.rs`로
   옮겨, 고정된 output contract는 유지하면서 command-local output formatting
   중복을 제거했다.
+- 남은 CLI infrastructure도 `main.rs` 밖으로 옮겼다. config read/write helper,
+  runtime probe, 공유 service state, setup command, service CRUD, backup/restore/status/diff
+  flow를 focused module로 나누고, v0.8 layout을 고정하는 `xtask` module-structure
+  harness를 추가했다.
 
 ### 수정
 

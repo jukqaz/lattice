@@ -4,12 +4,11 @@ use lattice_core::paths::LatticePaths;
 
 use crate::cli::BootstrapCommands;
 
-use crate::{
-    commands::group::service_root_exists,
-    expand_path, git_dirty, git_remote_status, load_services,
-    output::{available_missing, present_missing, print_json, yes_no},
-    resolve_repo_path, service_is_active,
-};
+use crate::commands::group::service_root_exists;
+use crate::config_store::load_services;
+use crate::output::{available_missing, present_missing, print_json, yes_no};
+use crate::runtime::{expand_path, git_dirty, git_remote_status};
+use crate::service_state::{resolve_repo_path, service_is_active};
 
 #[derive(Debug)]
 struct BootstrapServiceReport {

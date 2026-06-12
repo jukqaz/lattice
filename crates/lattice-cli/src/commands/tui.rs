@@ -7,10 +7,13 @@ use lattice_core::ops::PathSelection;
 use lattice_core::paths::LatticePaths;
 use lattice_core::scanner::scan_service;
 
-use crate::{
-    BackupCommandOptions, backup, cli::AppCommands, diff, effective_patterns, expand_path,
-    load_services, plan, resolve_repo_path, service_is_active, service_list, status, validate,
-};
+use crate::cli::AppCommands;
+use crate::commands::service::list as service_list;
+use crate::commands::setup::validate;
+use crate::commands::sync::{BackupCommandOptions, backup, diff, plan, status};
+use crate::config_store::load_services;
+use crate::runtime::expand_path;
+use crate::service_state::{effective_patterns, resolve_repo_path, service_is_active};
 
 pub(crate) fn run(paths: &LatticePaths, dry_run: bool) -> Result<()> {
     let actions = vec![

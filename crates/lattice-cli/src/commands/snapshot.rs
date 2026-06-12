@@ -4,10 +4,11 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, bail};
 use lattice_core::paths::LatticePaths;
 
-use crate::{
-    cli::SnapshotCommands, ensure_service_active, expand_path, load_service, print_json,
-    validate_relative_config_path,
-};
+use crate::cli::SnapshotCommands;
+use crate::config_store::load_service;
+use crate::output::print_json;
+use crate::runtime::expand_path;
+use crate::service_state::{ensure_service_active, validate_relative_config_path};
 
 pub(crate) fn run(paths: &LatticePaths, command: SnapshotCommands) -> Result<()> {
     match command {

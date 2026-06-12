@@ -2,9 +2,10 @@ use anyhow::Result;
 use lattice_core::config::SecretRef;
 use lattice_core::paths::LatticePaths;
 
-use crate::{
-    cli::SecretCommands, load_service, secret_backend_status, secret_item_for_backend,
-    validate_secret_backend, write_service_config,
+use crate::cli::SecretCommands;
+use crate::config_store::{load_service, write_service_config};
+use crate::service_state::{
+    secret_backend_status, secret_item_for_backend, validate_secret_backend,
 };
 
 pub(crate) fn run(paths: &LatticePaths, command: SecretCommands) -> Result<()> {

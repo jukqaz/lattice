@@ -3,7 +3,7 @@
 [English](json-output.md) | 한국어 | [문서 인덱스](../README.ko.md)
 
 이 reference는 script와 agent가 사람이 읽는 stdout을 parsing하지 않고 사용할 수 있는
-machine-readable output을 설명합니다. 아래 shape는 v0.7.0 automation-contract
+machine-readable output을 설명합니다. 아래 shape는 v0.8.0 automation and maintainability
 hardening release line의 일부이지만, Lattice는 아직 pre-v1.0입니다. 따라서 이 field들은
 영구적인 public API라기보다 release-line contract로 취급하세요.
 

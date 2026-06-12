@@ -3,8 +3,8 @@
 English | [한국어](json-output.ko.md) | [Documentation Index](../README.md)
 
 This reference documents the machine-readable output that scripts and agents can
-use without parsing human text. The shapes below are part of the v0.7.0
-automation-contract hardening release line, but Lattice is still pre-v1.0: treat
+use without parsing human text. The shapes below are part of the v0.8.0
+automation and maintainability release line, but Lattice is still pre-v1.0: treat
 these fields as release-line contracts rather than forever-stable public API.
 
 ## General Rules

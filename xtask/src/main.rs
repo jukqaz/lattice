@@ -21,7 +21,7 @@ fn run() -> Result<(), String> {
         Some("verify") => verify(),
         Some("linux-verify") => linux_verify(),
         Some("quality") => quality(),
-        Some("release-check") => release_check(args.next().as_deref().unwrap_or("0.7.0")),
+        Some("release-check") => release_check(args.next().as_deref().unwrap_or("0.8.0")),
         Some(command) => Err(format!("unknown xtask command: {command}")),
         None => Err(
             "usage: cargo run -p xtask -- <verify|linux-verify|quality|release-check [version]>"
@@ -492,8 +492,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "active=false",
         "Safe first-adoption playbook",
         "value=not-read",
-        "--tag v0.7.0",
-        "beyond the v0.7.0 release",
+        "--tag v0.8.0",
+        "beyond the v0.8.0 release",
         "next_actions",
     ] {
         ensure_contains(&readme, needle, &format!("README.md missing {needle}"))?;
@@ -508,8 +508,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "Service Groups",
         "conflict_count",
         "active=false",
-        "--tag v0.7.0",
-        "v0.7.0 release 이후",
+        "--tag v0.8.0",
+        "v0.8.0 release 이후",
     ] {
         ensure_contains(
             &korean_readme,
@@ -533,8 +533,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "Selector",
         "Safe first-adoption playbook",
         "value=not-read",
-        "--tag v0.7.0",
-        "beyond the v0.7.0 release",
+        "--tag v0.8.0",
+        "beyond the v0.8.0 release",
         "next_command",
         "next_actions",
     ] {
@@ -555,8 +555,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "batch backup",
         "conflict_count",
         "active=false",
-        "--tag v0.7.0",
-        "v0.7.0 release 이후",
+        "--tag v0.8.0",
+        "v0.8.0 release 이후",
     ] {
         ensure_contains(
             &korean_user_guide,
@@ -578,8 +578,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "group invariant validation",
         "active-only aggregates",
         "missing-root visibility",
-        "v0.7.0 adds env secret passthrough metadata",
-        "v0.7.0 scope",
+        "v0.8.0 completes the maintainability and modularization line",
+        "v0.8.0 scope",
     ] {
         ensure_contains(
             &product_scope,
@@ -601,8 +601,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "group invariant validation",
         "active-only aggregate",
         "missing-root visibility",
-        "v0.7.0은 Lattice를 secret manager가 아니라 dotfiles/config manager로 유지하면서",
-        "v0.7.0 범위",
+        "v0.8.0은 maintainability와 modularization 라인을 완료한다",
+        "v0.8.0 범위",
     ] {
         ensure_contains(
             &korean_scope,
@@ -1269,7 +1269,7 @@ fn verify_release_static_contract(root: &Path, version: &str) -> Result<(), Stri
     let changelog = read_repo_text(root, "CHANGELOG.md")?;
     ensure_contains(
         &changelog,
-        &format!("## {tag} - 2026-06-04"),
+        &format!("## {tag} - 2026-06-12"),
         "CHANGELOG.md missing release heading",
     )?;
     ensure_contains(
@@ -1286,7 +1286,7 @@ fn verify_release_static_contract(root: &Path, version: &str) -> Result<(), Stri
     let korean_changelog = read_repo_text(root, "CHANGELOG.ko.md")?;
     ensure_contains(
         &korean_changelog,
-        &format!("## {tag} - 2026-06-04"),
+        &format!("## {tag} - 2026-06-12"),
         "CHANGELOG.ko.md missing release heading",
     )?;
     ensure_contains(
@@ -1562,7 +1562,7 @@ mod tests {
 
     #[test]
     fn release_static_contract_matches_current_version() {
-        verify_release_static_contract(&workspace_root(), "0.7.0").unwrap();
+        verify_release_static_contract(&workspace_root(), "0.8.0").unwrap();
     }
 
     #[test]

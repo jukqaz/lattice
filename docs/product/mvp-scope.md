@@ -90,7 +90,28 @@ baseline:
 - CLI smoke and product-surface harness coverage for the JSON, selector,
   app-catalog, and bootstrap contracts.
 
-## Current Release: v0.7.0
+## Current Release: v0.8.0
+
+v0.8.0 completes the maintainability and modularization line. It keeps the CLI
+behavior stable while splitting the parser, smoke harnesses, command runners,
+output helpers, config storage, runtime probes, and shared service state into
+focused files that are easier to review and extend.
+
+v0.8.0 scope:
+
+- CLI parser definitions and command runners live in focused modules instead of
+  a large `main.rs` runner.
+- Domain smoke coverage is split into focused integration tests that reuse the
+  shared isolated XDG support harness.
+- Shared JSON/human output helpers, config persistence, runtime probes, service
+  state, setup commands, service CRUD, and backup/restore/status/diff flows are
+  split into dedicated modules.
+- `scripts/lint.sh`, `cargo run -p xtask -- verify`, and
+  `cargo run -p xtask -- quality` cover the release-line quality gate.
+- README, user docs, product scope, TODO, changelog, and product-surface harness
+  expectations are aligned to the v0.8.0 release line.
+
+## Previous Release: v0.7.0
 
 v0.7.0 adds env secret passthrough metadata while preserving Lattice's role as a
 dotfiles/config manager rather than a secret manager. API keys, tokens, and
@@ -106,7 +127,7 @@ v0.7.0 scope:
 - README, user docs, product scope, TODO, changelog, and product-surface harness
   expectations are aligned to the v0.7.0 release line.
 
-## Previous Release: v0.6.0
+## Earlier Release: v0.6.0
 
 v0.6.0 hardens the automation contract across the existing command surface. It
 expands documented JSON shapes, pins fixture-based contract coverage, and adds a
@@ -144,6 +165,7 @@ intentionally out of scope.
 | `v0.5.x` | Service Groups | Inspect and plan related services together without introducing batch mutation. | `group list/show/status/plan`, JSON output, selectors, group invariant validation, active-only aggregates, and missing-root visibility are documented and tested before any group backup/restore behavior. |
 | `v0.6.x` | Automation Contract Hardening | Make existing machine-readable surfaces trustworthy for scripts and agents. | JSON reference coverage, fixture-based contract tests, release-check automation, and release docs are aligned without adding batch mutation. |
 | `v0.7.x` | Secret Passthrough References | Keep secret values out of repos while making env references explicit and checkable. | `env` secret metadata, restore-time `{{env:NAME}}` guidance, non-disclosure smoke coverage, and bilingual docs are aligned. |
+| `v0.8.x` | Maintainability And Modularization | Make the pre-1.0 CLI easier to review and extend without behavior churn. | Parser, command modules, smoke domains, output helpers, release docs, and xtask structure contracts are aligned. |
 | `v1.0` | Public Stable CLI | Make Lattice recommendable to external users. | Install, changelog, release, migration, change policy, and issue workflows are stable. |
 
 ## Deliberate Non-Goals

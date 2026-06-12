@@ -84,7 +84,25 @@ v0.4.0은 안전한 개인 backup 기준선 위에 automation-friendly surface�
 - JSON, selector, app-catalog, bootstrap contract를 고정하는 CLI smoke와
   product-surface harness coverage.
 
-## 현재 릴리스: v0.7.0
+## 현재 릴리스: v0.8.0
+
+v0.8.0은 maintainability와 modularization 라인을 완료한다. CLI 동작은 유지하면서
+parser, smoke harness, command runner, output helper, config storage, runtime probe,
+공유 service state를 검토와 확장이 쉬운 focused file로 분리했다.
+
+v0.8.0 범위:
+
+- CLI parser 정의와 command runner를 큰 `main.rs` 대신 focused module에 둔다.
+- Domain별 smoke coverage를 shared isolated XDG support harness를 재사용하는
+  focused integration test로 분리한다.
+- 공유 JSON/human output helper, config persistence, runtime probe, service state,
+  setup command, service CRUD, backup/restore/status/diff flow를 전용 모듈로 분리한다.
+- `scripts/lint.sh`, `cargo run -p xtask -- verify`,
+  `cargo run -p xtask -- quality`가 release-line quality gate를 담당한다.
+- README, user docs, product scope, TODO, changelog, product-surface harness
+  expectation을 v0.8.0 release line에 맞춘다.
+
+## 이전 릴리스: v0.7.0
 
 v0.7.0은 Lattice를 secret manager가 아니라 dotfiles/config manager로 유지하면서
 env secret passthrough metadata를 추가한다. API key, token, password 값은 repo 밖에
@@ -134,6 +152,8 @@ creation, package installation, MCP prototype, crates.io publish는 의도적으
 | `v0.4.x` | Automation, Bootstrap, Recovery, And Discovery | script와 agent가 human stdout parsing 없이 Lattice를 호출하고, 새 머신 restore, recovery history, 보수적 discovery를 first-class로 만든다. | generic init, JSON output, selector, `plan`, `bootstrap check`, `app` command, snapshot/undo, `discover`, product-surface harness coverage가 v0.4.0 release line에 문서화되고 테스트됨. |
 | `v0.5.x` | Service Groups | Batch mutation 없이 관련 service를 함께 inspect/plan. | `group list/show/status/plan`, JSON output, selector, group invariant validation, active-only aggregate, missing-root visibility를 group backup/restore 동작보다 먼저 문서화하고 테스트. |
 | `v0.6.x` | Automation Contract Hardening | 기존 machine-readable surface를 script와 agent가 신뢰할 수 있게 만든다. | JSON reference coverage, fixture-based contract test, release-check automation, release docs를 batch mutation 없이 정렬. |
+| `v0.7.x` | Secret Passthrough References | Secret 값을 repo 밖에 두면서 env reference를 명시적으로 점검 가능하게 만든다. | `env` secret metadata, restore-time `{{env:NAME}}` guidance, non-disclosure smoke coverage, bilingual docs 정렬. |
+| `v0.8.x` | Maintainability And Modularization | Pre-1.0 CLI를 동작 변경 없이 검토와 확장이 쉬운 구조로 만든다. | Parser, command module, smoke domain, output helper, release docs, xtask structure contract 정렬. |
 | `v1.0` | Public Stable CLI | 외부 사용자에게 추천 가능한 안정 CLI. | install, changelog, release, migration, change policy, issue workflow 안정화. |
 
 ## 의도적으로 하지 않는 것

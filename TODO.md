@@ -185,6 +185,7 @@ See `docs/product/mvp-scope.md`.
 - [x] Move shared config store, runtime probes, service state, setup, service CRUD,
   and backup/restore/status/diff flows out of `main.rs` into focused modules.
 - [x] Pin the v0.8 module layout with an `xtask` module-structure harness.
+- [x] Align version metadata, changelogs, product scope, install snippets, and product-surface harness expectations for `v0.8.0`.
 
 ## v1.0 Public Stable CLI
 

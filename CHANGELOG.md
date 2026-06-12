@@ -4,6 +4,8 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
 ## Unreleased
 
+## v0.8.0 - 2026-06-12
+
 ### Changed
 
 - Added `scripts/lint.sh` as a check-only local lint entrypoint for Rust, shell,
@@ -59,6 +61,10 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
   helpers, runtime probes, shared service state, setup commands, service CRUD,
   and backup/restore/status/diff flows are split into focused modules with an
   `xtask` module-structure harness pinning the v0.8 layout.
+- Workspace package version is now `0.8.0` for the maintainability and
+  modularization release line.
+- README, user docs, product scope, TODO, install snippets, and product-surface
+  verification now point at the `v0.8.0` release contract.
 
 ### Fixed
 

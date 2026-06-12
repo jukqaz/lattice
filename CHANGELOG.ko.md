@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+## v0.8.0 - 2026-06-12
+
 ### 변경
 
 - Rust, shell, workflow 유지보수를 위한 check-only local lint entrypoint로
@@ -54,6 +56,10 @@
   runtime probe, 공유 service state, setup command, service CRUD, backup/restore/status/diff
   flow를 focused module로 나누고, v0.8 layout을 고정하는 `xtask` module-structure
   harness를 추가했다.
+- Maintainability 및 modularization release line에 맞춰 workspace package version을
+  `0.8.0`으로 올렸다.
+- README, user docs, product scope, TODO, install snippet, product-surface
+  verification이 `v0.8.0` release contract를 가리킨다.
 
 ### 수정
 

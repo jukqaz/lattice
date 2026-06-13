@@ -129,5 +129,6 @@ fn mvp2_restore_modes_cover_template_symlink_and_conditions() {
     let inactive_status = run_ok(bin, &env, &["status", "inactive"]);
     assert!(inactive_status.contains("active: no"));
     let inactive_backup = run_fail(bin, &env, &["backup", "inactive"]);
-    assert!(inactive_backup.contains("inactive on this host"));
+    assert!(inactive_backup.contains("inactive in current context"));
+    assert!(inactive_backup.contains("expected os __never__"));
 }

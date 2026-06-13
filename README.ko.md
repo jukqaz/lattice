@@ -15,13 +15,13 @@ Lattice는 범용 도구입니다. 특정 tool이나 service 하나가 제품의
 
 ## 먼저 할 일
 
-아래에 문서화된 현재 v0.6 release command surface 설치:
+아래에 문서화된 현재 v1.0.0 stable command surface 설치:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.8.1 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
 ```
 
-v0.8.1 release 이후 unreleased change를 테스트할 때만 `main` branch나 local
+v1.0.0 release 이후 unreleased change를 테스트할 때만 `main` branch나 local
 checkout을 사용합니다.
 
 로컬 설정을 만들고 새 머신에서 복원 준비가 되었는지 확인합니다.
@@ -143,6 +143,7 @@ lattice app add <app> --root <path>
 | 목적 | 명령 |
 | --- | --- |
 | 설치와 외부 도구 점검 | `lattice doctor` |
+| 이 머신의 context label 확인 | `lattice context show` |
 | 새 머신 복원 준비 확인 | `lattice bootstrap check` |
 | 설정 파일 검증 | `lattice validate` |
 | 서비스 상태 확인 | `lattice status zsh` |
@@ -166,6 +167,7 @@ Script나 agent가 사람이 읽는 stdout을 parsing하지 않게 하려면 `--
 
 ```bash
 lattice bootstrap check --json
+lattice context show --json
 lattice status --json zsh
 lattice plan --json zsh
 lattice group list --json
@@ -195,8 +197,34 @@ lattice restore --dry-run --json --only config.toml shell
 ```
 
 Automation에서는 쓰기 작업 전에 dry-run JSON 명령을 먼저 사용합니다. 계획의
-`files`, `dirs`, `entries`, `conflicts` field를 확인한 뒤 괜찮을 때만 non-dry-run
-명령을 실행합니다.
+`files`, `dirs`, `entries`, `inactive_reasons`, `conflicts` field를 확인한 뒤
+괜찮을 때만 non-dry-run 명령을 실행합니다.
+
+## 집/회사 Context Label
+
+같은 service catalog를 shared, work, home machine에서 조금 다르게 쓰고 싶을 때는
+per-file alternate나 template language 대신 작은 context label을 사용합니다. Label은
+local global config에 둡니다.
+
+```toml
+# ~/.config/lattice/lattice.toml
+version = 1
+profile = "main"
+contexts = ["work", "laptop"]
+```
+
+Service는 명시적인 context condition으로 제한합니다.
+
+```bash
+lattice service add work-shell --root ~/.config/shell --include config.toml --context work
+lattice context show
+lattice context show --json
+lattice status --json work-shell
+```
+
+Inactive service는 쓰기 명령에서 건너뜁니다. `status --json`, `plan --json`,
+`group status --json`, `group plan --json`은 `inactive_reasons`를 포함하므로
+script가 `contexts`, `os`, `hostname` 중 어떤 조건 때문에 skip됐는지 설명할 수 있습니다.
 
 ## Service Groups
 
@@ -299,6 +327,9 @@ name = "shell"
 root = "~/.config/shell"
 include = ["config.toml", "scripts/**"]
 exclude = ["cache/**", "state/**"]
+
+[conditions]
+contexts = ["shared"]
 
 [restore]
 create_dirs = [

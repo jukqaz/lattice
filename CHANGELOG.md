@@ -4,6 +4,30 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
 ## Unreleased
 
+No unreleased changes.
+
+## v1.0.0 - 2026-06-13
+
+### Added
+
+- Added local context labels in global config, service `conditions.contexts`,
+  `lattice context show`, and `--context` on `service add` / `app add` for small
+  home/work/shared setups.
+- `status --json`, `plan --json`, `group status --json`, and `group plan --json`
+  now include `inactive_reasons` so automation can explain skipped services.
+- Added a v1.0 stability reference for command names, config keys, JSON top-level
+  keys, safety behavior, and the deprecation policy.
+- Added issue and pull request templates that keep safety, compatibility, and
+  verification evidence visible during public-stable maintenance.
+
+### Changed
+
+- Workspace package version is now `1.0.0` for the public stable CLI contract.
+- README, user docs, product scope, TODO, install snippets, and product-surface
+  verification now point at the `v1.0.0` stable contract.
+- `cargo run -p xtask -- release-check 1.0.0` is the local release smoke for the
+  v1.0.0 stable contract.
+
 ## v0.8.1 - 2026-06-12
 
 ### Fixed

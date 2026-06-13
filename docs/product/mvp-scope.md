@@ -90,21 +90,38 @@ baseline:
 - CLI smoke and product-surface harness coverage for the JSON, selector,
   app-catalog, and bootstrap contracts.
 
-## Current Release: v0.8.1
+## Current Release: v1.0.0
+
+v1.0.0 is the public stable CLI release. It freezes the existing safety-first
+command/config/JSON contract, promotes the small explicit home/work context model,
+and aligns version metadata, install snippets, changelogs, product scope, TODO,
+and product-surface harness expectations to the stable release.
+
+v1.0.0 scope:
+
+- Stable command names and documented subcommand shapes for service-scoped
+  backup, restore, planning, discovery, snapshots, undo, app shortcuts, and
+  read-only service groups.
+- Stable documented config keys for global config, service config, include/exclude
+  rules, permissions, restore modes, hooks, secret references, service groups,
+  and explicit context labels.
+- Stable documented JSON top-level keys for automation surfaces, including
+  `inactive_reasons` for context/OS/hostname-skipped services.
+- Dry-run-first safety behavior, conflict checks, snapshots before forced
+  overwrite, undo inspection, secret-reference non-disclosure, traversal guards,
+  symlink escape guards, portable path collision checks, and metadata-loss
+  warnings remain release blockers.
+- Git tag install remains canonical for v1.0.0; crates.io publish, package/app
+  installation, remote repo creation, group backup/restore mutation, GUI,
+  database-backed state, MCP/plugin surfaces, yadm-style per-file alternates,
+  and chezmoi-style full conditional templates stay out of scope.
+
+## Previous Patch Release: v0.8.1
 
 v0.8.1 is the post-review patch release for the v0.8 maintainability and
 modularization line. It keeps the v0.8.0 CLI behavior intact while shipping the
 review follow-up that scopes release-check changelog validation to the requested
 release section.
-
-v0.8.1 scope:
-
-- Release-check changelog assertions read only the requested release section, so
-  older release notes cannot satisfy the current release contract.
-- Version metadata, install snippets, changelogs, product scope, TODO, and
-  product-surface harness expectations are aligned to the v0.8.1 patch release.
-- The v0.8.0 modularized command surface remains the current user-facing CLI
-  contract.
 
 ## Previous Release: v0.8.0
 
@@ -172,7 +189,7 @@ Group backup, group restore, other batch mutation flows, automatic remote repo
 creation, package installation, MCP prototypes, and crates.io publish remain
 intentionally out of scope.
 
-## Roadmap
+## Release Line History
 
 | Line | Name | Goal | Acceptance |
 | --- | --- | --- | --- |
@@ -182,9 +199,8 @@ intentionally out of scope.
 | `v0.6.x` | Automation Contract Hardening | Make existing machine-readable surfaces trustworthy for scripts and agents. | JSON reference coverage, fixture-based contract tests, release-check automation, and release docs are aligned without adding batch mutation. |
 | `v0.7.x` | Secret Passthrough References | Keep secret values out of repos while making env references explicit and checkable. | `env` secret metadata, restore-time `{{env:NAME}}` guidance, non-disclosure smoke coverage, and bilingual docs are aligned. |
 | `v0.8.x` | Maintainability And Modularization | Make the pre-1.0 CLI easier to review and extend without behavior churn. | Parser, command modules, smoke domains, output helpers, release docs, and xtask structure contracts are aligned. |
-| `v0.9.0` | Public Readiness | Make the current product understandable and installable by new external users without changing core backup/restore behavior. | Public positioning, first-15-minutes walkthrough, install/update/rollback docs, migration docs, change policy, issue templates, and home/work guidance are aligned. |
-| `v0.9.1` | Release Candidate Hardening | Dogfood the public-ready surface and remove contract ambiguity before the stable freeze. | Command/help/JSON contract audit, real-HOME read-only dogfood, safety review, optional context inactive-reason coverage, and any accepted read-only audit/guidance surface are complete. |
-| `v1.0.0` | Public Stable CLI | Freeze the existing safety-first command/config/JSON contract for external users. | Version/docs/changelog/release-check alignment, stability reference, local and CI gates, GitHub Release, tagged install smoke, and Linear closeout are complete after explicit approval. |
+| `v0.9.x` | Public Readiness | Make the current product understandable and installable by new external users without changing core backup/restore behavior. | Absorbed into the v1.0.0 stable release scope: positioning, walkthrough, install/update/rollback docs, migration docs, change policy, issue templates, and home/work guidance are aligned. |
+| `v1.0.0` | Public Stable CLI | Freeze the existing safety-first command/config/JSON contract for external users. | Version/docs/changelog/release-check alignment, stability reference, and local gates are complete; tag/GitHub Release still require explicit approval. |
 
 ## v1.0 Product Definition
 
@@ -202,17 +218,16 @@ Recommended distribution policy for `v1.0.0`:
 - Do not publish to crates.io for v1.0; the current project policy is
   git-distributed, and the `lattice` crate name is already taken.
 
-Home/work support should stay explicit and small on the v1.0 path. Use current
-OS/hostname service conditions and read-only groups today. If a context feature
-is accepted before the stable freeze, it should add local labels such as
-`contexts = ["work"]`, service conditions that match those labels, a read-only
-context inspection command, and machine-readable inactive reasons. It should not
-add per-file alternate suffixes, a full conditional template language, secret
-value materialization, or package/app installation.
+Home/work support stays explicit and small on the stable line. Use local context
+labels such as `contexts = ["work"]`, service conditions that match those labels,
+`lattice context show`, and machine-readable inactive reasons. This complements
+OS/hostname service conditions and read-only groups without adding per-file
+alternate suffixes, a full conditional template language, secret value
+materialization, or package/app installation.
 
 ## Deliberate Non-Goals
 
-- crates.io publish before the public stable line.
+- crates.io publish without a separate package-name migration decision.
 - Automatic remote repository creation.
 - Automatic package installation.
 - Secret value materialization from `rbw` or `bw`.
@@ -238,8 +253,7 @@ exclude = ["cache/**", "state/**"]
 [conditions]
 os = "linux"
 hostname = "workstation"
-# Optional v1.0-path decision, if accepted before the stable freeze:
-# contexts = ["work"]
+contexts = ["work"]
 
 [restore]
 create_dirs = [

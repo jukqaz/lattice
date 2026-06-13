@@ -9,6 +9,8 @@ pub struct GlobalConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secrets: Option<SecretsConfig>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub contexts: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub groups: Vec<ServiceGroupConfig>,
 }
 
@@ -82,11 +84,13 @@ pub struct ConditionsConfig {
     pub os: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hostname: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub contexts: Vec<String>,
 }
 
 impl ConditionsConfig {
     pub fn is_empty(&self) -> bool {
-        self.os.is_none() && self.hostname.is_none()
+        self.os.is_none() && self.hostname.is_none() && self.contexts.is_empty()
     }
 }
 
@@ -179,6 +183,7 @@ server = "https://vault.example.test"
 
         assert_eq!(config.version, 1);
         assert_eq!(config.profile, "main");
+        assert!(config.contexts.is_empty());
         let secrets = config.secrets.expect("secrets section should exist");
         assert_eq!(secrets.default_backend.as_deref(), Some("rbw"));
         assert_eq!(secrets.backends["rbw"].kind, "rbw");
@@ -206,6 +211,7 @@ services = ["nvim"]
 
         let config: GlobalConfig = toml::from_str(input).expect("global config should parse");
 
+        assert!(config.contexts.is_empty());
         assert_eq!(config.groups.len(), 2);
         assert_eq!(
             config.groups[0],

@@ -17,14 +17,14 @@ this surface directly as `app`.
 
 ## Start Here
 
-Install the current v0.8.1 release command surface documented below:
+Install the current v1.0.0 stable command surface documented below:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.8.1 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
 ```
 
 Use the `main` branch or a local checkout only when testing unreleased changes
-beyond the v0.8.1 release.
+beyond the v1.0.0 release.
 
 Initialize local config and check whether the machine is ready for managed
 config restores:
@@ -148,6 +148,7 @@ lattice app add <app> --root <path>
 | Goal | Command |
 | --- | --- |
 | Check installation and configured tools | `lattice doctor` |
+| Show this machine's context labels | `lattice context show` |
 | Check new-machine readiness | `lattice bootstrap check` |
 | Validate config files | `lattice validate` |
 | See one service | `lattice status zsh` |
@@ -171,6 +172,7 @@ of human text:
 
 ```bash
 lattice bootstrap check --json
+lattice context show --json
 lattice status --json zsh
 lattice plan --json zsh
 lattice group list --json
@@ -200,8 +202,35 @@ lattice restore --dry-run --json --only config.toml shell
 ```
 
 For automation, prefer the dry-run JSON commands before any write. Inspect the
-planned `files`, `dirs`, `entries`, and `conflicts` fields, then run the
-non-dry-run command only after the plan is acceptable.
+planned `files`, `dirs`, `entries`, `inactive_reasons`, and `conflicts` fields,
+then run the non-dry-run command only after the plan is acceptable.
+
+## Home/Work Context Labels
+
+Use context labels when the same service catalog should behave differently on
+shared, work, and home machines without adding per-file alternates or templates.
+Labels live in the local global config:
+
+```toml
+# ~/.config/lattice/lattice.toml
+version = 1
+profile = "main"
+contexts = ["work", "laptop"]
+```
+
+Gate a service with explicit context conditions:
+
+```bash
+lattice service add work-shell --root ~/.config/shell --include config.toml --context work
+lattice context show
+lattice context show --json
+lattice status --json work-shell
+```
+
+Inactive services are skipped by mutating commands. `status --json`,
+`plan --json`, `group status --json`, and `group plan --json` include
+`inactive_reasons` so scripts can explain whether a service was skipped because
+of `contexts`, `os`, or `hostname` conditions.
 
 ## Service Groups
 
@@ -308,6 +337,9 @@ name = "shell"
 root = "~/.config/shell"
 include = ["config.toml", "scripts/**"]
 exclude = ["cache/**", "state/**"]
+
+[conditions]
+contexts = ["shared"]
 
 [restore]
 create_dirs = [

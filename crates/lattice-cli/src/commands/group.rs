@@ -12,7 +12,7 @@ use crate::config_store::{load_global_config, load_service, load_services};
 use crate::output::{manifest_entry_strings, path_strings, print_json};
 use crate::runtime::expand_path;
 use crate::service_state::{
-    effective_patterns, resolve_repo_path, selection, service_is_active, snapshot_policy,
+    effective_patterns, resolve_repo_path, selection, service_inactive_reasons, snapshot_policy,
 };
 
 pub(crate) fn run(paths: &LatticePaths, command: GroupCommands) -> Result<()> {
@@ -197,6 +197,7 @@ struct GroupServiceStatus {
     root_exists: Option<bool>,
     included_files: Vec<PathBuf>,
     manifest_status: String,
+    inactive_reasons: Vec<serde_json::Value>,
 }
 
 impl GroupServiceStatus {
@@ -206,6 +207,7 @@ impl GroupServiceStatus {
             "root": self.root.display().to_string(),
             "repo": self.repo.display().to_string(),
             "active": self.active,
+            "inactive_reasons": self.inactive_reasons,
             "root_exists": self.root_exists,
             "included_files": self.included_files.len(),
             "files": path_strings(&self.included_files),
@@ -229,6 +231,7 @@ struct GroupServicePlan {
     entries: Vec<String>,
     dirs: Vec<String>,
     ready: bool,
+    inactive_reasons: Vec<serde_json::Value>,
 }
 
 impl GroupServicePlan {
@@ -239,6 +242,7 @@ impl GroupServicePlan {
             "root": self.root.display().to_string(),
             "repo": self.repo.display().to_string(),
             "active": self.active,
+            "inactive_reasons": self.inactive_reasons,
             "root_exists": self.root_exists,
             "manifest": self.manifest_status,
             "backup_would_copy": self.backup_would_copy,
@@ -262,7 +266,8 @@ fn service_status_summary(
     selection: &PathSelection,
 ) -> Result<GroupServiceStatus> {
     let service = load_service(paths, service_name)?;
-    let active = service_is_active(&service);
+    let inactive_reasons = service_inactive_reasons(paths, &service)?;
+    let active = inactive_reasons.is_empty();
     let (include, exclude) = effective_patterns(&service);
     let root = expand_path(&service.root)?;
     let repo = resolve_repo_path(paths, &service)?;
@@ -291,6 +296,7 @@ fn service_status_summary(
         root_exists,
         included_files,
         manifest_status,
+        inactive_reasons,
     })
 }
 
@@ -300,7 +306,8 @@ fn service_plan_summary(
     selection: &PathSelection,
 ) -> Result<GroupServicePlan> {
     let service = load_service(paths, service_name)?;
-    let active = service_is_active(&service);
+    let inactive_reasons = service_inactive_reasons(paths, &service)?;
+    let active = inactive_reasons.is_empty();
     let (include, exclude) = effective_patterns(&service);
     let root = expand_path(&service.root)?;
     let repo = resolve_repo_path(paths, &service)?;
@@ -350,6 +357,7 @@ fn service_plan_summary(
         entries,
         dirs,
         ready,
+        inactive_reasons,
     })
 }
 

@@ -1,0 +1,39 @@
+name: Bug report
+description: Report a Lattice safety, compatibility, or usability bug
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety impact
+      description: Did this affect dry-run behavior, restore conflicts, snapshots, secrets, or metadata warnings?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Include commands and sanitized config snippets. Do not paste secrets.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification
+      description: Which checks did you run?
+      value: |
+        - [ ] cargo run -p xtask -- verify
+        - [ ] cargo run -p xtask -- quality
+        - [ ] cargo run -p xtask -- release-check 1.0.0

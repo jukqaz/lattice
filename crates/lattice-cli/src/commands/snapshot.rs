@@ -150,7 +150,7 @@ pub(crate) fn undo(
     }
     let record = find_snapshot(paths, snapshot, service)?;
     let service_config = load_service(paths, &record.service)?;
-    ensure_service_active(&service_config)?;
+    ensure_service_active(paths, &service_config)?;
     let root = expand_path(&service_config.root)?;
     let plan = plan_snapshot_restore_entries(&record.path, &root, &record.entries)?;
 

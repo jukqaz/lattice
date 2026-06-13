@@ -3,9 +3,9 @@
 English | [한국어](json-output.ko.md) | [Documentation Index](../README.md)
 
 This reference documents the machine-readable output that scripts and agents can
-use without parsing human text. The shapes below are part of the v0.8.1
-automation and maintainability patch release line, but Lattice is still pre-v1.0: treat
-these fields as release-line contracts rather than forever-stable public API.
+use without parsing human text. The shapes below are part of the v1.0.0 public stable CLI contract. Automation
+can depend on documented top-level keys across patch releases; new fields should
+be additive and optional whenever possible.
 
 ## General Rules
 
@@ -19,7 +19,7 @@ these fields as release-line contracts rather than forever-stable public API.
 - Service-group aggregate totals are current-host actionable totals: inactive
   services stay visible in per-service rows but do not contribute to active-only
   aggregate counts.
-- The v0.6 fixture contract tests pin top-level keys for every command listed in
+- The fixture contract tests pin top-level keys for every command listed in
   this reference. Add fields by documenting and testing them together.
 
 ## Bootstrap JSON

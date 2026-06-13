@@ -18,7 +18,8 @@ use crate::output::{
 };
 use crate::runtime::expand_path;
 use crate::service_state::{
-    effective_patterns, ensure_service_active, normalize_values, resolve_repo_path, snapshot_policy,
+    effective_patterns, ensure_service_active, normalize_values, resolve_repo_path,
+    service_inactive_reasons, snapshot_policy,
 };
 
 #[derive(Debug, Clone)]
@@ -65,7 +66,7 @@ pub(crate) fn diff(
     selection: PathSelection,
 ) -> Result<()> {
     let service = load_service(paths, service_name)?;
-    ensure_service_active(&service)?;
+    ensure_service_active(paths, &service)?;
     let (include, exclude) = effective_patterns(&service);
     let root = expand_path(&service.root)?;
     let repo = resolve_repo_path(paths, &service)?;
@@ -177,21 +178,26 @@ pub(crate) fn status(
     let (include, exclude) = effective_patterns(&service);
     let root = expand_path(&service.root)?;
     let repo = resolve_repo_path(paths, &service)?;
-    let files = filter_paths_by_selection(scan_service(&root, &include, &exclude)?, &selection)?;
+    let inactive_reasons = service_inactive_reasons(paths, &service)?;
+    let active = inactive_reasons.is_empty();
+    let files = if active {
+        filter_paths_by_selection(scan_service(&root, &include, &exclude)?, &selection)?
+    } else {
+        Vec::new()
+    };
     let manifest = repo.join(".lattice").join("manifest.toml");
     let manifest_status = if manifest.exists() {
         "present"
     } else {
         "missing"
     };
-    let active = crate::service_state::service_is_active(&service);
-
     if json_output {
         print_json(serde_json::json!({
             "service": service.name,
             "root": root.display().to_string(),
             "repo": repo.display().to_string(),
             "active": active,
+            "inactive_reasons": inactive_reasons,
             "included_files": files.len(),
             "files": path_strings(&files),
             "manifest": manifest_status
@@ -215,11 +221,12 @@ pub(crate) fn plan(
     selection: PathSelection,
 ) -> Result<()> {
     let service = load_service(paths, service_name)?;
-    let active = crate::service_state::service_is_active(&service);
+    let inactive_reasons = service_inactive_reasons(paths, &service)?;
+    let active = inactive_reasons.is_empty();
     let (include, exclude) = effective_patterns(&service);
     let root = expand_path(&service.root)?;
     let repo = resolve_repo_path(paths, &service)?;
-    let files = if root.exists() {
+    let files = if active && root.exists() {
         filter_paths_by_selection(scan_service(&root, &include, &exclude)?, &selection)?
     } else {
         Vec::new()
@@ -252,6 +259,7 @@ pub(crate) fn plan(
             "root": root.display().to_string(),
             "repo": repo.display().to_string(),
             "active": active,
+            "inactive_reasons": inactive_reasons,
             "root_exists": root.exists(),
             "manifest": manifest_status,
             "backup_would_copy": files.len(),
@@ -303,7 +311,7 @@ pub(crate) fn backup_service_config(
     service: &lattice_core::config::ServiceConfig,
     options: BackupCommandOptions,
 ) -> Result<()> {
-    ensure_service_active(service)?;
+    ensure_service_active(paths, service)?;
     let (include, exclude) = effective_patterns(service);
     let root = expand_path(&service.root)?;
     let repo = resolve_repo_path(paths, service)?;
@@ -395,7 +403,7 @@ pub(crate) fn restore(
     selection: PathSelection,
 ) -> Result<()> {
     let service = load_service(paths, service_name)?;
-    ensure_service_active(&service)?;
+    ensure_service_active(paths, &service)?;
     let root = expand_path(&service.root)?;
     let repo = resolve_repo_path(paths, &service)?;
 

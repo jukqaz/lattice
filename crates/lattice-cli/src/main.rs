@@ -9,7 +9,7 @@ mod output;
 mod runtime;
 mod service_state;
 
-use cli::{Cli, Commands, ServiceCommands};
+use cli::{Cli, Commands, ContextCommands, ServiceCommands};
 use commands::discover::discover;
 use commands::service::{PatternTarget, ServiceAddInput};
 use commands::sync::BackupCommandOptions;
@@ -48,6 +48,7 @@ fn run() -> Result<()> {
                     symlink,
                     os,
                     hostname,
+                    contexts,
                     force,
                 },
         } => commands::service::add(
@@ -62,6 +63,7 @@ fn run() -> Result<()> {
                 symlink,
                 os,
                 hostname,
+                contexts,
                 force,
             },
         ),
@@ -77,6 +79,9 @@ fn run() -> Result<()> {
         Commands::Permission { command } => commands::permission::run(&paths, command),
         Commands::App { command } => commands::app::run(&paths, command),
         Commands::Group { command } => commands::group::run(&paths, command),
+        Commands::Context {
+            command: ContextCommands::Show { json },
+        } => commands::context::show(&paths, json),
         Commands::Bootstrap { command } => commands::bootstrap::run(&paths, command),
         Commands::Repo { command } => commands::repo::run(&paths, command),
         Commands::Secret { command } => commands::secret::run(&paths, command),

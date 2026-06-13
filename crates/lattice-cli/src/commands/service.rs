@@ -19,6 +19,7 @@ pub(crate) struct ServiceAddInput {
     pub(crate) symlink: bool,
     pub(crate) os: Option<String>,
     pub(crate) hostname: Option<String>,
+    pub(crate) contexts: Vec<String>,
     pub(crate) force: bool,
 }
 
@@ -48,8 +49,10 @@ pub(crate) fn add(paths: &LatticePaths, input: ServiceAddInput) -> Result<()> {
     }
     let mut include = input.include;
     let mut exclude = input.exclude;
+    let mut contexts = input.contexts;
     normalize_values(&mut include);
     normalize_values(&mut exclude);
+    crate::service_state::normalize_labels_preserving_order(&mut contexts);
 
     let service = ServiceConfig {
         name: input.service,
@@ -61,6 +64,7 @@ pub(crate) fn add(paths: &LatticePaths, input: ServiceAddInput) -> Result<()> {
         conditions: ConditionsConfig {
             os: input.os,
             hostname: input.hostname,
+            contexts,
         },
         restore: RestoreConfig {
             create_dirs: Vec::new(),

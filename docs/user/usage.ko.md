@@ -18,7 +18,7 @@ Lattice는 이름이 붙은 service의 선택된 파일을 백업하고 복원�
 - include할 파일과 디렉터리
 - 제외할 path
 - restore 때 보존할 권한
-- 선택적 OS/hostname 조건
+- 선택적 OS/hostname/context label 조건
 - 선택적 Git repo 위치
 - 선택적 restore hook
 
@@ -32,13 +32,13 @@ shortcut일 뿐입니다. 어떤 앱도 제품을 정의하지 않으며, Codex�
 
 ## 1. 설치
 
-이 가이드에 문서화된 현재 v0.8.1 release command surface 설치:
+이 가이드에 문서화된 현재 v1.0.0 stable command surface 설치:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.8.1 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
 ```
 
-v0.8.1 release 이후 unreleased change를 테스트할 때만 `main` branch나 local
+v1.0.0 release 이후 unreleased change를 테스트할 때만 `main` branch나 local
 checkout을 사용합니다.
 
 Lattice를 개발 중이면 local checkout에서 설치:
@@ -142,6 +142,32 @@ test로 넘어갑니다.
 5. Backup과 repo diff를 검토한 뒤에만 restore합니다. 실제 HOME에서는 항상 먼저
    `lattice plan`과 `lattice restore --dry-run`을 실행하세요. Conflict를 검토하고
    snapshot/undo path가 괜찮다고 확인한 뒤에만 `restore --force`를 사용합니다.
+
+## 집/회사 Context Label
+
+Context label은 `~/.config/lattice/lattice.toml`에 저장하는 local machine label입니다.
+yadm식 file alternate나 chezmoi식 conditional template보다 작고 명시적인 모델입니다.
+
+```toml
+version = 1
+profile = "main"
+contexts = ["work", "laptop"]
+```
+
+공통 설정은 context 조건 없이 `shared` service로 두고, root나 include set이 달라지는
+부분만 work/home service로 나눕니다.
+
+```bash
+lattice service add shared-shell --root ~/.config/shell --include config.toml
+lattice service add work-shell --root ~/.config/shell --include work.toml --context work
+lattice service add home-shell --root ~/.config/shell --include home.toml --context home
+lattice context show --json
+lattice group status --json dev-shell
+```
+
+Context-gated service가 inactive이면 쓰기 명령은 거부되고, JSON planning surface는
+`inactive_reasons`에 `kind = "contexts"`, 필요한 label, 빠진 label, 현재 local label을
+포함합니다.
 
 ## 3. 첫 app-backed service 추가하기
 

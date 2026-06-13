@@ -2,18 +2,18 @@
 
 [English](migration.md) | 한국어 | [문서 인덱스](../README.ko.md)
 
-이 문서는 Lattice의 safety model을 약화하지 않고 현재 `v0.8.1` release line에서
-`v0.9.x`와 `v1.0.0`로 이동하는 방법을 설명합니다.
+이 문서는 Lattice의 safety model을 약화하지 않고 이전 `v0.8.1` release line에서
+현재 `v1.0.0` stable CLI로 이동하는 방법을 설명합니다.
 
 ## 지원하는 upgrade 형태
 
-Lattice는 v1.0 경로에서도 Git tag distribution을 유지합니다. 명시적인 tag를 설치합니다.
+Lattice는 stable line에서도 Git tag distribution을 유지합니다. 명시적인 tag를 설치합니다.
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.8.1 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
 ```
 
-향후 release에서는 tag만 검토한 목표 tag로 바꾸고 다음을 확인합니다.
+Stable tag를 설치한 뒤 다음을 확인합니다.
 
 ```bash
 lattice --version
@@ -26,23 +26,24 @@ lattice plan <service>
 Upgrade 직후 `restore --force`를 실행하지 마세요. 먼저 대상 service에 대해 `plan`과
 `restore --dry-run`을 실행합니다.
 
-## v0.8.1에서 v0.9.x로
+## v0.8.1에서 v1.0.0으로
 
-`v0.9.0`은 public-readiness line으로 계획합니다. Core backup/restore model은 바꾸지 않고
-positioning, installation, migration, issue template, change policy, completion/manpage,
-home/work documentation을 개선합니다.
+`v1.0.0`은 stable contract line입니다. Core backup/restore model은 바꾸지 않고
+public documentation, migration guidance, change policy, issue/PR template,
+home/work context documentation을 개선합니다.
 
 예상 migration 영향:
 
 - 기존 service TOML file은 계속 load되어야 합니다.
 - 기존 backup repo와 snapshot history는 계속 사용할 수 있어야 합니다.
 - JSON top-level contract는 compatible하게 유지하거나 새 optional field를 문서화합니다.
-- Context label을 받아들이더라도 opt-in additive 기능이어야 합니다. Context condition이 없는
-  service는 이전처럼 동작해야 합니다.
+- Context label은 opt-in additive 기능입니다. Context condition이 없는 service는 이전처럼
+  동작하고, `conditions.contexts`가 있는 service는 JSON planning surface의
+  `inactive_reasons`로 skip 이유를 노출합니다.
 
-## v0.9.x에서 v1.0.0으로
+## Stable contract 검토
 
-`v1.0.0`은 stable contract release입니다. Upgrade 전 정확한 tag의 changelog와 stability
+Automation이나 실제 HOME workflow를 upgrade하기 전 정확한 tag의 changelog와 stability
 reference를 읽습니다.
 
 권장 upgrade checklist:
@@ -61,9 +62,9 @@ Rollback도 같은 explicit tag install 형태를 사용합니다.
 cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.8.1 --locked
 ```
 
-## v1.0에서 안정화할 것
+## v1.0에서 안정화한 것
 
-v1.0 contract는 다음을 포함해야 합니다.
+v1.0 contract는 다음을 포함합니다.
 
 - 문서화된 command name과 subcommand shape;
 - 문서화된 config key와 default path behavior;
@@ -74,6 +75,6 @@ v1.0 contract는 다음을 포함해야 합니다.
 
 ## 계속 scope 밖인 것
 
-v1.0 경로에서 package installation, remote repo creation, secret value management,
+v1.0 stable line에서 package installation, remote repo creation, secret value management,
 group backup/restore mutation, GUI, database-backed state, per-file alternate,
 full conditional template을 기대하지 않습니다.

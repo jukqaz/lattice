@@ -32,7 +32,7 @@ impl BootstrapServiceReport {
         let root = expand_path(&service.root)?;
         let repo = resolve_repo_path(paths, &service)?;
         let manifest = repo.join(".lattice").join("manifest.toml");
-        let active = service_is_active(&service);
+        let active = service_is_active(paths, &service)?;
         let root_exists = service_root_exists(&root)?;
         let repo_exists = repo.exists();
         let git_repo = repo.join(".git").exists();

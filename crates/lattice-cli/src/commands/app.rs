@@ -34,6 +34,7 @@ pub(crate) fn run(paths: &LatticePaths, command: AppCommands) -> Result<()> {
             symlink,
             os,
             hostname,
+            contexts,
             force,
         } => {
             let entry = find_app(&app).with_context(|| format!("unknown app {app}"))?;
@@ -49,6 +50,7 @@ pub(crate) fn run(paths: &LatticePaths, command: AppCommands) -> Result<()> {
                     symlink,
                     os,
                     hostname,
+                    contexts,
                     force,
                 },
             )

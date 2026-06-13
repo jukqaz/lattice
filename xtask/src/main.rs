@@ -21,7 +21,7 @@ fn run() -> Result<(), String> {
         Some("verify") => verify(),
         Some("linux-verify") => linux_verify(),
         Some("quality") => quality(),
-        Some("release-check") => release_check(args.next().as_deref().unwrap_or("0.8.1")),
+        Some("release-check") => release_check(args.next().as_deref().unwrap_or("1.0.0")),
         Some(command) => Err(format!("unknown xtask command: {command}")),
         None => Err(
             "usage: cargo run -p xtask -- <verify|linux-verify|quality|release-check [version]>"
@@ -492,8 +492,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "active=false",
         "Safe first-adoption playbook",
         "value=not-read",
-        "--tag v0.8.1",
-        "beyond the v0.8.1 release",
+        "--tag v1.0.0",
+        "beyond the v1.0.0 release",
         "next_actions",
     ] {
         ensure_contains(&readme, needle, &format!("README.md missing {needle}"))?;
@@ -508,8 +508,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "Service Groups",
         "conflict_count",
         "active=false",
-        "--tag v0.8.1",
-        "v0.8.1 release 이후",
+        "--tag v1.0.0",
+        "v1.0.0 release 이후",
     ] {
         ensure_contains(
             &korean_readme,
@@ -533,8 +533,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "Selector",
         "Safe first-adoption playbook",
         "value=not-read",
-        "--tag v0.8.1",
-        "beyond the v0.8.1 release",
+        "--tag v1.0.0",
+        "beyond the v1.0.0 release",
         "next_command",
         "next_actions",
     ] {
@@ -555,8 +555,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "batch backup",
         "conflict_count",
         "active=false",
-        "--tag v0.8.1",
-        "v0.8.1 release 이후",
+        "--tag v1.0.0",
+        "v1.0.0 release 이후",
     ] {
         ensure_contains(
             &korean_user_guide,
@@ -578,8 +578,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "group invariant validation",
         "active-only aggregates",
         "missing-root visibility",
-        "v0.8.1 is the post-review patch release",
-        "v0.8.1 scope",
+        "v1.0.0 is the public stable CLI release",
+        "v1.0.0 scope",
     ] {
         ensure_contains(
             &product_scope,
@@ -601,8 +601,8 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "group invariant validation",
         "active-only aggregate",
         "missing-root visibility",
-        "v0.8.1은 v0.8 maintainability와 modularization",
-        "v0.8.1 범위",
+        "v1.0.0은 public stable CLI release",
+        "v1.0.0 범위",
     ] {
         ensure_contains(
             &korean_scope,
@@ -613,8 +613,10 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
 
     let docs_index = read_repo_text(root, "docs/README.md")?;
     for needle in [
+        "reference/stability.md",
         "reference/json-output.md",
         "dev/quality.md",
+        "reference/stability.ko.md",
         "reference/json-output.ko.md",
         "dev/quality.ko.md",
         "llm/kanban-workflow.md",
@@ -1266,7 +1268,7 @@ fn verify_release_static_contract(root: &Path, version: &str) -> Result<(), Stri
         )?;
     }
 
-    let release_heading = format!("## {tag} - 2026-06-12");
+    let release_heading = format!("## {tag} - 2026-06-13");
     let changelog = read_repo_text(root, "CHANGELOG.md")?;
     verify_release_changelog_section(
         "CHANGELOG.md",
@@ -1274,16 +1276,16 @@ fn verify_release_static_contract(root: &Path, version: &str) -> Result<(), Stri
         &release_heading,
         &[
             (
-                "Release-check changelog validation now scopes note checks",
-                "CHANGELOG.md missing v0.8.1 scoped changelog validation note",
+                "Workspace package version is now `1.0.0`",
+                "CHANGELOG.md missing v1.0.0 package version note",
             ),
             (
-                "release-check 0.8.1",
-                "CHANGELOG.md missing v0.8.1 release-check note",
+                "release-check 1.0.0",
+                "CHANGELOG.md missing v1.0.0 release-check note",
             ),
             (
-                "Workspace package version is now `0.8.1`",
-                "CHANGELOG.md missing v0.8.1 package version note",
+                "v1.0.0 stable contract",
+                "CHANGELOG.md missing v1.0.0 stable contract note",
             ),
         ],
     )?;
@@ -1295,16 +1297,16 @@ fn verify_release_static_contract(root: &Path, version: &str) -> Result<(), Stri
         &release_heading,
         &[
             (
-                "Release-check changelog validation이 이제 전체 changelog가 아니라 요청한",
-                "CHANGELOG.ko.md missing v0.8.1 scoped changelog validation note",
+                "workspace package version을\n  `1.0.0`으로 올렸다",
+                "CHANGELOG.ko.md missing v1.0.0 package version note",
             ),
             (
-                "release-check 0.8.1",
-                "CHANGELOG.ko.md missing v0.8.1 release-check note",
+                "release-check 1.0.0",
+                "CHANGELOG.ko.md missing v1.0.0 release-check note",
             ),
             (
-                "workspace package version을\n  `0.8.1`으로 올렸다",
-                "CHANGELOG.ko.md missing v0.8.1 package version note",
+                "v1.0.0 stable contract",
+                "CHANGELOG.ko.md missing v1.0.0 stable contract note",
             ),
         ],
     )?;
@@ -1613,7 +1615,7 @@ mod tests {
 
     #[test]
     fn release_static_contract_matches_current_version() {
-        verify_release_static_contract(&workspace_root(), "0.8.1").unwrap();
+        verify_release_static_contract(&workspace_root(), "1.0.0").unwrap();
     }
 
     #[test]

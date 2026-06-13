@@ -84,20 +84,34 @@ v0.4.0은 안전한 개인 backup 기준선 위에 automation-friendly surface�
 - JSON, selector, app-catalog, bootstrap contract를 고정하는 CLI smoke와
   product-surface harness coverage.
 
-## 현재 릴리스: v0.8.1
+## 현재 릴리스: v1.0.0
+
+v1.0.0은 public stable CLI release입니다. 기존 safety-first command/config/JSON
+contract를 freeze하고, 작은 explicit home/work context model을 stable surface로 올리며,
+version metadata, install snippet, changelog, product scope, TODO,
+product-surface harness expectation을 stable release에 맞춥니다.
+
+v1.0.0 범위:
+
+- Service-scoped backup, restore, planning, discovery, snapshot, undo, app shortcut,
+  read-only service group에 대한 stable command name과 문서화된 subcommand shape.
+- Global config, service config, include/exclude rule, permission, restore mode,
+  hook, secret reference, service group, explicit context label의 stable config key.
+- Context/OS/hostname 때문에 skip된 service를 설명하는 `inactive_reasons`를 포함한
+  automation surface의 stable JSON top-level key.
+- Dry-run-first safety behavior, conflict check, forced overwrite 전 snapshot,
+  undo inspection, secret-reference non-disclosure, traversal guard, symlink escape
+  guard, portable path collision check, metadata-loss warning은 release blocker로 유지.
+- v1.0.0에서는 Git tag install을 canonical로 유지한다. crates.io publish,
+  package/app installation, remote repo creation, group backup/restore mutation,
+  GUI, database-backed state, MCP/plugin surface, yadm-style per-file alternate,
+  chezmoi-style full conditional template은 범위 밖이다.
+
+## 이전 패치 릴리스: v0.8.1
 
 v0.8.1은 v0.8 maintainability와 modularization 라인의 post-review patch
 release다. v0.8.0 CLI 동작은 유지하면서 release-check changelog validation을
 요청한 release section으로 제한하는 review follow-up을 배포한다.
-
-v0.8.1 범위:
-
-- Release-check changelog assertion이 요청한 release section만 읽어, 이전
-  release note가 현재 release contract를 대신 만족하지 못하게 한다.
-- Version metadata, install snippet, changelog, product scope, TODO,
-  product-surface harness expectation을 v0.8.1 patch release에 맞춘다.
-- v0.8.0에서 modularized된 command surface가 현재 user-facing CLI contract로
-  유지된다.
 
 ## 이전 릴리스: v0.8.0
 
@@ -159,7 +173,7 @@ v0.6.0 범위:
 Group backup, group restore, 기타 batch mutation flow, automatic remote repo
 creation, package installation, MCP prototype, crates.io publish는 의도적으로 scope 밖이다.
 
-## 로드맵
+## Release line history
 
 | 라인 | 이름 | 목표 | 완료 기준 |
 | --- | --- | --- | --- |
@@ -169,9 +183,8 @@ creation, package installation, MCP prototype, crates.io publish는 의도적으
 | `v0.6.x` | Automation Contract Hardening | 기존 machine-readable surface를 script와 agent가 신뢰할 수 있게 만든다. | JSON reference coverage, fixture-based contract test, release-check automation, release docs를 batch mutation 없이 정렬. |
 | `v0.7.x` | Secret Passthrough References | Secret 값을 repo 밖에 두면서 env reference를 명시적으로 점검 가능하게 만든다. | `env` secret metadata, restore-time `{{env:NAME}}` guidance, non-disclosure smoke coverage, bilingual docs 정렬. |
 | `v0.8.x` | Maintainability And Modularization | Pre-1.0 CLI를 동작 변경 없이 검토와 확장이 쉬운 구조로 만든다. | Parser, command module, smoke domain, output helper, release docs, xtask structure contract 정렬. |
-| `v0.9.0` | Public Readiness | Core backup/restore 동작을 바꾸지 않고 새 외부 사용자가 이해하고 설치할 수 있게 만든다. | Public positioning, 첫 15분 walkthrough, install/update/rollback docs, migration docs, change policy, issue template, home/work guidance 정렬. |
-| `v0.9.1` | Release Candidate Hardening | Stable freeze 전에 public-ready surface를 dogfood하고 contract ambiguity를 제거한다. | Command/help/JSON contract audit, real-HOME read-only dogfood, safety review, optional context inactive-reason coverage, accepted read-only audit/guidance surface 완료. |
-| `v1.0.0` | Public Stable CLI | 기존 safety-first command/config/JSON contract를 외부 사용자용으로 freeze한다. | Version/docs/changelog/release-check 정렬, stability reference, local/CI gate, GitHub Release, tag install smoke, Linear closeout을 명시 승인 후 완료. |
+| `v0.9.x` | Public Readiness | Core backup/restore 동작을 바꾸지 않고 새 외부 사용자가 이해하고 설치할 수 있게 만든다. | v1.0.0 stable release scope로 흡수: positioning, walkthrough, install/update/rollback docs, migration docs, change policy, issue template, home/work guidance 정렬. |
+| `v1.0.0` | Public Stable CLI | 기존 safety-first command/config/JSON contract를 외부 사용자용으로 freeze한다. | Version/docs/changelog/release-check 정렬, stability reference, local gate 완료; tag/GitHub Release는 명시 승인 필요. |
 
 ## v1.0 제품 정의
 
@@ -189,16 +202,16 @@ stabilization line입니다.
 - v1.0에서는 crates.io publish를 하지 않습니다. 현재 project policy는 git-distributed이고
   `lattice` crate name은 이미 사용 중입니다.
 
-Home/work 지원은 v1.0 경로에서 작고 명시적으로 유지합니다. 오늘은 기존 OS/hostname
-service condition과 read-only group을 사용합니다. Stable freeze 전에 context feature를
-받아들이면, local label인 `contexts = ["work"]`, 그 label을 match하는 service condition,
-read-only context inspection command, machine-readable inactive reason 정도로 제한합니다.
-Per-file alternate suffix, full conditional template language, secret value materialization,
-package/app installation은 추가하지 않습니다.
+Home/work 지원은 stable line에서 작고 명시적으로 유지합니다. Local context label인
+`contexts = ["work"]`, 그 label을 match하는 service condition,
+`lattice context show`, machine-readable inactive reason을 사용합니다. 이는 기존
+OS/hostname service condition과 read-only group을 보완하되, per-file alternate suffix,
+full conditional template language, secret value materialization, package/app installation은
+추가하지 않습니다.
 
 ## 의도적으로 하지 않는 것
 
-- public stable line 전 crates.io publish.
+- 별도 package-name migration decision 없는 crates.io publish.
 - automatic remote repository creation.
 - automatic package installation.
 - secret value materialization from `rbw` or `bw`.
@@ -224,8 +237,7 @@ exclude = ["cache/**", "state/**"]
 [conditions]
 os = "linux"
 hostname = "workstation"
-# Stable freeze 전에 받아들이는 경우의 optional v1.0-path decision:
-# contexts = ["work"]
+contexts = ["work"]
 
 [restore]
 create_dirs = [

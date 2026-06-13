@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::path::{Component, Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
@@ -5,6 +6,7 @@ use lattice_core::config::{SecretRef, ServiceConfig};
 use lattice_core::ops::PathSelection;
 use lattice_core::paths::LatticePaths;
 
+use crate::config_store::load_global_config;
 use crate::runtime::{current_hostname, expand_path};
 
 pub(crate) fn selection(only: Vec<String>, exclude: Vec<String>) -> PathSelection {
@@ -85,32 +87,127 @@ pub(crate) fn secret_backend_status(secret: &SecretRef) -> &'static str {
     }
 }
 
-pub(crate) fn ensure_service_active(service: &ServiceConfig) -> Result<()> {
-    if !service_is_active(service) {
-        bail!("service {} is inactive on this host", service.name);
+pub(crate) fn active_contexts(paths: &LatticePaths) -> Result<Vec<String>> {
+    let mut contexts = load_global_config(paths)?.contexts;
+    normalize_labels_preserving_order(&mut contexts);
+    Ok(contexts)
+}
+
+pub(crate) fn normalize_labels_preserving_order(labels: &mut Vec<String>) {
+    let mut seen = BTreeSet::new();
+    labels.retain(|label| {
+        let label = label.trim();
+        !label.is_empty() && seen.insert(label.to_string())
+    });
+}
+
+pub(crate) fn ensure_service_active(paths: &LatticePaths, service: &ServiceConfig) -> Result<()> {
+    let reasons = service_inactive_reasons(paths, service)?;
+    if !reasons.is_empty() {
+        bail!(
+            "service {} is inactive in current context: {}",
+            service.name,
+            format_inactive_reasons(&reasons)
+        );
     }
 
     Ok(())
 }
 
-pub(crate) fn service_is_active(service: &ServiceConfig) -> bool {
-    if service
-        .conditions
-        .os
-        .as_deref()
-        .is_some_and(|os| os != std::env::consts::OS)
+pub(crate) fn service_is_active(paths: &LatticePaths, service: &ServiceConfig) -> Result<bool> {
+    Ok(service_inactive_reasons(paths, service)?.is_empty())
+}
+
+pub(crate) fn service_inactive_reasons(
+    paths: &LatticePaths,
+    service: &ServiceConfig,
+) -> Result<Vec<serde_json::Value>> {
+    let mut reasons = Vec::new();
+
+    if let Some(os) = service.conditions.os.as_deref()
+        && os != std::env::consts::OS
     {
-        return false;
+        reasons.push(serde_json::json!({
+            "kind": "os",
+            "expected": os,
+            "actual": std::env::consts::OS
+        }));
     }
-    if service
-        .conditions
-        .hostname
-        .as_deref()
-        .is_some_and(|hostname| hostname != current_hostname().as_deref().unwrap_or_default())
-    {
-        return false;
+
+    if let Some(hostname) = service.conditions.hostname.as_deref() {
+        let actual_hostname = current_hostname();
+        if hostname != actual_hostname.as_deref().unwrap_or_default() {
+            reasons.push(serde_json::json!({
+                "kind": "hostname",
+                "expected": hostname,
+                "actual": actual_hostname
+            }));
+        }
     }
-    true
+
+    if !service.conditions.contexts.is_empty() {
+        let actual_contexts = active_contexts(paths)?;
+        let actual = actual_contexts.iter().collect::<BTreeSet<_>>();
+        let missing = service
+            .conditions
+            .contexts
+            .iter()
+            .filter(|required| !actual.contains(required))
+            .cloned()
+            .collect::<Vec<_>>();
+        if !missing.is_empty() {
+            reasons.push(serde_json::json!({
+                "kind": "contexts",
+                "required": service.conditions.contexts,
+                "missing": missing,
+                "actual": actual_contexts
+            }));
+        }
+    }
+
+    Ok(reasons)
+}
+
+fn format_inactive_reasons(reasons: &[serde_json::Value]) -> String {
+    let mut messages = Vec::new();
+    for reason in reasons {
+        match reason.get("kind").and_then(serde_json::Value::as_str) {
+            Some("contexts") => {
+                let missing = reason
+                    .get("missing")
+                    .and_then(serde_json::Value::as_array)
+                    .into_iter()
+                    .flatten()
+                    .filter_map(serde_json::Value::as_str)
+                    .collect::<Vec<_>>();
+                messages.push(format!("missing contexts: {}", missing.join(", ")));
+            }
+            Some("os") => messages.push(format!(
+                "expected os {}, got {}",
+                reason
+                    .get("expected")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("unknown"),
+                reason
+                    .get("actual")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("unknown")
+            )),
+            Some("hostname") => messages.push(format!(
+                "expected hostname {}, got {}",
+                reason
+                    .get("expected")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("unknown"),
+                reason
+                    .get("actual")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("unknown")
+            )),
+            _ => messages.push("unknown inactive reason".to_string()),
+        }
+    }
+    messages.join("; ")
 }
 
 pub(crate) fn validate_mode(mode: &str) -> Result<()> {

@@ -71,7 +71,7 @@ fn print_tui_dashboard(paths: &LatticePaths, actions: &[&str]) -> Result<()> {
     println!("config: {}", paths.config_file.display());
     println!("services:");
     for service in load_services(paths)? {
-        let active = if service_is_active(&service) {
+        let active = if service_is_active(paths, &service)? {
             "yes"
         } else {
             "no"

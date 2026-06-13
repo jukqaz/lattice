@@ -4,6 +4,30 @@
 
 ## Unreleased
 
+아직 unreleased change는 없습니다.
+
+## v1.0.0 - 2026-06-13
+
+### 추가
+
+- 작은 home/work/shared setup을 위해 global config의 local context label,
+  service `conditions.contexts`, `lattice context show`, `service add` / `app add`의
+  `--context` option을 추가했다.
+- `status --json`, `plan --json`, `group status --json`, `group plan --json`이
+  `inactive_reasons`를 포함해 automation이 skip된 service의 이유를 설명할 수 있다.
+- Command name, config key, JSON top-level key, safety behavior, deprecation
+  policy를 정리한 v1.0 stability reference를 추가했다.
+- Public-stable 유지보수에서 safety, compatibility, verification evidence가
+  보이도록 issue template과 pull request template을 추가했다.
+
+### 변경
+
+- Public stable CLI contract에 맞춰 workspace package version을
+  `1.0.0`으로 올렸다.
+- README, user docs, product scope, TODO, install snippet, product-surface
+  verification이 `v1.0.0` stable contract를 가리킨다.
+- `cargo run -p xtask -- release-check 1.0.0`이 v1.0.0 stable contract의 local release smoke가 되었다.
+
 ## v0.8.1 - 2026-06-12
 
 ### 수정

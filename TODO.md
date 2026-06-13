@@ -193,39 +193,39 @@ See `docs/product/mvp-scope.md`.
 Goal: make the existing safety-first product understandable, installable, and
 reviewable by external users before freezing the stable contract.
 
-- [ ] Refresh README and user docs around the public positioning: explicit TOML,
+- [x] Refresh README and user docs around the public positioning: explicit TOML,
   service-scoped backup/restore, dry-run-first workflows, snapshots/undo, and
   JSON automation.
-- [ ] Add a first-15-minutes walkthrough using one low-risk service.
-- [ ] Split install/update/rollback guidance into current Git tag install, local
+- [x] Add a first-15-minutes walkthrough using one low-risk service.
+- [x] Split install/update/rollback guidance into current Git tag install, local
   checkout install, and optional GitHub Release binary archives if adopted.
-- [ ] Add migration docs for upgrading from `v0.8.1` through `v0.9.x` to `v1.0`.
-- [ ] Add a public change policy covering SemVer, JSON compatibility, safety
+- [x] Add migration docs for upgrading from previous `v0.8.1` to stable `v1.0.0`.
+- [x] Add a public change policy covering SemVer, JSON compatibility, safety
   regressions, deprecations, and release approval.
-- [ ] Add issue templates and a pull request template that preserve the safety
+- [x] Add issue templates and a pull request template that preserve the safety
   and verification expectations.
-- [ ] Add shell completions and a manpage if the generated-artifact checks stay
-  small and reviewable.
-- [ ] Keep Git tag install canonical; do not publish to crates.io for v1.0 unless
+- [x] Defer shell completions and manpage generation for v1.0 so no generated
+  artifacts are added without a separate review.
+- [x] Keep Git tag install canonical; do not publish to crates.io for v1.0 unless
   a separate package-name migration is explicitly approved.
-- [ ] Document home/work setup using current OS/hostname conditions and read-only
-  groups with `shared`, `work`, and `home` examples.
-- [ ] Decide whether the minimal explicit `contexts = ["work"]` model is accepted
-  for implementation before the v1.0 stable contract freezes.
+- [x] Document home/work setup using explicit context labels and `shared`, `work`,
+  and `home` examples.
+- [x] Implement the minimal explicit `contexts = ["work"]` model before the v1.0
+  stable contract freezes.
 
 ## v0.9.1 Release Candidate Hardening
 
 Goal: dogfood the public-ready surface and remove ambiguity before `v1.0.0`.
 
-- [ ] Audit every command help surface and JSON top-level contract.
-- [ ] Mark unstable or best-effort JSON fields in the JSON reference.
-- [ ] Decide the pending read-only `audit`/`guidance` surface before the stable
-  freeze; defer it unless it is a thin wrapper over existing read-only commands.
-- [ ] Run real-HOME read-only health checks and one low-risk isolated backup flow.
-- [ ] Reconfirm secret scan, env-reference templates, traversal guards, symlink
+- [x] Audit every command help surface and JSON top-level contract.
+- [x] Mark unstable or best-effort JSON fields in the JSON reference.
+- [x] Defer the pending read-only `audit`/`guidance` surface past v1.0; existing
+  read-only commands remain the stable guidance surface.
+- [x] Run real-HOME read-only health checks and one low-risk isolated backup flow.
+- [x] Reconfirm secret scan, env-reference templates, traversal guards, symlink
   escape guards, snapshots, undo, and metadata-loss warnings.
-- [ ] If context labels are accepted, verify isolated `shared` + `work` + `home`
-  configs and machine-readable inactive reasons.
+- [x] Verify isolated `shared` + `work` + `home` configs and machine-readable
+  inactive reasons.
 
 ## v1.0 Public Stable CLI
 
@@ -233,18 +233,18 @@ Goal: freeze the command/config/JSON contract for the current product, not turn
 Lattice into a package manager, secret manager, or full system configuration
 framework.
 
-- [ ] Bump workspace/package versions, changelogs, docs, TODO, release-check
+- [x] Bump workspace/package versions, changelogs, docs, TODO, release-check
   expectations, and install snippets to `1.0.0`.
-- [ ] Add a stability reference for command names, config keys, JSON top-level
+- [x] Add a stability reference for command names, config keys, JSON top-level
   keys, safety behavior, and deprecation policy.
-- [ ] Keep group commands read-only; do not add group backup/restore mutation on
-  the v1.0 path.
-- [ ] Keep home/work support explicit and small: conditions/groups now, optional
-  context labels only if accepted before the freeze.
-- [ ] Exclude yadm-style per-file alternates, chezmoi-style full conditional
+- [x] Keep group commands read-only; do not add group backup/restore mutation on
+  the stable line.
+- [x] Keep home/work support explicit and small with context labels, service
+  conditions, and inactive reason JSON before the freeze.
+- [x] Exclude yadm-style per-file alternates, chezmoi-style full conditional
   templates, context-selected secret materialization, package/app install, GUI,
   plugin/MCP, database-backed state, and large restore-core rewrites.
-- [ ] Pass local gates: `cargo fmt --check`, `scripts/lint.sh`,
+- [x] Pass local gates: `cargo fmt --check`, `scripts/lint.sh`,
   `cargo run -p xtask -- verify`, `cargo run -p xtask -- quality`,
   `cargo run -p xtask -- release-check 1.0.0`, and `git diff --check`.
 - [ ] Pass GitHub Actions on Linux x86_64, Linux ARM64, macOS Apple Silicon, and

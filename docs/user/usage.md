@@ -18,7 +18,7 @@ Each service can define:
 - files and directories to include
 - paths to exclude
 - permissions to preserve on restore
-- optional OS and hostname conditions
+- optional OS, hostname, and context-label conditions
 - an optional Git repo location
 - optional restore hooks
 
@@ -32,14 +32,14 @@ only one example app. The CLI uses `lattice app ...` directly for this catalog s
 
 ## 1. Install
 
-Install the current v0.8.1 release command surface documented in this guide:
+Install the current v1.0.0 stable command surface documented in this guide:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.8.1 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
 ```
 
 Use the `main` branch or a local checkout only when testing unreleased changes
-beyond the v0.8.1 release.
+beyond the v1.0.0 release.
 
 Install from a local checkout while developing Lattice:
 
@@ -145,6 +145,33 @@ that backup is known-good.
    always run `lattice plan` and `lattice restore --dry-run` first. Use
    `restore --force` only after reviewing conflicts and confirming that the
    snapshot/undo path is acceptable.
+
+## Home/Work Context Labels
+
+Context labels are local machine labels in `~/.config/lattice/lattice.toml`. They
+are intentionally smaller than yadm-style file alternates or chezmoi-style
+conditional templates:
+
+```toml
+version = 1
+profile = "main"
+contexts = ["work", "laptop"]
+```
+
+Use shared services with no context condition, then add narrow work/home services
+only where the root or include set should differ:
+
+```bash
+lattice service add shared-shell --root ~/.config/shell --include config.toml
+lattice service add work-shell --root ~/.config/shell --include work.toml --context work
+lattice service add home-shell --root ~/.config/shell --include home.toml --context home
+lattice context show --json
+lattice group status --json dev-shell
+```
+
+When a context-gated service is inactive, mutating commands refuse it and JSON
+planning surfaces include `inactive_reasons` with `kind = "contexts"`, the
+required labels, missing labels, and actual local labels.
 
 ## 3. Add A First App-Backed Service
 

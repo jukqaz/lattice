@@ -50,6 +50,11 @@ pub(crate) enum Commands {
         #[command(subcommand)]
         command: GroupCommands,
     },
+    #[command(about = "Show active context labels for this machine")]
+    Context {
+        #[command(subcommand)]
+        command: ContextCommands,
+    },
     #[command(about = "Check new-machine readiness without mutating state")]
     Bootstrap {
         #[command(subcommand)]
@@ -225,6 +230,8 @@ pub(crate) enum ServiceCommands {
         os: Option<String>,
         #[arg(long)]
         hostname: Option<String>,
+        #[arg(long = "context", action = clap::ArgAction::Append)]
+        contexts: Vec<String>,
         #[arg(long)]
         force: bool,
     },
@@ -285,8 +292,19 @@ pub(crate) enum AppCommands {
         os: Option<String>,
         #[arg(long)]
         hostname: Option<String>,
+        #[arg(long = "context", action = clap::ArgAction::Append)]
+        contexts: Vec<String>,
         #[arg(long)]
         force: bool,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub(crate) enum ContextCommands {
+    #[command(about = "Show the current profile, labels, OS, and hostname")]
+    Show {
+        #[arg(long)]
+        json: bool,
     },
 }
 
@@ -399,6 +417,7 @@ mod tests {
                 "permission",
                 "app",
                 "group",
+                "context",
                 "bootstrap",
                 "repo",
                 "secret",

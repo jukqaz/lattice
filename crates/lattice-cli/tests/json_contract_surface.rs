@@ -72,6 +72,7 @@ create_dirs = [
         &[
             "active",
             "files",
+            "inactive_reasons",
             "included_files",
             "manifest",
             "repo",
@@ -89,6 +90,7 @@ create_dirs = [
             "conflicts",
             "dirs",
             "entries",
+            "inactive_reasons",
             "manifest",
             "ready",
             "repo",
@@ -121,6 +123,8 @@ create_dirs = [
 
     let group_list = run_json(bin, &env, &["group", "list", "--json"]);
     assert_json_keys(&group_list, &["groups"]);
+    let context = run_json(bin, &env, &["context", "show", "--json"]);
+    assert_json_keys(&context, &["contexts", "hostname", "os", "profile"]);
     let group_status = run_json(bin, &env, &["group", "status", "--json", "dev-shell"]);
     assert_json_keys(
         &group_status,

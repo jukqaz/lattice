@@ -1,5 +1,6 @@
 pub(crate) mod app;
 pub(crate) mod bootstrap;
+pub(crate) mod context;
 pub(crate) mod discover;
 pub(crate) mod group;
 pub(crate) mod permission;

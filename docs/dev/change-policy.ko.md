@@ -2,8 +2,8 @@
 
 [English](change-policy.md) | 한국어 | [문서 인덱스](../README.ko.md)
 
-이 정책은 `v0.9`에서 `v1.0`으로 가는 변경을 안내합니다. Lattice의 public surface를
-안정화하되 작은 safety/doc fix를 막지 않기 위한 기준입니다.
+이 정책은 stable line의 변경을 안내합니다. Lattice의 public surface를 안정적으로
+유지하되 작은 safety/doc fix를 막지 않기 위한 기준입니다.
 
 ## Compatibility Promise
 
@@ -28,7 +28,7 @@ Unsafe behavior는 더 빠르게 제거할 수 있지만 release note에 safety 
 
 Automation user는 문서화된 top-level field에 의존할 수 있어야 합니다. 새 field는 가능하면
 optional로 추가합니다. Patch release에서 문서화된 field를 rename/remove하지 않습니다. Best-effort
-또는 unstable field라면 `v1.0.0` 전 JSON reference에 표시합니다.
+또는 unstable field라면 그 field를 도입하는 release 전에 JSON reference에 표시합니다.
 
 ## Safety Regression Policy
 

@@ -3,9 +3,9 @@
 [English](json-output.md) | 한국어 | [문서 인덱스](../README.ko.md)
 
 이 reference는 script와 agent가 사람이 읽는 stdout을 parsing하지 않고 사용할 수 있는
-machine-readable output을 설명합니다. 아래 shape는 v0.8.1 automation and maintainability patch
-hardening release line의 일부이지만, Lattice는 아직 pre-v1.0입니다. 따라서 이 field들은
-영구적인 public API라기보다 release-line contract로 취급하세요.
+machine-readable output을 설명합니다. 아래 shape는 v1.0.0 public stable CLI contract의 일부입니다. Automation은
+문서화된 top-level key를 patch release에서 의존할 수 있으며, 새 field는 가능한
+additive/optional이어야 합니다.
 
 ## 일반 규칙
 
@@ -16,7 +16,7 @@ hardening release line의 일부이지만, Lattice는 아직 pre-v1.0입니다. 
   사용하세요.
 - `--only`, `--exclude` selector는 single-service와 읽기 전용 group status/plan에서 같은
   tracked-path semantics를 사용합니다.
-- v0.6 fixture contract test는 이 reference의 모든 command에 대해 top-level key를
+- Fixture contract test는 이 reference의 모든 command에 대해 top-level key를
   고정합니다. Field를 추가할 때는 문서와 테스트를 함께 업데이트하세요.
 
 ## Bootstrap JSON

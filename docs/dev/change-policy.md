@@ -2,8 +2,8 @@
 
 English | [한국어](change-policy.ko.md) | [Documentation Index](../README.md)
 
-This policy guides changes on the `v0.9` to `v1.0` path. It keeps Lattice's
-public surface stable without blocking small safety and documentation fixes.
+This policy guides changes on the stable line. It keeps Lattice's public surface
+stable without blocking small safety and documentation fixes.
 
 ## Compatibility Promise
 
@@ -32,7 +32,7 @@ must explain the safety reason.
 Automation users should be able to depend on documented top-level fields. Add new
 fields as optional whenever possible. Do not rename or remove documented fields in
 patch releases. If a field is best-effort or unstable, label it in the JSON
-reference before `v1.0.0`.
+reference before the release that introduces the field.
 
 ## Safety Regression Policy
 

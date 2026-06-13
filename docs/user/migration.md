@@ -2,18 +2,18 @@
 
 English | [한국어](migration.ko.md) | [Documentation Index](../README.md)
 
-This guide explains how to move from the current `v0.8.1` release line toward
-`v0.9.x` and `v1.0.0` without weakening Lattice's safety model.
+This guide explains how to move from the previous `v0.8.1` release line to the
+current `v1.0.0` stable CLI without weakening Lattice's safety model.
 
 ## Supported Upgrade Shape
 
-Lattice remains Git-tag distributed on the v1.0 path. Install an explicit tag:
+Lattice remains Git-tag distributed for the stable line. Install an explicit tag:
 
 ```bash
-cargo install --git https://github.com/jukqaz/lattice lattice --tag v0.8.1 --locked
+cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
 ```
 
-For a future release, replace the tag with the reviewed target tag, then verify:
+After installing the stable tag, verify:
 
 ```bash
 lattice --version
@@ -26,11 +26,11 @@ lattice plan <service>
 Do not run `restore --force` immediately after upgrading. First run `plan` and
 `restore --dry-run` for the service you intend to restore.
 
-## From v0.8.1 To v0.9.x
+## From v0.8.1 To v1.0.0
 
-`v0.9.0` is planned as a public-readiness line. It should improve positioning,
-installation, migration, issue templates, change policy, completions/manpage,
-and home/work documentation without changing the core backup/restore model.
+`v1.0.0` is the stable contract line. It improves public documentation, migration
+guidance, change policy, issue/PR templates, and home/work context documentation
+without changing the core backup/restore model.
 
 Expected migration impact:
 
@@ -38,12 +38,13 @@ Expected migration impact:
 - Existing backup repos and snapshot history should remain usable.
 - JSON top-level contracts should either stay compatible or document any new
   optional fields.
-- If context labels are accepted, they should be opt-in and additive. Services
-  without context conditions should behave as before.
+- Context labels are opt-in and additive. Services without context conditions
+  behave as before; services with `conditions.contexts` expose skip details in
+  `inactive_reasons` on JSON planning surfaces.
 
-## From v0.9.x To v1.0.0
+## Stable Contract Review
 
-`v1.0.0` is the stable contract release. Before upgrading, read the changelog and
+Before upgrading automation or a real HOME workflow, read the changelog and
 stability reference for the exact tag.
 
 Recommended upgrade checklist:
@@ -75,6 +76,6 @@ The v1.0 contract should cover:
 
 ## Still Out Of Scope
 
-Do not expect the v1.0 path to add package installation, remote repo creation,
+Do not expect the v1.0 stable line to add package installation, remote repo creation,
 secret value management, group backup/restore mutation, GUI, database-backed
 state, per-file alternates, or full conditional templates.

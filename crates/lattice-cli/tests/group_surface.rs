@@ -127,6 +127,7 @@ include = ["config.toml"]
         &[
             "active",
             "files",
+            "inactive_reasons",
             "included_files",
             "manifest",
             "repo",
@@ -177,6 +178,7 @@ include = ["config.toml"]
             "conflicts",
             "dirs",
             "entries",
+            "inactive_reasons",
             "manifest",
             "ready",
             "repo",

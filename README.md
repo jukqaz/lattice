@@ -23,33 +23,29 @@ Install the current v1.0.0 stable command surface documented below:
 cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
 ```
 
-On Nix or NixOS, keep the persistent human install path separate from
+On Unix/Linux, keep the persistent human install path separate from
 automation-only installs:
 
-- **User install:** run the same stable tag install inside a Nix shell and keep
-  the binary in the user's Cargo bin directory. Make sure `~/.cargo/bin` is on
-  the user's shell `PATH`.
+- **User install:** install the stable tag into the user's Cargo bin directory.
+  Make sure `~/.cargo/bin` is on the user's shell `PATH`; if rustup has no
+  default toolchain yet, set one first with `rustup default stable`.
 
   ```bash
-  nix shell nixpkgs#cargo nixpkgs#rustc -c \
-    cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
+  rustup default stable  # only needed when no default Rust toolchain is set
+  cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
   lattice --version
   ```
 
-- **AI/agent install:** do not mutate the user's profile, `~/.cargo/bin`, or
-  Home Manager activation state. Install into a temporary root and run the
-  binary by absolute path for the current task only.
+- **AI/agent install:** do not mutate the user's profile, `~/.cargo/bin`, shell
+  configuration, or package-manager state. Install into a temporary root and run
+  the binary by absolute path for the current task only.
 
   ```bash
   tmp="$(mktemp -d)"
-  CARGO_HOME="$tmp/cargo-home" \
-    nix shell nixpkgs#cargo nixpkgs#rustc -c \
-      cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked --root "$tmp/install"
+  CARGO_HOME="$tmp/cargo-home" RUSTUP_TOOLCHAIN=stable \
+    cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked --root "$tmp/install"
   "$tmp/install/bin/lattice" --version
   ```
-
-Lattice v1.0.0 does not ship a Home Manager module or Nix flake package; do not
-wrap `cargo install` in a declarative activation step.
 
 Use the `main` branch or a local checkout only when testing unreleased changes
 beyond the v1.0.0 release.

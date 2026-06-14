@@ -6,7 +6,7 @@
 
 ### 변경
 
-- Nix/NixOS 설치 안내에서 사람 사용자의 지속 설치와 AI/agent의 작업 단위 ephemeral
+- Unix/Linux 설치 안내에서 사람 사용자의 지속 설치와 AI/agent의 작업 단위 ephemeral
   설치를 분리했다.
 
 ## v1.0.0 - 2026-06-13

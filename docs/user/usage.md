@@ -38,33 +38,28 @@ Install the current v1.0.0 stable command surface documented in this guide:
 cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
 ```
 
-On Nix or NixOS, choose the install mode by who owns the mutation:
+On Unix/Linux, choose the install mode by who owns the mutation:
 
-- **Human user:** use Nix only to provide the Rust toolchain, then install the
-  stable tag into the user's Cargo bin directory. Add `~/.cargo/bin` to the
-  user's shell `PATH` if it is not already there.
+- **Human user:** install the stable tag into the user's Cargo bin directory.
+  Add `~/.cargo/bin` to the user's shell `PATH` if it is not already there. If
+  rustup has no default toolchain yet, set one first with `rustup default stable`.
 
   ```bash
-  nix shell nixpkgs#cargo nixpkgs#rustc -c \
-    cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
+  rustup default stable  # only needed when no default Rust toolchain is set
+  cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
   lattice --version
   ```
 
 - **AI/agent:** keep the install ephemeral. Do not modify the user's profile,
-  `~/.cargo/bin`, shell config, or Home Manager activation state. Install to a
+  `~/.cargo/bin`, shell config, or package-manager state. Install to a
   task-scoped temporary root and call that binary directly.
 
   ```bash
   tmp="$(mktemp -d)"
-  CARGO_HOME="$tmp/cargo-home" \
-    nix shell nixpkgs#cargo nixpkgs#rustc -c \
-      cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked --root "$tmp/install"
+  CARGO_HOME="$tmp/cargo-home" RUSTUP_TOOLCHAIN=stable \
+    cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked --root "$tmp/install"
   "$tmp/install/bin/lattice" --version
   ```
-
-The v1.0.0 release intentionally keeps Home Manager modules, Nix-style
-declarative program modules, and package installation outside the stable
-surface. Treat those as future packaging work, not as the current install path.
 
 Use the `main` branch or a local checkout only when testing unreleased changes
 beyond the v1.0.0 release.

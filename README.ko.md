@@ -33,13 +33,15 @@ Unix/Linux에서는 사람 사용자의 지속 설치와 automation 전용 설�
   lattice --version
   ```
 
-- **AI/agent 설치:** 사용자 profile, `~/.cargo/bin`, shell config, package-manager state를
-  변경하지 않습니다. 현재 작업에서만 쓰도록 temporary root에 설치하고 absolute path로
-  binary를 실행합니다.
+- **AI/agent 설치:** 사용자 profile, `~/.cargo/bin`, shell 설정, rustup 상태,
+  package-manager state를 변경하지 않습니다. 이미 선택된 Cargo toolchain으로 작업 단위
+  temporary root에 설치하고, 해당 binary를 absolute path로만 실행합니다.
+  `RUSTUP_HOME`도 명시적으로 temporary로 격리하지 않는 한
+  `RUSTUP_TOOLCHAIN=stable`을 강제하지 않습니다.
 
   ```bash
   tmp="$(mktemp -d)"
-  CARGO_HOME="$tmp/cargo-home" RUSTUP_TOOLCHAIN=stable \
+  CARGO_HOME="$tmp/cargo-home" \
     cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked --root "$tmp/install"
   "$tmp/install/bin/lattice" --version
   ```

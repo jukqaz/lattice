@@ -7,7 +7,8 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 ### Changed
 
 - Clarified Unix/Linux installation guidance by separating persistent human user
-  installs from ephemeral AI/agent task installs.
+  installs from ephemeral AI/agent task installs, without forcing agent installs
+  to use rustup's `stable` alias.
 
 ## v1.0.0 - 2026-06-13
 

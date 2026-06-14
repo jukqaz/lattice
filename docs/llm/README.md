@@ -29,12 +29,14 @@ review evidence, Kanban sequencing, and safety boundaries.
 
 When an agent needs Lattice on a Unix/Linux host, do not perform the human user
 install. Agents must not mutate the user's profile, `~/.cargo/bin`, shell
-configuration, or package-manager state. Use a task-scoped temporary install
-root instead:
+configuration, rustup state, or package-manager state. Use a task-scoped temporary
+install root with the already-selected Cargo toolchain instead. Do not force
+`RUSTUP_TOOLCHAIN=stable` unless `RUSTUP_HOME` is also explicitly
+temporary:
 
 ```bash
 tmp="$(mktemp -d)"
-CARGO_HOME="$tmp/cargo-home" RUSTUP_TOOLCHAIN=stable \
+CARGO_HOME="$tmp/cargo-home" \
   cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked --root "$tmp/install"
 "$tmp/install/bin/lattice" --version
 ```

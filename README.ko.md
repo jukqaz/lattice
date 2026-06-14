@@ -21,6 +21,32 @@ Lattice는 범용 도구입니다. 특정 tool이나 service 하나가 제품의
 cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
 ```
 
+Nix 또는 NixOS에서는 사람 사용자의 지속 설치와 automation 전용 설치를 분리합니다.
+
+- **사용자 설치:** 같은 stable tag 설치를 Nix shell 안에서 실행하고, binary는 사용자
+  Cargo bin directory에 둡니다. 사용자 shell `PATH`에 `~/.cargo/bin`이 있어야 합니다.
+
+  ```bash
+  nix shell nixpkgs#cargo nixpkgs#rustc -c \
+    cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
+  lattice --version
+  ```
+
+- **AI/agent 설치:** 사용자 profile, `~/.cargo/bin`, Home Manager activation state를
+  변경하지 않습니다. 현재 작업에서만 쓰도록 temporary root에 설치하고 absolute path로
+  binary를 실행합니다.
+
+  ```bash
+  tmp="$(mktemp -d)"
+  CARGO_HOME="$tmp/cargo-home" \
+    nix shell nixpkgs#cargo nixpkgs#rustc -c \
+      cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked --root "$tmp/install"
+  "$tmp/install/bin/lattice" --version
+  ```
+
+Lattice v1.0.0은 Home Manager module이나 Nix flake package를 제공하지 않으므로,
+`cargo install`을 declarative activation step에 넣지 마세요.
+
 v1.0.0 release 이후 unreleased change를 테스트할 때만 `main` branch나 local
 checkout을 사용합니다.
 

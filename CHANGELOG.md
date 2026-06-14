@@ -6,7 +6,7 @@ English | [한국어](CHANGELOG.ko.md) | [Documentation Index](docs/README.md)
 
 ### Changed
 
-- Clarified Nix/NixOS installation guidance by separating persistent human user
+- Clarified Unix/Linux installation guidance by separating persistent human user
   installs from ephemeral AI/agent task installs.
 
 ## v1.0.0 - 2026-06-13

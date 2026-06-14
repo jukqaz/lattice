@@ -38,33 +38,28 @@ shortcut일 뿐입니다. 어떤 앱도 제품을 정의하지 않으며, Codex�
 cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
 ```
 
-Nix 또는 NixOS에서는 누가 변경을 소유하는지에 따라 설치 방식을 고릅니다.
+Unix/Linux에서는 누가 변경을 소유하는지에 따라 설치 방식을 고릅니다.
 
-- **사람 사용자:** Nix는 Rust toolchain 제공에만 쓰고, stable tag binary는 사용자
-  Cargo bin directory에 설치합니다. 사용자 shell `PATH`에 `~/.cargo/bin`이 없으면
-  추가하세요.
+- **사람 사용자:** stable tag binary를 사용자 Cargo bin directory에 설치합니다. 사용자
+  shell `PATH`에 `~/.cargo/bin`이 없으면 추가하세요. rustup default toolchain이 아직
+  없으면 먼저 `rustup default stable`을 설정합니다.
 
   ```bash
-  nix shell nixpkgs#cargo nixpkgs#rustc -c \
-    cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
+  rustup default stable  # default Rust toolchain이 없을 때만 필요
+  cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked
   lattice --version
   ```
 
 - **AI/agent:** 설치는 ephemeral이어야 합니다. 사용자 profile, `~/.cargo/bin`, shell
-  config, Home Manager activation state를 변경하지 마세요. 작업 단위 temporary root에
-  설치하고 그 binary를 직접 호출합니다.
+  config, package-manager state를 변경하지 마세요. 작업 단위 temporary root에 설치하고
+  그 binary를 직접 호출합니다.
 
   ```bash
   tmp="$(mktemp -d)"
-  CARGO_HOME="$tmp/cargo-home" \
-    nix shell nixpkgs#cargo nixpkgs#rustc -c \
-      cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked --root "$tmp/install"
+  CARGO_HOME="$tmp/cargo-home" RUSTUP_TOOLCHAIN=stable \
+    cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked --root "$tmp/install"
   "$tmp/install/bin/lattice" --version
   ```
-
-v1.0.0 release에서는 Home Manager module, Nix-style declarative program module,
-package installation을 의도적으로 stable surface 밖에 둡니다. 이것들은 현재 설치 경로가
-아니라 향후 packaging 작업으로 취급하세요.
 
 v1.0.0 release 이후 unreleased change를 테스트할 때만 `main` branch나 local
 checkout을 사용합니다.

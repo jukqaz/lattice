@@ -633,7 +633,7 @@ fn verify_product_surface_harness(root: &Path) -> Result<(), String> {
         "docs/llm/kanban-workflow.md",
         "one active card at a time",
         "Hermes Kanban recovery board",
-        "Nix/NixOS Install Boundary For Agents",
+        "Unix/Linux Install Boundary For Agents",
         "task-scoped temporary",
     ] {
         ensure_contains(
@@ -1270,8 +1270,13 @@ fn verify_release_static_contract(root: &Path, version: &str) -> Result<(), Stri
         )?;
         ensure_contains(
             &body,
-            "nix shell nixpkgs#cargo nixpkgs#rustc",
-            &format!("{relative} missing Nix install shell guidance"),
+            "rustup default stable",
+            &format!("{relative} missing Unix/Linux user toolchain guidance"),
+        )?;
+        ensure_contains(
+            &body,
+            "RUSTUP_TOOLCHAIN=stable",
+            &format!("{relative} missing ephemeral agent toolchain guidance"),
         )?;
         ensure_contains(
             &body,

@@ -1275,8 +1275,13 @@ fn verify_release_static_contract(root: &Path, version: &str) -> Result<(), Stri
         )?;
         ensure_contains(
             &body,
-            "RUSTUP_TOOLCHAIN=stable",
-            &format!("{relative} missing ephemeral agent toolchain guidance"),
+            "rustup",
+            &format!("{relative} missing agent rustup boundary"),
+        )?;
+        ensure_contains(
+            &body,
+            "toolchain",
+            &format!("{relative} missing agent current-toolchain guidance"),
         )?;
         ensure_contains(
             &body,

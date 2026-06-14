@@ -37,12 +37,14 @@ automation-only installs:
   ```
 
 - **AI/agent install:** do not mutate the user's profile, `~/.cargo/bin`, shell
-  configuration, or package-manager state. Install into a temporary root and run
-  the binary by absolute path for the current task only.
+  configuration, rustup state, or package-manager state. Install into a temporary
+  root with the already-selected Cargo toolchain and run the binary by absolute
+  path for the current task only. Do not force `RUSTUP_TOOLCHAIN=stable` unless
+  `RUSTUP_HOME` is also explicitly temporary.
 
   ```bash
   tmp="$(mktemp -d)"
-  CARGO_HOME="$tmp/cargo-home" RUSTUP_TOOLCHAIN=stable \
+  CARGO_HOME="$tmp/cargo-home" \
     cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked --root "$tmp/install"
   "$tmp/install/bin/lattice" --version
   ```

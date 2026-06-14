@@ -51,12 +51,14 @@ On Unix/Linux, choose the install mode by who owns the mutation:
   ```
 
 - **AI/agent:** keep the install ephemeral. Do not modify the user's profile,
-  `~/.cargo/bin`, shell config, or package-manager state. Install to a
-  task-scoped temporary root and call that binary directly.
+  `~/.cargo/bin`, shell config, rustup state, or package-manager state. Install
+  to a task-scoped temporary root with the already-selected Cargo toolchain and
+  call that binary directly. Do not force `RUSTUP_TOOLCHAIN=stable` unless
+  `RUSTUP_HOME` is also explicitly temporary.
 
   ```bash
   tmp="$(mktemp -d)"
-  CARGO_HOME="$tmp/cargo-home" RUSTUP_TOOLCHAIN=stable \
+  CARGO_HOME="$tmp/cargo-home" \
     cargo install --git https://github.com/jukqaz/lattice lattice --tag v1.0.0 --locked --root "$tmp/install"
   "$tmp/install/bin/lattice" --version
   ```
